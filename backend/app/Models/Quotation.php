@@ -1,0 +1,54 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+
+#[Fillable([
+    'tenant_id', 'customer_id', 'quotation_number', 'quotation_date',
+    'valid_until', 'subtotal', 'discount_type', 'discount_value',
+    'discount_amount', 'total', 'status', 'notes', 'created_by',
+])]
+class Quotation extends Model
+{
+    protected function casts(): array
+    {
+        return [
+            'quotation_date' => 'date',
+            'valid_until' => 'date',
+            'subtotal' => 'decimal:2',
+            'discount_value' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
+            'total' => 'decimal:2',
+        ];
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(QuotationItem::class);
+    }
+
+    public function invoice(): HasOne
+    {
+        return $this->hasOne(Invoice::class, 'quotation_id');
+    }
+}
