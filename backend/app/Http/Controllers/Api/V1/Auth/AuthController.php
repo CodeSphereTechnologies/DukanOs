@@ -133,7 +133,7 @@ class AuthController extends Controller
     /**
      * Revoke a specific access token.
      */
-    public function revokeToken(Request $request, int $tokenId): JsonResponse
+    public function revokeToken(Request $request, $tokenId): JsonResponse
     {
         $token = $request->user()->tokens()->whereKey($tokenId)->first();
 

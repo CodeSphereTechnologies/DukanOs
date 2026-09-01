@@ -126,8 +126,14 @@ class PunjabElectricStoreSeeder extends Seeder
             $roles[$key] = Role::create(['slug' => $key] + $def);
         }
 
+        // Super-admin-only permissions are excluded from store roles.
+        $storePermissions = array_values(array_diff(array_keys($permissions), [
+            'tenants.manage',
+            'specifications.manage',
+        ]));
+
         $rolePermissions = [
-            'owner' => array_keys($permissions),
+            'owner' => $storePermissions,
             'manager' => ['products.view', 'products.create', 'products.update', 'customers.view', 'customers.manage', 'invoices.create', 'invoices.view', 'quotations.manage', 'payments.manage', 'returns.manage', 'reports.view'],
             'cashier' => ['products.view', 'customers.view', 'customers.manage', 'invoices.create', 'invoices.view', 'payments.manage'],
             'accountant' => ['invoices.view', 'payments.manage', 'ledger.view', 'expenses.manage', 'payroll.manage', 'reports.view', 'reports.financial'],

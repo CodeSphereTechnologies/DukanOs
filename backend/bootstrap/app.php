@@ -21,6 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => EnsureRoleIs::class,
             'permission' => EnsurePermissionIs::class,
         ]);
+
+        // Never redirect guests to a "login" route — this is a JSON API.
+        $middleware->redirectGuestsTo(fn () => null);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
