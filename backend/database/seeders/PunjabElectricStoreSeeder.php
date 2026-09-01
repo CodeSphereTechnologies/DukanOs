@@ -21,9 +21,9 @@ use App\Models\ProductSpecificationValue;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\Role;
+use App\Models\SalaryRecord;
 use App\Models\SaleReturn;
 use App\Models\SaleReturnItem;
-use App\Models\SalaryRecord;
 use App\Models\Specification;
 use App\Models\SpecificationValue;
 use App\Models\Tenant;
@@ -79,7 +79,7 @@ class PunjabElectricStoreSeeder extends Seeder
     }
 
     /* ------------------------------------------------------------------ */
-    /*  Roles & Permissions                                                */
+    /*  Roles & Permissions */
     /* ------------------------------------------------------------------ */
 
     private function seedRolesAndPermissions(): array
@@ -158,7 +158,7 @@ class PunjabElectricStoreSeeder extends Seeder
     }
 
     /* ------------------------------------------------------------------ */
-    /*  Tenant & Users                                                     */
+    /*  Tenant & Users */
     /* ------------------------------------------------------------------ */
 
     private function seedTenant(): Tenant
@@ -214,7 +214,7 @@ class PunjabElectricStoreSeeder extends Seeder
     }
 
     /* ------------------------------------------------------------------ */
-    /*  Catalog: Specifications, Categories, Brands, Products              */
+    /*  Catalog: Specifications, Categories, Brands, Products */
     /* ------------------------------------------------------------------ */
 
     private function seedSpecifications(): array
@@ -433,7 +433,7 @@ class PunjabElectricStoreSeeder extends Seeder
     }
 
     /* ------------------------------------------------------------------ */
-    /*  Customers                                                          */
+    /*  Customers */
     /* ------------------------------------------------------------------ */
 
     private function seedCustomers(Tenant $tenant): array
@@ -467,7 +467,7 @@ class PunjabElectricStoreSeeder extends Seeder
     }
 
     /* ------------------------------------------------------------------ */
-    /*  Quotations & Sales                                                 */
+    /*  Quotations & Sales */
     /* ------------------------------------------------------------------ */
 
     private function seedQuotationsAndSales(Tenant $tenant, array $users, array $customers, array $products): void
@@ -863,7 +863,7 @@ class PunjabElectricStoreSeeder extends Seeder
     }
 
     /* ------------------------------------------------------------------ */
-    /*  Daily Ledger (Income / Expense)                                    */
+    /*  Daily Ledger (Income / Expense) */
     /* ------------------------------------------------------------------ */
 
     private function seedLedgerCategories(Tenant $tenant): array
@@ -976,7 +976,7 @@ class PunjabElectricStoreSeeder extends Seeder
     }
 
     /* ------------------------------------------------------------------ */
-    /*  Employees & Payroll                                                */
+    /*  Employees & Payroll */
     /* ------------------------------------------------------------------ */
 
     private function seedEmployeesAndSalaries(Tenant $tenant, array $users): void
@@ -1055,7 +1055,7 @@ class PunjabElectricStoreSeeder extends Seeder
     }
 
     /* ------------------------------------------------------------------ */
-    /*  Audit Logs                                                         */
+    /*  Audit Logs */
     /* ------------------------------------------------------------------ */
 
     private function seedAuditLogs(Tenant $tenant, array $users, array $products): void
@@ -1100,7 +1100,7 @@ class PunjabElectricStoreSeeder extends Seeder
     }
 
     /* ------------------------------------------------------------------ */
-    /*  Helpers                                                            */
+    /*  Helpers */
     /* ------------------------------------------------------------------ */
 
     private function m(float $value): float
