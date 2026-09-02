@@ -1,23 +1,17 @@
 ###############################################################################
-# Webiface Revenue OS — Laravel/PHP-FPM Dockerfile (Coolify deployment)
+# DukanOS — Laravel 13 / PHP 8.4-FPM Dockerfile (Coolify deployment)
 #
 # Multi-stage build:
 #   Stage 1 (composer): Install production PHP dependencies
-#   Stage 2 (production): PHP 8.3-FPM on Alpine with required extensions
-#
-# Extensions: pgsql/pdo_pgsql, redis (phpredis), zip, gd, intl, bcmath, pcntl,
-#             opcache, exif — required by Laravel 13 + phpspreadsheet (imports).
-#
-# NOTE: PHP 8.4 is required. The installed Symfony 8.1 uses PHP 8.4 property
-# hooks (e.g. Request.php), which PHP 8.3 cannot parse.
+#   Stage 2 (production): PHP 8.4-FPM on Alpine with PostgreSQL, SQLite, and Redis
 ###############################################################################
 
-# ─── Stage 1: Composer dependencies ─────────────────────────────────────────
+# ─── Stage 1: Composer Dependencies ─────────────────────────────────────────
 FROM composer:2 AS composer
 
 WORKDIR /app
 
-# Copy only composer files first for layer caching
+# Copy composer files for layer caching
 COPY backend/composer.json backend/composer.lock* ./
 
 # Install production dependencies
@@ -32,11 +26,12 @@ RUN composer install \
 # ─── Stage 2: Production PHP-FPM ────────────────────────────────────────────
 FROM php:8.4-fpm-alpine AS production
 
-# Install system dependencies required by PHP extensions and runtime
+# Install system dependencies
 RUN apk add --no-cache \
-        nginx \
         postgresql-client \
         libpq \
+        sqlite \
+        sqlite-libs \
         libzip \
         freetype \
         libpng \
@@ -50,7 +45,7 @@ RUN apk add --no-cache \
         procps \
         $PHPIZE_DEPS
 
-# Install PHP extensions via the official installer
+# Install PHP extensions
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 
 RUN install-php-extensions \
@@ -63,26 +58,34 @@ RUN install-php-extensions \
         zip \
         pdo_pgsql \
         pgsql \
+        pdo_sqlite \
         redis
 
 # Copy custom php.ini
-COPY coolify/docker/php/php.ini /usr/local/etc/php/conf.d/zz-webiface.ini
+COPY coolify/docker/php/php.ini /usr/local/etc/php/conf.d/zz-dukanos.ini
 
-# Create application directory and set ownership
+# Set application directory
 WORKDIR /var/www/backend
 
 # Copy Composer vendor directory from Stage 1
 COPY --from=composer /app/vendor /var/www/backend/vendor
 
-# Copy application source (use .dockerignore-friendly copy; backend has no .git here)
+# Copy backend application source
 COPY backend/ /var/www/backend/
 
-# Ensure storage and bootstrap cache are writable
-RUN mkdir -p storage/app/public storage/framework/cache/data storage/framework/sessions storage/framework/views storage/framework/testing storage/logs bootstrap/cache \
+# Ensure storage and bootstrap cache directories exist and have proper permissions
+RUN mkdir -p \
+        storage/app/public \
+        storage/framework/cache/data \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/framework/testing \
+        storage/logs \
+        bootstrap/cache \
     && chown -R www-data:www-data /var/www/backend/storage /var/www/backend/bootstrap/cache \
     && chmod -R 775 /var/www/backend/storage /var/www/backend/bootstrap/cache
 
-# Entrypoint handles migrations, key generation, storage link, cache
+# Copy and set executable entrypoint script
 COPY coolify/docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 

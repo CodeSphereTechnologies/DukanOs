@@ -1,0 +1,232 @@
+###############################################################################
+# DukanOS — Coolify Production Docker Compose Stack
+#
+# Services:
+#   - nginx:     Nginx Gateway + React SPA static files + Traefik reverse proxy
+#   - backend:   Laravel 13 API on PHP 8.4-FPM
+#   - queue:     Laravel queue worker (redis)
+#   - scheduler: Laravel periodic task scheduler
+#   - postgres:  PostgreSQL 17 database
+#   - redis:     Redis 7 cache, session, and queue broker
+#
+# Coolify Deployment Rules:
+#   - No hardcoded port mappings (all traffic routed via Coolify Traefik)
+#   - Only nginx has traefik.enable=true
+#   - Volumes use local driver managed by Docker / Coolify
+###############################################################################
+
+services:
+  # ── Nginx Gateway & React SPA ─────────────────────────────────────────────
+  nginx:
+    build:
+      context: .
+      dockerfile: coolify/docker/nginx/Dockerfile
+      args:
+        VITE_API_URL: ""
+        VITE_APP_NAME: "${APP_NAME:-DukanOS}"
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    volumes:
+      - dukanos_storage:/var/www/backend/storage/app/public:ro
+    networks:
+      - dukanos_network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/nginx-health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${COOLIFY_CONTAINER_NAME:-dukanos}.entrypoints=websecure"
+      - "traefik.http.routers.${COOLIFY_CONTAINER_NAME:-dukanos}.rule=Host(`${COOLIFY_FQDN:-app.dukanos.pk}`)"
+      - "traefik.http.routers.${COOLIFY_CONTAINER_NAME:-dukanos}.tls=true"
+      - "traefik.http.routers.${COOLIFY_CONTAINER_NAME:-dukanos}.tls.certresolver=letsencrypt"
+      - "traefik.http.services.${COOLIFY_CONTAINER_NAME:-dukanos}.loadbalancer.server.port=80"
+
+  # ── Laravel 13 API Backend (PHP 8.4-FPM) ──────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: coolify/docker/php/Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_NAME: "${APP_NAME:-DukanOS}"
+      APP_ENV: "${APP_ENV:-production}"
+      APP_KEY: "${APP_KEY:-}"
+      APP_DEBUG: "${APP_DEBUG:-false}"
+      APP_URL: "${APP_URL:-https://app.dukanos.pk}"
+      FRONTEND_URL: "${FRONTEND_URL:-https://app.dukanos.pk}"
+      SANCTUM_STATEFUL_DOMAINS: "${SANCTUM_STATEFUL_DOMAINS:-app.dukanos.pk}"
+
+      # Database
+      DB_CONNECTION: "${DB_CONNECTION:-pgsql}"
+      DB_HOST: "${DB_HOST:-postgres}"
+      DB_PORT: "${DB_PORT:-5432}"
+      DB_DATABASE: "${DB_DATABASE:-dukanos}"
+      DB_USERNAME: "${DB_USERNAME:-dukanos_user}"
+      DB_PASSWORD: "${DB_PASSWORD:-dukanos_db_secret}"
+
+      # Cache / Session / Queue
+      CACHE_STORE: "${CACHE_STORE:-redis}"
+      QUEUE_CONNECTION: "${QUEUE_CONNECTION:-redis}"
+      SESSION_DRIVER: "${SESSION_DRIVER:-redis}"
+      SESSION_LIFETIME: "${SESSION_LIFETIME:-120}"
+
+      # Redis
+      REDIS_HOST: "${REDIS_HOST:-redis}"
+      REDIS_PORT: "${REDIS_PORT:-6379}"
+      REDIS_PASSWORD: "${REDIS_PASSWORD:-dukanos_redis_secret}"
+      REDIS_CLIENT: "${REDIS_CLIENT:-phpredis}"
+
+      # Logging & Storage
+      LOG_CHANNEL: "${LOG_CHANNEL:-stack}"
+      LOG_LEVEL: "${LOG_LEVEL:-error}"
+      FILESYSTEM_DISK: "${FILESYSTEM_DISK:-local}"
+
+      # Mail
+      MAIL_MAILER: "${MAIL_MAILER:-log}"
+      MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS:-noreply@dukanos.pk}"
+      MAIL_FROM_NAME: "${MAIL_FROM_NAME:-DukanOS}"
+
+      # Entrypoint Flags
+      RUN_MIGRATIONS: "${RUN_MIGRATIONS:-true}"
+      RUN_SEED: "${RUN_SEED:-false}"
+      RUN_CACHE: "${RUN_CACHE:-true}"
+      GENERATE_APP_KEY: "${GENERATE_APP_KEY:-true}"
+      TRUSTED_PROXIES: "${TRUSTED_PROXIES:-*}"
+    volumes:
+      - dukanos_storage:/var/www/backend/storage/app/public
+    networks:
+      - dukanos_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ── Laravel Queue Worker ───────────────────────────────────────────────────
+  queue:
+    build:
+      context: .
+      dockerfile: coolify/docker/php/Dockerfile
+    command: ["php", "artisan", "queue:work", "redis", "--tries=3", "--timeout=90", "--sleep=3"]
+    restart: unless-stopped
+    environment:
+      APP_NAME: "${APP_NAME:-DukanOS}"
+      APP_ENV: "${APP_ENV:-production}"
+      APP_KEY: "${APP_KEY:-}"
+      APP_DEBUG: "${APP_DEBUG:-false}"
+      DB_CONNECTION: "${DB_CONNECTION:-pgsql}"
+      DB_HOST: "${DB_HOST:-postgres}"
+      DB_PORT: "${DB_PORT:-5432}"
+      DB_DATABASE: "${DB_DATABASE:-dukanos}"
+      DB_USERNAME: "${DB_USERNAME:-dukanos_user}"
+      DB_PASSWORD: "${DB_PASSWORD:-dukanos_db_secret}"
+      CACHE_STORE: "${CACHE_STORE:-redis}"
+      QUEUE_CONNECTION: "${QUEUE_CONNECTION:-redis}"
+      REDIS_HOST: "${REDIS_HOST:-redis}"
+      REDIS_PORT: "${REDIS_PORT:-6379}"
+      REDIS_PASSWORD: "${REDIS_PASSWORD:-dukanos_redis_secret}"
+      RUN_MIGRATIONS: "false"
+      RUN_SEED: "false"
+      RUN_CACHE: "false"
+      GENERATE_APP_KEY: "false"
+    volumes:
+      - dukanos_storage:/var/www/backend/storage/app/public
+    networks:
+      - dukanos_network
+    depends_on:
+      backend:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+  # ── Laravel Task Scheduler ────────────────────────────────────────────────
+  scheduler:
+    build:
+      context: .
+      dockerfile: coolify/docker/php/Dockerfile
+    command: ["php", "artisan", "schedule:work"]
+    restart: unless-stopped
+    environment:
+      APP_NAME: "${APP_NAME:-DukanOS}"
+      APP_ENV: "${APP_ENV:-production}"
+      APP_KEY: "${APP_KEY:-}"
+      APP_DEBUG: "${APP_DEBUG:-false}"
+      DB_CONNECTION: "${DB_CONNECTION:-pgsql}"
+      DB_HOST: "${DB_HOST:-postgres}"
+      DB_PORT: "${DB_PORT:-5432}"
+      DB_DATABASE: "${DB_DATABASE:-dukanos}"
+      DB_USERNAME: "${DB_USERNAME:-dukanos_user}"
+      DB_PASSWORD: "${DB_PASSWORD:-dukanos_db_secret}"
+      CACHE_STORE: "${CACHE_STORE:-redis}"
+      QUEUE_CONNECTION: "${QUEUE_CONNECTION:-redis}"
+      REDIS_HOST: "${REDIS_HOST:-redis}"
+      REDIS_PORT: "${REDIS_PORT:-6379}"
+      REDIS_PASSWORD: "${REDIS_PASSWORD:-dukanos_redis_secret}"
+      RUN_MIGRATIONS: "false"
+      RUN_SEED: "false"
+      RUN_CACHE: "false"
+      GENERATE_APP_KEY: "false"
+    volumes:
+      - dukanos_storage:/var/www/backend/storage/app/public
+    networks:
+      - dukanos_network
+    depends_on:
+      backend:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+
+  # ── PostgreSQL Database ────────────────────────────────────────────────────
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "${DB_DATABASE:-dukanos}"
+      POSTGRES_USER: "${DB_USERNAME:-dukanos_user}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD:-dukanos_db_secret}"
+    volumes:
+      - dukanos_db_data:/var/lib/postgresql/data
+    networks:
+      - dukanos_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-dukanos_user} -d ${DB_DATABASE:-dukanos}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ── Redis Cache & Queue Broker ─────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-dukanos_redis_secret}"]
+    volumes:
+      - dukanos_redis_data:/data
+    networks:
+      - dukanos_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-dukanos_redis_secret}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+# ── Volumes ─────────────────────────────────────────────────────────────────
+volumes:
+  dukanos_db_data:
+    driver: local
+  dukanos_redis_data:
+    driver: local
+  dukanos_storage:
+    driver: local
+
+# ── Networks ────────────────────────────────────────────────────────────────
+networks:
+  dukanos_network:
+    driver: bridge
+

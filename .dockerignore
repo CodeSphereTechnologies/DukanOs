@@ -1,0 +1,17 @@
+.git
+.github
+.gemini
+node_modules
+frontend/node_modules
+frontend/dist
+backend/vendor
+backend/storage/logs/*.log
+backend/storage/framework/cache/data/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/database/database.sqlite
+mobile
+docs
+*.md
+.DS_Store
+
