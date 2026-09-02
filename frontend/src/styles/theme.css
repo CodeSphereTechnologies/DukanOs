@@ -1,0 +1,30 @@
+/**
+ * DukanOS Theme & Component Utility Classes
+ */
+
+.dukan-card {
+  background-color: var(--canvas-light-primary);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.financial-positive {
+  color: var(--color-positive);
+  background-color: var(--color-mint);
+}
+
+.financial-negative {
+  color: var(--color-negative);
+  background-color: var(--color-danger-bg);
+}
+
+.pill-button {
+  border-radius: var(--radius-pill);
+  min-height: var(--height-button);
+}
+
+.focus-ring {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-neutral-900);
+}

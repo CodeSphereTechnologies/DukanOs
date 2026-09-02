@@ -1,0 +1,57 @@
+/**
+ * DukanOS Design Tokens
+ * Strictly following docs/design.md
+ */
+
+:root {
+  /* Canvas & Brand System */
+  --canvas-light-primary: #FFFFFF;
+  --canvas-light-bg: #FAFAF8;
+  --canvas-dark-primary: #000000;
+  --canvas-dark-card: #18181B;
+
+  /* Primary Brand */
+  --color-primary: #000000;
+  --color-primary-foreground: #FFFFFF;
+
+  /* DukanOS Mint (Success / Growth / Complete ONLY) */
+  --color-mint: #C1FBD4;
+  --color-mint-dark: #064E3B;
+  --color-mint-light: #E6FDF0;
+
+  /* Neutral Scale */
+  --color-neutral-50: #FAFAFA;
+  --color-neutral-100: #F4F4F5;
+  --color-neutral-200: #E4E4E7;
+  --color-neutral-300: #D4D4D8;
+  --color-neutral-400: #A1A1AA;
+  --color-neutral-500: #71717A;
+  --color-neutral-600: #52525B;
+  --color-neutral-700: #3F3F46;
+  --color-neutral-800: #27272A;
+  --color-neutral-900: #18181B;
+
+  /* Financial Semantics */
+  --color-positive: #065F46;
+  --color-negative: #991B1B;
+  --color-warning: #92400E;
+  --color-warning-bg: #FEF3C7;
+  --color-danger-bg: #FEE2E2;
+
+  /* Geometry & Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-card: 16px;
+  --radius-pill: 9999px;
+
+  /* Component Heights */
+  --height-button: 44px;
+  --height-input: 44px;
+  --height-table-row: 56px;
+  --height-header: 56px;
+
+  /* Shadows */
+  --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-popover: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+}
