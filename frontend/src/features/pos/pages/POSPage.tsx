@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Button } from '../../../components/ui/Button';
 import { SearchInput } from '../../../components/ui/SearchInput';
 import { Dialog } from '../../../components/ui/Dialog';
 import { FormField } from '../../../components/ui/FormField';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
-import { Plus, Minus, Trash2, CheckCircle2, User, Printer } from 'lucide-react';
+import { Plus, Minus, Trash2, CheckCircle2, User, Printer, ShoppingCart, ArrowLeft } from 'lucide-react';
 import { formatCurrency } from '../../../lib/formatters';
+import { cn } from '../../../lib/utils';
 
 interface CartItem {
   id: number;
@@ -27,7 +29,8 @@ const CATALOG_ITEMS = [
 ];
 
 export const POSPage: React.FC = () => {
-  const [search, setSearch] = useState('');
+  const location = useLocation();
+  const [search, setSearch] = useState(location.state?.barcode || '');
   const [cart, setCart] = useState<CartItem[]>([
     { id: 1, name: 'Royal Deluxe Fan 56"', sku: 'ROY-FAN-56', price: 9500, quantity: 2, discount: 0 },
     { id: 3, name: 'Philips LED Bulb 18W Cool Daylight', sku: 'PHI-LED-18W', price: 650, quantity: 4, discount: 0 },
@@ -38,6 +41,7 @@ export const POSPage: React.FC = () => {
   const [amountPaid, setAmountPaid] = useState<number>(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [completedInvoiceNumber, setCompletedInvoiceNumber] = useState('');
+  const [mobileTab, setMobileTab] = useState<'catalog' | 'cart'>('catalog');
 
   const filteredCatalog = CATALOG_ITEMS.filter(
     (item) =>
@@ -55,6 +59,20 @@ export const POSPage: React.FC = () => {
       return [...prev, { id: product.id, name: product.name, sku: product.sku, price: product.price, quantity: 1, discount: 0 }];
     });
   };
+
+  useEffect(() => {
+    if (location.state?.autoAddProduct) {
+      setTimeout(() => {
+        setCart((prev) => {
+          const existing = prev.find((i) => i.id === location.state.autoAddProduct.id);
+          if (existing) {
+            return prev.map((i) => (i.id === location.state.autoAddProduct.id ? { ...i, quantity: i.quantity + 1 } : i));
+          }
+          return [...prev, { id: location.state.autoAddProduct.id, name: location.state.autoAddProduct.name, sku: location.state.autoAddProduct.sku, price: location.state.autoAddProduct.price, quantity: 1, discount: 0 }];
+        });
+      }, 0);
+    }
+  }, [location.state]);
 
   const updateQuantity = (id: number, delta: number) => {
     setCart((prev) =>
@@ -96,11 +114,45 @@ export const POSPage: React.FC = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-56px)] flex flex-col md:flex-row bg-[#FAFAF8] overflow-hidden">
+    <div className="h-[calc(100vh-112px)] md:h-[calc(100vh-56px)] flex flex-col md:flex-row bg-[#FAFAF8] overflow-hidden">
+      {/* Mobile Top Segmented Tab Switcher */}
+      <div className="flex md:hidden bg-white border-b border-[#E4E4E7] p-2 gap-2 shrink-0">
+        <button
+          type="button"
+          onClick={() => setMobileTab('catalog')}
+          className={cn(
+            'flex-1 py-2 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors',
+            mobileTab === 'catalog'
+              ? 'bg-[#18181B] text-white shadow-xs'
+              : 'text-[#71717A] bg-[#F4F4F5] hover:bg-[#E4E4E7]'
+          )}
+        >
+          <span>Catalog & Search</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileTab('cart')}
+          className={cn(
+            'flex-1 py-2 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors',
+            mobileTab === 'cart'
+              ? 'bg-[#047857] text-white shadow-xs'
+              : 'text-[#71717A] bg-[#F4F4F5] hover:bg-[#E4E4E7]'
+          )}
+        >
+          <ShoppingCart className="w-3.5 h-3.5" />
+          <span>Cart ({cart.reduce((sum, i) => sum + i.quantity, 0)})</span>
+        </button>
+      </div>
+
       {/* Left Column: Product Search & Grid */}
-      <div className="flex-1 flex flex-col p-4 sm:p-6 overflow-hidden border-r border-[#E4E4E7]">
+      <div
+        className={cn(
+          'flex-1 flex-col p-3 sm:p-6 overflow-hidden border-r border-[#E4E4E7]',
+          mobileTab === 'cart' ? 'hidden md:flex' : 'flex'
+        )}
+      >
         {/* Search Bar */}
-        <div className="mb-4">
+        <div className="mb-3 sm:mb-4">
           <SearchInput
             value={search}
             onChange={setSearch}
@@ -109,7 +161,7 @@ export const POSPage: React.FC = () => {
         </div>
 
         {/* Product Catalog Grid */}
-        <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3 pb-2">
           {filteredCatalog.map((item) => (
             <button
               key={item.id}
@@ -128,18 +180,46 @@ export const POSPage: React.FC = () => {
             </button>
           ))}
         </div>
+
+        {/* Mobile Quick Cart Bar when in catalog mode */}
+        {cart.length > 0 && (
+          <div className="md:hidden pt-2 border-t border-[#E4E4E7]">
+            <Button
+              variant="success"
+              size="md"
+              className="w-full font-bold justify-between shadow-md text-xs"
+              onClick={() => setMobileTab('cart')}
+            >
+              <span>{cart.length} item{cart.length > 1 ? 's' : ''} in cart</span>
+              <span>View Cart & Pay {formatCurrency(grandTotal)} &rarr;</span>
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Right Column: Active Cart & Settlement */}
-      <div className="w-full md:w-96 lg:w-[420px] bg-white flex flex-col justify-between border-t md:border-t-0 shadow-lg shrink-0">
+      <div
+        className={cn(
+          'w-full md:w-96 lg:w-[420px] bg-white flex-col justify-between border-t md:border-t-0 shadow-lg shrink-0',
+          mobileTab === 'catalog' ? 'hidden md:flex' : 'flex'
+        )}
+      >
         {/* Cart Header */}
-        <div className="p-4 border-b border-[#E4E4E7] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <User className="w-4 h-4 text-[#71717A]" />
+        <div className="p-3 sm:p-4 border-b border-[#E4E4E7] flex items-center justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              type="button"
+              onClick={() => setMobileTab('catalog')}
+              className="md:hidden p-1.5 -ml-1 text-[#71717A] hover:text-black rounded-lg"
+              title="Back to Catalog"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <User className="w-4 h-4 text-[#71717A] shrink-0" />
             <select
               value={customer}
               onChange={(e) => setCustomer(e.target.value)}
-              className="text-xs font-semibold text-black bg-transparent border-none outline-none cursor-pointer"
+              className="text-xs font-semibold text-black bg-transparent border-none outline-none cursor-pointer truncate max-w-[170px] sm:max-w-none"
             >
               <option value="Walk-in Customer">Walk-in Customer</option>
               <option value="Al-Madina Construction">Al-Madina Construction</option>
@@ -147,7 +227,7 @@ export const POSPage: React.FC = () => {
               <option value="Chaudhry Bilal (Contractor)">Chaudhry Bilal (Contractor)</option>
             </select>
           </div>
-          <span className="text-xs text-[#71717A]">{cart.length} items</span>
+          <span className="text-xs text-[#71717A] shrink-0">{cart.length} items</span>
         </div>
 
         {/* Cart Items List */}

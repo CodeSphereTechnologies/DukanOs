@@ -7,3 +7,6 @@ export * from './invoice.service';
 export * from './report.service';
 export * from './audit.service';
 export * from './user.service';
+export * from './specification.service';
+export * from './finance.service';
+export * from './payroll.service';

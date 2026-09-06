@@ -26,6 +26,7 @@ import { ReportsPage } from '../features/reports/pages/ReportsPage';
 import { UsersPage } from '../features/users/pages/UsersPage';
 import { AuditPage } from '../features/audit/pages/AuditPage';
 import { TenantsPage } from '../features/tenants/pages/TenantsPage';
+import { CreateTenantPage } from '../features/tenants/pages/CreateTenantPage';
 import { SpecificationsPage } from '../features/specifications/pages/SpecificationsPage';
 
 const RootRedirect: React.FC = () => {
@@ -83,7 +84,23 @@ export const AppRoutes: React.FC = () => {
           }
         />
         <Route
+          path="/super-admin/tenants/create"
+          element={
+            <RoleRoute allowedRoles={['super_admin']}>
+              <CreateTenantPage />
+            </RoleRoute>
+          }
+        />
+        <Route
           path="/super-admin/specifications"
+          element={
+            <RoleRoute allowedRoles={['super_admin']}>
+              <SpecificationsPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/super-admin/specifications/create"
           element={
             <RoleRoute allowedRoles={['super_admin']}>
               <SpecificationsPage />

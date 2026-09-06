@@ -15,7 +15,7 @@ export const SearchToolbar: React.FC<SearchToolbarProps> = ({
   actions,
 }) => {
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 w-full">
+    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 w-full">
       <div className="w-full sm:max-w-md">
         <SearchInput
           value={searchValue}
@@ -23,7 +23,7 @@ export const SearchToolbar: React.FC<SearchToolbarProps> = ({
           placeholder={searchPlaceholder}
         />
       </div>
-      {actions && <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2 shrink-0 justify-start sm:justify-end">{actions}</div>}
     </div>
   );
 };

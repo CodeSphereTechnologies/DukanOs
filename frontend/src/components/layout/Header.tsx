@@ -13,17 +13,19 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
 
   return (
     <header className="h-14 bg-white border-b border-[#E4E4E7] px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 mr-2">
         {onMenuToggle && (
           <button
             type="button"
             onClick={onMenuToggle}
-            className="md:hidden p-2 rounded-lg text-[#71717A] hover:text-black hover:bg-[#F4F4F5]"
+            className="md:hidden p-1.5 -ml-1 rounded-lg text-[#71717A] hover:text-black hover:bg-[#F4F4F5] shrink-0"
           >
             <Menu className="w-5 h-5" />
           </button>
         )}
-        <Breadcrumb />
+        <div className="min-w-0 overflow-hidden">
+          <Breadcrumb />
+        </div>
       </div>
 
       <div className="flex items-center gap-3">

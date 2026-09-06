@@ -16,6 +16,7 @@ import {
   Building2,
   Receipt,
   UserCheck,
+  X,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import type { User, RoleSlug } from '../../types/auth.types';
@@ -56,9 +57,19 @@ export interface SidebarProps {
   user: User;
   collapsed: boolean;
   onToggleCollapse: () => void;
+  onNavigate?: () => void;
+  isMobile?: boolean;
+  className?: string;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ user, collapsed, onToggleCollapse }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  user,
+  collapsed,
+  onToggleCollapse,
+  onNavigate,
+  isMobile = false,
+  className,
+}) => {
   const isSuperAdmin = user.role.slug === 'super_admin';
 
   const visibleNavItems = NAV_ITEMS.filter((item) => {
@@ -69,16 +80,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, collapsed, onToggleColla
   return (
     <aside
       className={cn(
-        'bg-[#FFFFFF] border-r border-[#E4E4E7] flex flex-col justify-between transition-all duration-200 z-40',
-        collapsed ? 'w-16' : 'w-64'
+        'h-screen bg-[#FFFFFF] border-r border-[#E4E4E7] flex flex-col justify-between transition-all duration-200 ease-in-out select-none',
+        collapsed ? 'w-16' : 'w-64',
+        className
       )}
     >
-      <div>
+      <div className="flex flex-col flex-1 min-h-0">
         {/* Brand Header */}
-        <div className="h-14 border-b border-[#E4E4E7] px-4 flex items-center justify-between">
+        <div className="h-14 shrink-0 border-b border-[#E4E4E7] px-4 flex items-center justify-between">
           {!collapsed ? (
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-black rounded-lg flex items-center justify-center text-white font-bold text-sm tracking-tighter">
+              <div className="w-7 h-7 bg-black rounded-lg flex items-center justify-center text-white font-bold text-sm tracking-tighter shadow-sm">
                 D
               </div>
               <span className="font-bold text-base tracking-tight font-display text-[#18181B]">
@@ -86,31 +98,46 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, collapsed, onToggleColla
               </span>
             </div>
           ) : (
-            <div className="w-7 h-7 bg-black rounded-lg flex items-center justify-center text-white font-bold text-sm mx-auto">
+            <div className="w-7 h-7 bg-black rounded-lg flex items-center justify-center text-white font-bold text-sm mx-auto shadow-sm">
               D
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            className="p-1 rounded-full text-[#71717A] hover:text-black hover:bg-[#F4F4F5] hidden md:block"
-          >
-            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </button>
+          {isMobile ? (
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              className="p-1.5 rounded-full text-[#71717A] hover:text-black hover:bg-[#F4F4F5] transition-colors"
+              title="Close menu"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              className="p-1 rounded-full text-[#71717A] hover:text-black hover:bg-[#F4F4F5] transition-colors"
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </button>
+          )}
         </div>
 
         {/* Navigation List */}
-        <nav className="p-2 space-y-1 overflow-y-auto max-h-[calc(100vh-120px)]">
+        <nav className="flex-1 p-2 space-y-1 overflow-y-auto overflow-x-hidden">
           {visibleNavItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={() => {
+                if (onNavigate) onNavigate();
+              }}
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-full text-xs font-medium transition-colors',
                   isActive
-                    ? 'bg-black text-white'
+                    ? 'bg-black text-white shadow-sm'
                     : 'text-[#52525B] hover:text-black hover:bg-[#F4F4F5]',
                   collapsed && 'justify-center px-0'
                 )
@@ -126,7 +153,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, collapsed, onToggleColla
 
       {/* Tenant Indicator at Footer */}
       {!collapsed && user.tenant && (
-        <div className="p-3 m-3 border border-[#E4E4E7] rounded-xl bg-[#FAFAF8] text-xs">
+        <div className="shrink-0 p-3 m-3 border border-[#E4E4E7] rounded-xl bg-[#FAFAF8] text-xs">
           <div className="font-semibold text-[#18181B] truncate">{user.tenant.name}</div>
           <div className="text-[11px] text-[#71717A] capitalize">{user.role.name}</div>
         </div>
@@ -134,3 +161,4 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, collapsed, onToggleColla
     </aside>
   );
 };
+

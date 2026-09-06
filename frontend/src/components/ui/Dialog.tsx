@@ -45,38 +45,38 @@ export const Dialog: React.FC<DialogProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity" onClick={onClose} />
 
       {/* Modal Dialog Card */}
       <div
         className={cn(
-          'relative w-full bg-white rounded-2xl shadow-xl border border-[#E4E4E7] overflow-hidden z-10 flex flex-col max-h-[90vh] animate-in fade-in-0 zoom-in-95 duration-150',
+          'relative w-full bg-white rounded-xl sm:rounded-2xl shadow-xl border border-[#E4E4E7] overflow-hidden z-10 flex flex-col max-h-[92vh] sm:max-h-[90vh] animate-in fade-in-0 zoom-in-95 duration-150',
           widthClasses[maxWidth]
         )}
       >
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 flex items-start justify-between border-b border-[#E4E4E7]/60">
-          <div>
-            {title && <h3 className="text-base font-semibold text-[#18181B] font-display">{title}</h3>}
-            {description && <p className="text-xs text-[#71717A] mt-1 leading-relaxed">{description}</p>}
+        <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 flex items-start justify-between border-b border-[#E4E4E7]/60">
+          <div className="min-w-0 pr-2">
+            {title && <h3 className="text-sm sm:text-base font-semibold text-[#18181B] font-display truncate sm:whitespace-normal">{title}</h3>}
+            {description && <p className="text-[11px] sm:text-xs text-[#71717A] mt-0.5 sm:mt-1 leading-relaxed">{description}</p>}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-full text-[#A1A1AA] hover:text-[#18181B] hover:bg-[#F4F4F5] transition-colors"
+            className="p-1.5 rounded-full text-[#A1A1AA] hover:text-[#18181B] hover:bg-[#F4F4F5] transition-colors shrink-0 ml-2"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Body Content */}
-        <div className="px-6 py-5 overflow-y-auto flex-1">{children}</div>
+        <div className="px-4 sm:px-6 py-3.5 sm:py-5 overflow-y-auto flex-1">{children}</div>
 
         {/* Footer */}
         {footer && (
-          <div className="px-6 py-4 bg-[#FAFAF8] border-t border-[#E4E4E7] flex items-center justify-end gap-2.5">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 bg-[#FAFAF8] border-t border-[#E4E4E7] flex flex-wrap items-center justify-end gap-2 sm:gap-2.5">
             {footer}
           </div>
         )}

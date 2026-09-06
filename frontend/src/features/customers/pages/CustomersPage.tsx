@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageContainer } from '../../../components/ui/PageContainer';
 import { DataTable, type Column } from '../../../components/ui/DataTable';
 import { SearchToolbar } from '../../../components/ui/SearchToolbar';
@@ -10,18 +10,19 @@ import { Input } from '../../../components/ui/Input';
 import { UserPlus, BookOpen } from 'lucide-react';
 import { formatCurrency } from '../../../lib/formatters';
 import type { Customer } from '../../../types/customer.types';
-
-const INITIAL_CUSTOMERS: Customer[] = [
-  { id: 1, name: 'Chaudhry Bilal (Contractor)', phone: '+92 300 1234567', email: 'bilal@contractors.pk', address: 'Model Town, Lahore', current_balance: 142000, status: 'active' },
-  { id: 2, name: 'Tariq Electric Works', phone: '+92 321 9876543', email: 'tariq@electric.pk', address: 'Brandreth Road, Lahore', current_balance: 98500, status: 'active' },
-  { id: 3, name: 'Al-Madina Construction', phone: '+92 300 7654321', email: 'madina@builders.pk', address: 'DHA Phase 5, Lahore', current_balance: 0, status: 'active' },
-];
+import { customerService } from '../../../services/customer.service';
 
 export const CustomersPage: React.FC = () => {
-  const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedLedgerCustomer, setSelectedLedgerCustomer] = useState<Customer | null>(null);
+
+  useEffect(() => {
+    customerService.getAll().then((res) => {
+      if (res.data) setCustomers(res.data);
+    });
+  }, []);
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -47,6 +48,7 @@ export const CustomersPage: React.FC = () => {
       status: 'active',
     };
 
+    customerService.saveCustomer(newCust);
     setCustomers([newCust, ...customers]);
     setIsAddOpen(false);
     setName('');
@@ -191,22 +193,22 @@ export const CustomersPage: React.FC = () => {
         }
       >
         <div className="space-y-4">
-          <div className="p-4 bg-[#FAFAF8] rounded-xl border border-[#E4E4E7] flex justify-between items-center text-xs">
+          <div className="p-3 sm:p-4 bg-[#FAFAF8] rounded-xl border border-[#E4E4E7] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
             <div>
-              <span className="text-[#71717A]">Phone:</span> {selectedLedgerCustomer?.phone}
+              <span className="text-[#71717A]">Phone:</span> {selectedLedgerCustomer?.phone || 'N/A'}
             </div>
             <div>
-              <span className="text-[#71717A]">Address:</span> {selectedLedgerCustomer?.address}
+              <span className="text-[#71717A]">Address:</span> {selectedLedgerCustomer?.address || 'N/A'}
             </div>
           </div>
-          <div className="border border-[#E4E4E7] rounded-xl overflow-hidden text-xs">
-            <div className="grid grid-cols-4 bg-[#FAFAF8] p-3 font-semibold text-[#71717A] border-b border-[#E4E4E7]">
+          <div className="border border-[#E4E4E7] rounded-xl overflow-x-auto text-xs">
+            <div className="grid grid-cols-4 min-w-[480px] bg-[#FAFAF8] p-3 font-semibold text-[#71717A] border-b border-[#E4E4E7]">
               <span>Date</span>
               <span>Description</span>
               <span className="text-right">Debit / Credit</span>
               <span className="text-right">Balance</span>
             </div>
-            <div className="p-3 grid grid-cols-4 border-b border-[#E4E4E7]/50">
+            <div className="p-3 grid grid-cols-4 min-w-[480px] border-b border-[#E4E4E7]/50">
               <span>2026-09-01</span>
               <span>Invoice #INV-2026-0091</span>
               <span className="text-right text-[#DC2626] font-semibold">+PKR 92,400.00</span>
