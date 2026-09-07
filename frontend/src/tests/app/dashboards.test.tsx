@@ -15,8 +15,8 @@ describe('Role Dashboards Rendering', () => {
       </MemoryRouter>
     );
     expect(screen.getByText('Platform Super Admin')).toBeInTheDocument();
-    expect(screen.getByText('Total Tenants')).toBeInTheDocument();
-    expect(screen.getByText('Provision Tenant')).toBeInTheDocument();
+    expect(screen.getByText('Total Store Tenants')).toBeInTheDocument();
+    expect(screen.getByText('Provision Store Tenant')).toBeInTheDocument();
   });
 
   it('renders OwnerDashboard with sales overview and quick action cards', () => {

@@ -13,38 +13,28 @@ import { Select } from '../../../components/ui/Select';
 import { Alert } from '../../../components/ui/Alert';
 import {
   Building2,
-  Sliders,
   Plus,
   CheckCircle2,
   Sparkles,
   ExternalLink,
   Trash2,
-  ShieldCheck,
-  Activity,
-  Database,
-  Server,
   RefreshCw,
   Layers,
   ArrowRight,
-  SlidersHorizontal,
 } from 'lucide-react';
 import { formatDate } from '../../../lib/formatters';
 import { tenantService } from '../../../services/tenant.service';
-import { specificationService } from '../../../services/specification.service';
 import type { Tenant } from '../../../types/auth.types';
-import type { Specification } from '../../../types/product.types';
 
 export const SuperAdminDashboard: React.FC = () => {
   const navigate = useNavigate();
 
   // Data states
   const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [specs, setSpecs] = useState<Specification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Filter & tab states
+  // Filter state
   const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState<'tenants' | 'specs' | 'telemetry'>('tenants');
   const [feedback, setFeedback] = useState<string | null>(null);
 
   // Quick Provision Modal State
@@ -59,12 +49,8 @@ export const SuperAdminDashboard: React.FC = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [tenantsRes, specsRes] = await Promise.all([
-        tenantService.getAll(),
-        specificationService.getAll(),
-      ]);
+      const tenantsRes = await tenantService.getAll();
       if (tenantsRes.data) setTenants(tenantsRes.data);
-      if (specsRes.data) setSpecs(specsRes.data);
     } catch (err) {
       console.error('Failed to load super admin data', err);
     } finally {
@@ -228,57 +214,18 @@ export const SuperAdminDashboard: React.FC = () => {
     },
   ];
 
-  const specColumns: Column<Specification>[] = [
-    {
-      key: 'name',
-      header: 'Specification Attribute',
-      render: (s) => (
-        <div>
-          <div className="font-semibold text-[#18181B]">{s.name}</div>
-          <div className="text-xs text-[#71717A] font-mono">{s.slug}</div>
-        </div>
-      ),
-    },
-    {
-      key: 'data_type',
-      header: 'Data Type',
-      render: (s) => (
-        <span className="capitalize text-xs font-mono bg-[#F4F4F5] px-2 py-0.5 rounded border border-[#E4E4E7]">
-          {s.data_type}
-        </span>
-      ),
-    },
-    {
-      key: 'unit',
-      header: 'Standard Unit',
-      render: (s) => <span className="text-xs font-medium text-[#27272A]">{s.unit || '\u2014'}</span>,
-    },
-    {
-      key: 'is_required',
-      header: 'Enforcement',
-      align: 'center',
-      render: (s) => (
-        <Badge variant={s.is_required ? 'warning' : 'neutral'}>
-          {s.is_required ? 'MANDATORY' : 'OPTIONAL'}
-        </Badge>
-      ),
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      align: 'center',
-      render: (s) => (
-        <Badge variant={s.status === 'active' ? 'mint' : 'neutral'}>
-          {s.status.toUpperCase()}
-        </Badge>
-      ),
-    },
-  ];
+  
+
+  
+
+  
+
+  
 
   return (
     <PageContainer
       title="Platform Super Admin"
-      subtitle="Multi-tenant telemetry, global appliance specifications, and store provisioning."
+      subtitle="Centralized store tenant provisioning, schema isolation, and directory management."
       primaryAction={
         <div className="flex items-center gap-2.5">
           <Button
@@ -321,7 +268,7 @@ export const SuperAdminDashboard: React.FC = () => {
       )}
 
       {/* Top Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <StatCard
           title="Total Store Tenants"
           value={tenants.length}
@@ -334,22 +281,10 @@ export const SuperAdminDashboard: React.FC = () => {
           change={{ value: '100% operational', trend: 'up' }}
           icon={<CheckCircle2 className="w-5 h-5 text-[#065F46]" />}
         />
-        <StatCard
-          title="Global Dynamic Specs"
-          value={String(specs.length)}
-          change={{ value: 'Appliance catalog attributes', trend: 'neutral' }}
-          icon={<Sliders className="w-5 h-5 text-[#0284C7]" />}
-        />
-        <StatCard
-          title="System Health & Uptime"
-          value="99.98%"
-          change={{ value: 'All clusters operational', trend: 'up' }}
-          icon={<ShieldCheck className="w-5 h-5 text-[#065F46]" />}
-        />
       </div>
 
       {/* Quick Navigation Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div
           onClick={() => navigate('/super-admin/tenants')}
           className="p-4 bg-white border border-[#E4E4E7] rounded-xl hover:border-[#18181B] transition-all cursor-pointer shadow-sm group"
@@ -362,24 +297,6 @@ export const SuperAdminDashboard: React.FC = () => {
               <div>
                 <h4 className="font-semibold text-sm text-[#18181B]">Store Tenants Directory</h4>
                 <p className="text-xs text-[#71717A]">Manage schema isolation & custom domains</p>
-              </div>
-            </div>
-            <ArrowRight className="w-4 h-4 text-[#A1A1AA] group-hover:text-[#18181B] group-hover:translate-x-0.5 transition-all" />
-          </div>
-        </div>
-
-        <div
-          onClick={() => navigate('/super-admin/specifications')}
-          className="p-4 bg-white border border-[#E4E4E7] rounded-xl hover:border-[#18181B] transition-all cursor-pointer shadow-sm group"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 bg-[#F4F4F5] rounded-lg group-hover:bg-[#18181B] group-hover:text-white transition-colors">
-                <SlidersHorizontal className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-sm text-[#18181B]">Global Specifications</h4>
-                <p className="text-xs text-[#71717A]">Configure attributes across store catalogs</p>
               </div>
             </div>
             <ArrowRight className="w-4 h-4 text-[#A1A1AA] group-hover:text-[#18181B] group-hover:translate-x-0.5 transition-all" />
@@ -405,43 +322,12 @@ export const SuperAdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs Navigation */}
+      {/* Store Tenant Management */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between border-b border-[#E4E4E7] pb-2 overflow-x-auto">
+        <div className="flex items-center justify-between border-b border-[#E4E4E7] pb-2">
           <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setActiveTab('tenants')}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
-                activeTab === 'tenants'
-                  ? 'bg-[#18181B] text-white'
-                  : 'text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5]'
-              }`}
-            >
-              <Building2 className="w-3.5 h-3.5" />
-              Store Tenants ({tenants.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('specs')}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
-                activeTab === 'specs'
-                  ? 'bg-[#18181B] text-white'
-                  : 'text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5]'
-              }`}
-            >
-              <Sliders className="w-3.5 h-3.5" />
-              Global Specifications ({specs.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('telemetry')}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
-                activeTab === 'telemetry'
-                  ? 'bg-[#18181B] text-white'
-                  : 'text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5]'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5" />
-              Platform Telemetry & Health
-            </button>
+            <Building2 className="w-3.5 h-3.5 text-[#18181B]" />
+            <h3 className="text-sm font-semibold text-[#18181B]">Store Tenants Directory ({tenants.length})</h3>
           </div>
 
           <Button
@@ -454,100 +340,12 @@ export const SuperAdminDashboard: React.FC = () => {
           </Button>
         </div>
 
-        {/* TAB 1: STORE TENANTS */}
-        {activeTab === 'tenants' && (
-          <div className="space-y-4">
-            <SearchToolbar
-              searchValue={search}
-              onSearchChange={setSearch}
-              searchPlaceholder="Search store tenants by name, slug, or city..."
-            />
-            <DataTable columns={tenantColumns} data={filteredTenants} keyExtractor={(item) => item.id} />
-          </div>
-        )}
-
-        {/* TAB 2: GLOBAL SPECIFICATIONS */}
-        {activeTab === 'specs' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-[#71717A]">
-                Global dynamic specifications available for appliance cataloging across all store tenants.
-              </p>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => navigate('/super-admin/specifications')}
-                leftIcon={<Sliders className="w-3.5 h-3.5" />}
-              >
-                Manage Specifications
-              </Button>
-            </div>
-            <DataTable columns={specColumns} data={specs} keyExtractor={(item) => item.id} />
-          </div>
-        )}
-
-        {/* TAB 3: PLATFORM TELEMETRY & HEALTH */}
-        {activeTab === 'telemetry' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-5 bg-white border border-[#E4E4E7] rounded-xl shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-[#E4E4E7] pb-3">
-                <div className="flex items-center gap-2">
-                  <Database className="w-4 h-4 text-[#065F46]" />
-                  <h4 className="font-bold text-sm text-[#18181B]">Multi-Tenant Database Isolation</h4>
-                </div>
-                <Badge variant="mint">ISOLATED</Badge>
-              </div>
-
-              <div className="space-y-2.5 text-xs text-[#52525B]">
-                <div className="flex justify-between py-1 border-b border-[#F4F4F5]">
-                  <span>Schema Isolation Architecture:</span>
-                  <span className="font-semibold text-[#18181B]">PostgreSQL Schemas / Scoped DB</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-[#F4F4F5]">
-                  <span>Active Database Schemas:</span>
-                  <span className="font-mono font-bold text-[#18181B]">{tenants.length} Tenant Schemas</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-[#F4F4F5]">
-                  <span>Nightly Automated Backups:</span>
-                  <span className="font-semibold text-[#065F46]">Enabled (02:00 AM PKT)</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-[#F4F4F5]">
-                  <span>Disaster Recovery RPO / RTO:</span>
-                  <span className="font-mono text-[#18181B]">&lt; 15 mins / &lt; 1 hr</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-5 bg-white border border-[#E4E4E7] rounded-xl shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-[#E4E4E7] pb-3">
-                <div className="flex items-center gap-2">
-                  <Server className="w-4 h-4 text-[#0284C7]" />
-                  <h4 className="font-bold text-sm text-[#18181B]">API Gateway & Authentication</h4>
-                </div>
-                <Badge variant="mint">HEALTHY</Badge>
-              </div>
-
-              <div className="space-y-2.5 text-xs text-[#52525B]">
-                <div className="flex justify-between py-1 border-b border-[#F4F4F5]">
-                  <span>Token Authentication Protocol:</span>
-                  <span className="font-semibold text-[#18181B]">HMAC SHA-256 JWT</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-[#F4F4F5]">
-                  <span>Average API Response Latency:</span>
-                  <span className="font-mono font-bold text-[#065F46]">18ms</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-[#F4F4F5]">
-                  <span>Rate Limiting & DDoS Shield:</span>
-                  <span className="font-semibold text-[#065F46]">Active (1000 req/min)</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-[#F4F4F5]">
-                  <span>Tenant Host Header Routing:</span>
-                  <span className="font-mono text-[#18181B]">*.dukanos.pk</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <SearchToolbar
+          searchValue={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search store tenants by name, slug, or city..."
+        />
+        <DataTable columns={tenantColumns} data={filteredTenants} keyExtractor={(item) => item.id} />
       </div>
 
       {/* ========================================================= */}
