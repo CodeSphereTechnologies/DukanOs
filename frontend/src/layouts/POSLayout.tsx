@@ -11,7 +11,7 @@ export const POSLayout: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       {/* POS Top Bar */}
-      <header className="h-14 bg-black text-white px-4 flex items-center justify-between shrink-0">
+      <header className="h-14 bg-black text-white px-4 flex items-center justify-between shrink-0 print:hidden">
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"

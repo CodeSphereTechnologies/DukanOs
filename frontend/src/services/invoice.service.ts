@@ -270,5 +270,65 @@ export const invoiceService = {
       message: 'Quotation deleted successfully',
     };
   },
+
+  async createInvoice(data: Partial<Invoice>): Promise<ApiResponse<Invoice>> {
+    const current = getStoredInvoices();
+    const newId = current.length > 0 ? Math.max(...current.map((i) => i.id)) + 1 : 1;
+    const items = data.items || [];
+    const subtotal = items.reduce((sum, item) => sum + item.total_price, 0);
+    const discount = Number(data.discount_amount) || 0;
+    const total = Math.max(0, subtotal - discount);
+
+    const newInvoice: Invoice = {
+      id: newId,
+      invoice_number:
+        data.invoice_number ||
+        `INV-${new Date().getFullYear()}-${String(100 + newId).slice(1)}`,
+      customer_id: data.customer_id,
+      customer: data.customer || { id: 0, name: 'Walk-in Customer', status: 'active', current_balance: 0 },
+      invoice_date: data.invoice_date || new Date().toISOString().split('T')[0],
+      status: 'issued',
+      payment_status: data.payment_status || 'paid',
+      subtotal,
+      discount_amount: discount,
+      total_amount: total,
+      paid_amount: Number.isFinite(Number(data.paid_amount)) ? Number(data.paid_amount) : total,
+      balance_amount: Math.max(
+        0,
+        total - (Number.isFinite(Number(data.paid_amount)) ? Number(data.paid_amount) : total)
+      ),
+      payment_method: data.payment_method || 'cash',
+      notes: data.notes || '',
+      items,
+      created_at: new Date().toISOString(),
+    };
+
+    try {
+      const res = await apiClient.post<Invoice>('/invoices', data);
+      if (res && res.data) {
+        const saved = res.data;
+        saveStoredInvoices([saved, ...current.filter((i) => i.id !== saved.id)]);
+        return res;
+      }
+    } catch {
+      // fallback to local storage
+    }
+
+    saveStoredInvoices([newInvoice, ...current]);
+    return {
+      success: true,
+      message: 'Invoice created successfully',
+      data: newInvoice,
+    };
+  },
 };
+
+function saveStoredInvoices(invoices: Invoice[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEY_INVOICES, JSON.stringify(invoices));
+  } catch {
+    // ignore
+  }
+}
 

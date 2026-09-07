@@ -17,19 +17,13 @@ import {
   Calendar,
   RefreshCw,
   BarChart3,
-  PieChart,
   Users,
-  ShoppingBag,
   Coins,
   Wallet,
   CheckCircle2,
-  FileSpreadsheet,
-  Building2,
   Receipt,
   ArrowDownRight,
   ArrowUpRight,
-  ShieldCheck,
-  AlertTriangle,
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../../lib/formatters';
 import { invoiceService } from '../../../services/invoice.service';
@@ -60,7 +54,6 @@ export const ReportsPage: React.FC = () => {
 
   // Load all operational data
   const loadAllData = async () => {
-    setIsLoading(true);
     try {
       const [invRes, finRes, custRes, payRes, prodRes] = await Promise.all([
         invoiceService.getAll(),
@@ -83,7 +76,31 @@ export const ReportsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    loadAllData();
+    let active = true;
+    (async () => {
+      try {
+        const [invRes, finRes, custRes, payRes, prodRes] = await Promise.all([
+          invoiceService.getAll(),
+          financeService.getTransactions(),
+          customerService.getAll(),
+          payrollService.getEmployees(),
+          productService.getAll(),
+        ]);
+        if (!active) return;
+        if (invRes.data) setInvoices(invRes.data);
+        if (finRes.data) setFinanceItems(finRes.data);
+        if (custRes.data) setCustomers(custRes.data);
+        if (payRes.data) setSalaries(payRes.data);
+        if (prodRes.data) setProducts(prodRes.data);
+      } catch (err) {
+        console.error('Failed to load report analytics data', err);
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Financial Metrics Calculations
@@ -346,7 +363,7 @@ export const ReportsPage: React.FC = () => {
       key: 'actions',
       header: 'Action',
       align: 'right',
-      render: (c) => (
+      render: () => (
         <Button
           variant="secondary"
           size="sm"
@@ -492,7 +509,10 @@ export const ReportsPage: React.FC = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={loadAllData}
+            onClick={() => {
+              setIsLoading(true);
+              loadAllData();
+            }}
             title="Refresh Data"
             leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />}
           >

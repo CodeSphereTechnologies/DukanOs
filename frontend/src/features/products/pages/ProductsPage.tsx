@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { PageContainer } from '../../../components/ui/PageContainer';
 import { DataTable, type Column } from '../../../components/ui/DataTable';
 import { SearchToolbar } from '../../../components/ui/SearchToolbar';
@@ -10,20 +11,16 @@ import { Dialog } from '../../../components/ui/Dialog';
 import { FormField } from '../../../components/ui/FormField';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
-import { Plus, SlidersHorizontal, RotateCcw } from 'lucide-react';
+import { Plus, SlidersHorizontal, RotateCcw, ImagePlus, Upload, X, Tag, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '../../../lib/formatters';
-import type { Product } from '../../../types/product.types';
-
-const INITIAL_PRODUCTS: Product[] = [
-  { id: 1, name: 'Royal Deluxe Ceiling Fan 56"', sku: 'ROY-FAN-56', barcode: '8901234567890', unit: 'pc', selling_price: 9500, purchase_cost: 7800, current_stock: 12, min_quantity_threshold: 10, status: 'active', category: { id: 1, name: 'Ceiling Fans', slug: 'ceiling-fans', status: 'active' }, brand: { id: 1, name: 'Royal Fans', slug: 'royal-fans', status: 'active' } },
-  { id: 2, name: 'Pakistan Cables 7/29 Single Core Red 90m', sku: 'PAK-CAB-729R', barcode: '8901234567891', unit: 'coil', selling_price: 14500, purchase_cost: 12200, current_stock: 8, min_quantity_threshold: 15, status: 'active', category: { id: 2, name: 'Cables & Wires', slug: 'cables-wires', status: 'active' }, brand: { id: 2, name: 'Pakistan Cables', slug: 'pak-cables', status: 'active' } },
-  { id: 3, name: 'Philips LED Bulb 18W Cool Daylight E27', sku: 'PHI-LED-18W', barcode: '8901234567892', unit: 'pc', selling_price: 650, purchase_cost: 480, current_stock: 45, min_quantity_threshold: 25, status: 'active', category: { id: 3, name: 'LED Bulbs', slug: 'led-bulbs', status: 'active' }, brand: { id: 3, name: 'Philips', slug: 'philips', status: 'active' } },
-  { id: 4, name: 'Schneider MCB 32A Double Pole 6kA', sku: 'SCH-MCB-32DP', barcode: '8901234567893', unit: 'pc', selling_price: 2200, purchase_cost: 1650, current_stock: 24, min_quantity_threshold: 8, status: 'active', category: { id: 4, name: 'Circuit Breakers', slug: 'breakers', status: 'active' }, brand: { id: 4, name: 'Schneider', slug: 'schneider', status: 'active' } },
-  { id: 5, name: 'Pak Fan Bracket Fan 18" Remote Control', sku: 'PAK-FAN-18B', barcode: '8901234567894', unit: 'pc', selling_price: 12800, purchase_cost: 10500, current_stock: 6, min_quantity_threshold: 5, status: 'active', category: { id: 1, name: 'Ceiling Fans', slug: 'ceiling-fans', status: 'active' }, brand: { id: 3, name: 'Pak Fan', slug: 'pak-fan', status: 'active' } },
-];
+import type { Product, Category, Brand } from '../../../types/product.types';
+import { productService } from '../../../services/product.service';
 
 export const ProductsPage: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const navigate = useNavigate();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [search, setSearch] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
@@ -32,7 +29,7 @@ export const ProductsPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedBrand, setSelectedBrand] = useState('all');
   const [stockStatus, setStockStatus] = useState<'all' | 'in_stock' | 'low_stock' | 'out_of_stock'>('all');
-  const [selectedStatus, setSelectedStatus] = useState<'all' | 'active' | 'inactive'>('all');
+  const [selectedStatus, setSelectedStatus] = useState<'all' | 'active' | 'inactive' | 'archived'>('all');
   const [minPrice, setMinPrice] = useState<string>('');
   const [maxPrice, setMaxPrice] = useState<string>('');
 
@@ -40,15 +37,63 @@ export const ProductsPage: React.FC = () => {
   const [name, setName] = useState('');
   const [sku, setSku] = useState('');
   const [barcode, setBarcode] = useState('');
-  const [categoryName, setCategoryName] = useState('Ceiling Fans');
-  const [brandName, setBrandName] = useState('Royal Fans');
+  const [categoryId, setCategoryId] = useState<string>('');
+  const [brandId, setBrandId] = useState<string>('');
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [showNewBrand, setShowNewBrand] = useState(false);
+  const [newBrandName, setNewBrandName] = useState('');
   const [price, setPrice] = useState<number>(0);
   const [cost, setCost] = useState<number>(0);
   const [stock, setStock] = useState<number>(0);
   const [unit, setUnit] = useState('pc');
+  const [imageUrl, setImageUrl] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    productService.getAll().then((res) => {
+      if (res.data) setProducts(res.data);
+    });
+    productService.getCategories().then((res) => {
+      if (res.data) setCategories(res.data);
+    });
+    productService.getBrands().then((res) => {
+      if (res.data) setBrands(res.data);
+    });
+  }, []);
+
+  const handleAddCategoryInline = async () => {
+    const catName = newCategoryName.trim();
+    if (!catName) return;
+    const cat = await productService.addCategory(catName);
+    setCategories((prev) => [...prev.filter((c) => c.id !== cat.id), cat]);
+    setCategoryId(String(cat.id));
+    setShowNewCategory(false);
+    setNewCategoryName('');
+  };
+
+  const handleAddBrandInline = async () => {
+    const bName = newBrandName.trim();
+    if (!bName) return;
+    const brand = await productService.addBrand(bName);
+    setBrands((prev) => [...prev.filter((b) => b.id !== brand.id), brand]);
+    setBrandId(String(brand.id));
+    setShowNewBrand(false);
+    setNewBrandName('');
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Dynamic filter lists
-  const categories = useMemo(() => {
+  const categoriesFilter = useMemo(() => {
     const set = new Set<string>();
     products.forEach((p) => {
       if (p.category?.name) set.add(p.category.name);
@@ -56,7 +101,7 @@ export const ProductsPage: React.FC = () => {
     return Array.from(set);
   }, [products]);
 
-  const brands = useMemo(() => {
+  const brandsFilter = useMemo(() => {
     const set = new Set<string>();
     products.forEach((p) => {
       if (p.brand?.name) set.add(p.brand.name);
@@ -114,7 +159,6 @@ export const ProductsPage: React.FC = () => {
   // Filtered products calculation
   const filtered = useMemo(() => {
     return products.filter((p) => {
-      // Search
       if (search.trim()) {
         const q = search.toLowerCase();
         const matchSearch =
@@ -126,17 +170,14 @@ export const ProductsPage: React.FC = () => {
         if (!matchSearch) return false;
       }
 
-      // Category
       if (selectedCategory !== 'all' && p.category?.name !== selectedCategory) {
         return false;
       }
 
-      // Brand
       if (selectedBrand !== 'all' && p.brand?.name !== selectedBrand) {
         return false;
       }
 
-      // Stock status
       const threshold = p.min_quantity_threshold || 5;
       if (stockStatus === 'in_stock' && p.current_stock <= threshold) {
         return false;
@@ -148,12 +189,10 @@ export const ProductsPage: React.FC = () => {
         return false;
       }
 
-      // Lifecycle status
       if (selectedStatus !== 'all' && p.status !== selectedStatus) {
         return false;
       }
 
-      // Price range
       if (minPrice && p.selling_price < Number(minPrice)) {
         return false;
       }
@@ -165,32 +204,44 @@ export const ProductsPage: React.FC = () => {
     });
   }, [products, search, selectedCategory, selectedBrand, stockStatus, selectedStatus, minPrice, maxPrice]);
 
-  const handleAddProduct = (e: React.FormEvent) => {
+  const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !sku || !price) return;
 
-    const newProd: Product = {
-      id: products.length + 1,
+    const selectedCat = categories.find((c) => c.id === Number(categoryId)) || categories[0];
+    const selectedBrd = brands.find((b) => b.id === Number(brandId)) || brands[0];
+
+    await productService.saveProduct({
       name,
       sku,
       barcode: barcode || undefined,
-      category: categoryName ? { id: Date.now(), name: categoryName, slug: categoryName.toLowerCase().replace(/\s+/g, '-'), status: 'active' } : undefined,
-      brand: brandName ? { id: Date.now() + 1, name: brandName, slug: brandName.toLowerCase().replace(/\s+/g, '-'), status: 'active' } : undefined,
+      category: selectedCat,
+      brand: selectedBrd,
       selling_price: Number(price),
       purchase_cost: Number(cost) || undefined,
       current_stock: Number(stock) || 0,
       unit,
       status: 'active',
-    };
+      image_url: imageUrl || undefined,
+    });
 
-    setProducts([newProd, ...products]);
+    const saved = await productService.getAll();
+    if (saved.data) setProducts(saved.data);
+
     setIsAddOpen(false);
     setName('');
     setSku('');
     setBarcode('');
+    setCategoryId('');
+    setBrandId('');
     setPrice(0);
     setCost(0);
     setStock(0);
+    setImageUrl('');
+    setShowNewCategory(false);
+    setShowNewBrand(false);
+    setNewCategoryName('');
+    setNewBrandName('');
   };
 
   const columns: Column<Product>[] = [
@@ -198,10 +249,33 @@ export const ProductsPage: React.FC = () => {
       key: 'name',
       header: 'Product Details',
       render: (p) => (
-        <div>
-          <div className="font-semibold text-[#18181B]">{p.name}</div>
-          <div className="text-xs text-[#71717A] font-mono">
-            SKU: {p.sku} {p.barcode ? `· Barcode: ${p.barcode}` : ''}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center shrink-0">
+            {p.image_url ? (
+              <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xs font-bold text-slate-400">
+                {p.name
+                  .split(' ')
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map((w) => w[0])
+                  .join('')
+                  .toUpperCase()}
+              </span>
+            )}
+          </div>
+          <div>
+            <Link
+              to={`/products/${p.id}`}
+              className="font-semibold text-[#18181B] hover:text-[#047857] hover:underline underline-offset-2 transition-colors inline-flex items-center gap-0.5 group"
+            >
+              {p.name}
+              <ChevronRight className="w-3 h-3 text-[#A1A1AA] group-hover:text-[#047857] transition-colors" />
+            </Link>
+            <div className="text-xs text-[#71717A] font-mono">
+              SKU: {p.sku} {p.barcode ? `· Barcode: ${p.barcode}` : ''}
+            </div>
           </div>
         </div>
       ),
@@ -243,7 +317,19 @@ export const ProductsPage: React.FC = () => {
       key: 'status',
       header: 'Status',
       align: 'center',
-      render: (p) => <Badge variant={p.status === 'active' ? 'mint' : 'neutral'}>{p.status}</Badge>,
+      render: (p) => (
+        <Badge
+          variant={
+            p.status === 'active'
+              ? 'mint'
+              : p.status === 'archived'
+                ? 'outline'
+                : 'neutral'
+          }
+        >
+          {p.status}
+        </Badge>
+      ),
     },
   ];
 
@@ -310,7 +396,12 @@ export const ProductsPage: React.FC = () => {
           )}
         </div>
 
-        <DataTable columns={columns} data={filtered} keyExtractor={(item) => item.id} />
+        <DataTable
+          columns={columns}
+          data={filtered}
+          keyExtractor={(item) => item.id}
+          onRowClick={(item) => navigate(`/products/${item.id}`)}
+        />
       </div>
 
       {/* Filter Drawer */}
@@ -336,7 +427,7 @@ export const ProductsPage: React.FC = () => {
               onChange={(e) => setSelectedCategory(e.target.value)}
               options={[
                 { label: 'All Categories', value: 'all' },
-                ...categories.map((c) => ({ label: c, value: c })),
+                ...categoriesFilter.map((c) => ({ label: c, value: c })),
               ]}
             />
           </FormField>
@@ -347,7 +438,7 @@ export const ProductsPage: React.FC = () => {
               onChange={(e) => setSelectedBrand(e.target.value)}
               options={[
                 { label: 'All Brands', value: 'all' },
-                ...brands.map((b) => ({ label: b, value: b })),
+                ...brandsFilter.map((b) => ({ label: b, value: b })),
               ]}
             />
           </FormField>
@@ -373,6 +464,7 @@ export const ProductsPage: React.FC = () => {
                 { label: 'All Statuses', value: 'all' },
                 { label: 'Active (Available for sale)', value: 'active' },
                 { label: 'Inactive (Hidden from POS)', value: 'inactive' },
+                { label: 'Archived (Removed from POS)', value: 'archived' },
               ]}
             />
           </FormField>
@@ -402,7 +494,8 @@ export const ProductsPage: React.FC = () => {
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
         title="Add Catalog Product"
-        description="Register an appliance item with pricing, barcode, and dynamic electrical attributes."
+        description="Register an appliance item with pricing, barcode, category, brand, and make it available in the POS terminal."
+        maxWidth="lg"
         footer={
           <>
             <Button variant="secondary" size="sm" onClick={() => setIsAddOpen(false)}>
@@ -415,6 +508,52 @@ export const ProductsPage: React.FC = () => {
         }
       >
         <form onSubmit={handleAddProduct} className="space-y-4">
+          {/* Image Upload */}
+          <FormField label="Product Image">
+            <div className="flex items-start gap-3">
+              <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center shrink-0 border border-[#E4E4E7]">
+                {imageUrl ? (
+                  <img src={imageUrl} alt="Product preview" className="w-full h-full object-cover" />
+                ) : (
+                  <ImagePlus className="w-6 h-6 text-slate-400" />
+                )}
+              </div>
+              <div className="flex-1 space-y-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  leftIcon={<Upload className="w-3.5 h-3.5" />}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Upload Image
+                </Button>
+                <Input
+                  value={imageUrl.startsWith('data:') ? '' : imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="or paste image URL..."
+                  disabled={imageUrl.startsWith('data:')}
+                />
+                {imageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl('')}
+                    className="text-xs text-[#DC2626] hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <X className="w-3 h-3" /> Remove image
+                  </button>
+                )}
+              </div>
+            </div>
+          </FormField>
+
           <FormField label="Product Name" required>
             <Input
               value={name}
@@ -425,34 +564,106 @@ export const ProductsPage: React.FC = () => {
           </FormField>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label="Category">
-              <Select
-                value={categoryName}
-                onChange={(e) => setCategoryName(e.target.value)}
-                options={[
-                  { label: 'Ceiling Fans', value: 'Ceiling Fans' },
-                  { label: 'Cables & Wires', value: 'Cables & Wires' },
-                  { label: 'LED Bulbs', value: 'LED Bulbs' },
-                  { label: 'Circuit Breakers', value: 'Circuit Breakers' },
-                  { label: 'Bracket Fans', value: 'Bracket Fans' },
-                  { label: 'General Appliances', value: 'General Appliances' },
-                ]}
-              />
+            <FormField label="Category" required>
+              {!showNewCategory ? (
+                <div className="flex items-end gap-2">
+                  <Select
+                    value={categoryId}
+                    onChange={(e) => {
+                      if (e.target.value === '__new__') {
+                        setShowNewCategory(true);
+                      } else {
+                        setCategoryId(e.target.value);
+                      }
+                    }}
+                    options={[
+                      { label: 'Select a category...', value: '' },
+                      ...categories.map((c) => ({ label: c.name, value: String(c.id) })),
+                      { label: '+ Add New Category...', value: '__new__' },
+                    ]}
+                  />
+                </div>
+              ) : (
+                <div className="flex items-end gap-2">
+                  <Input
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="Type new category name"
+                    autoFocus
+                  />
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    leftIcon={<Plus className="w-3.5 h-3.5" />}
+                    onClick={handleAddCategoryInline}
+                    disabled={!newCategoryName.trim()}
+                  >
+                    Add
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowNewCategory(false);
+                      setNewCategoryName('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
             </FormField>
 
-            <FormField label="Brand">
-              <Select
-                value={brandName}
-                onChange={(e) => setBrandName(e.target.value)}
-                options={[
-                  { label: 'Royal Fans', value: 'Royal Fans' },
-                  { label: 'Pakistan Cables', value: 'Pakistan Cables' },
-                  { label: 'Philips', value: 'Philips' },
-                  { label: 'Schneider', value: 'Schneider' },
-                  { label: 'Pak Fan', value: 'Pak Fan' },
-                  { label: 'Generic', value: 'Generic' },
-                ]}
-              />
+            <FormField label="Brand" required>
+              {!showNewBrand ? (
+                <Select
+                  value={brandId}
+                  onChange={(e) => {
+                    if (e.target.value === '__new__') {
+                      setShowNewBrand(true);
+                    } else {
+                      setBrandId(e.target.value);
+                    }
+                  }}
+                  options={[
+                    { label: 'Select a brand...', value: '' },
+                    ...brands.map((b) => ({ label: b.name, value: String(b.id) })),
+                    { label: '+ Add New Brand...', value: '__new__' },
+                  ]}
+                />
+              ) : (
+                <div className="flex items-end gap-2">
+                  <Input
+                    value={newBrandName}
+                    onChange={(e) => setNewBrandName(e.target.value)}
+                    placeholder="Type new brand name"
+                    autoFocus
+                  />
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    leftIcon={<Plus className="w-3.5 h-3.5" />}
+                    onClick={handleAddBrandInline}
+                    disabled={!newBrandName.trim()}
+                  >
+                    Add
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowNewBrand(false);
+                      setNewBrandName('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
             </FormField>
           </div>
 
@@ -506,9 +717,15 @@ export const ProductsPage: React.FC = () => {
               />
             </FormField>
           </div>
+
+          {(!categoryId || !brandId) && (
+            <div className="flex items-center gap-2 p-2.5 bg-[#FEF3C7] rounded-lg text-xs text-[#92400E]">
+              <Tag className="w-3.5 h-3.5 shrink-0" />
+              Select a category and brand, or add a new one directly (e.g. "Sequential Brand", "Industrial Switches").
+            </div>
+          )}
         </form>
       </Dialog>
     </PageContainer>
   );
 };
-

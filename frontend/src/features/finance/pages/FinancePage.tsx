@@ -350,9 +350,11 @@ export const FinancePage: React.FC = () => {
   ];
 
   return (
-    <PageContainer
-      title="Daily Cashflow & Recovery Ledger"
-      subtitle="Track operational revenue, customer credit recoveries (Vasooli), utility expenses, and disbursements."
+    <>
+      <PageContainer
+        title="Daily Cashflow & Recovery Ledger"
+        subtitle="Track operational revenue, customer credit recoveries (Vasooli), utility expenses, and disbursements."
+        className="print:hidden"
       primaryAction={
         <div className="flex items-center gap-2.5">
           <Button
@@ -628,7 +630,7 @@ export const FinancePage: React.FC = () => {
             <FormField label="Payment Method" required>
               <Select
                 value={recoveryMethod}
-                onChange={(e) => setRecoveryMethod(e.target.value as any)}
+                onChange={(e) => setRecoveryMethod(e.target.value as 'cash' | 'bank_transfer' | 'cheque' | 'online')}
                 options={PAYMENT_METHODS}
               />
             </FormField>
@@ -737,7 +739,7 @@ export const FinancePage: React.FC = () => {
             <FormField label="Payment Method" required>
               <Select
                 value={entryMethod}
-                onChange={(e) => setEntryMethod(e.target.value as any)}
+                onChange={(e) => setEntryMethod(e.target.value as 'cash' | 'bank_transfer' | 'cheque' | 'online')}
                 options={PAYMENT_METHODS}
               />
             </FormField>
@@ -859,7 +861,72 @@ export const FinancePage: React.FC = () => {
           </div>
         )}
       </Dialog>
-    </PageContainer>
+      </PageContainer>
+
+      {/* Print-Only Voucher Slip */}
+      {selectedVoucher && (
+        <div className="hidden print:block">
+          <div className="mx-auto bg-white text-black max-w-[320px] p-6 font-mono text-[11px] leading-[1.6]">
+            <div className="text-center mb-1">
+              <div className="text-lg font-bold tracking-[0.2em]">DUKANOS</div>
+              <div className="text-[10px]">ELECTRICAL &amp; APPLIANCE STORE</div>
+              <div>Brandreth Road, Lahore, Pakistan</div>
+              <div>Tel: 0300-1234567</div>
+            </div>
+
+            <div className="text-center my-2">- - - - - - - - - - - - - - - -</div>
+
+            <div className="flex justify-between">
+              <span className="font-bold uppercase">
+                {selectedVoucher.type === 'income' ? 'RECEIPT VOUCHER' : 'PAYMENT VOUCHER'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Ref #</span>
+              <span className="font-bold">{selectedVoucher.reference_no || `VCH-${selectedVoucher.id}`}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Date</span>
+              <span>{formatDate(selectedVoucher.date)}</span>
+            </div>
+            <div className="flex justify-between items-start gap-2">
+              <span>{selectedVoucher.type === 'income' ? 'Received From' : 'Paid To'}</span>
+              <span className="font-bold text-right">{selectedVoucher.customer_name || selectedVoucher.category}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Mode</span>
+              <span className="uppercase">
+                {selectedVoucher.payment_method ? selectedVoucher.payment_method.replace('_', ' ') : 'Cash'}
+              </span>
+            </div>
+
+            {selectedVoucher.description && (
+              <>
+                <div className="text-center my-2">- - - - - - - - - - - - - - - -</div>
+                <div>
+                  <div className="uppercase text-[10px]">Narration</div>
+                  <div>{selectedVoucher.description}</div>
+                </div>
+              </>
+            )}
+
+            <div className="text-center my-2">- - - - - - - - - - - - - - - -</div>
+
+            <div className="flex justify-between font-bold text-[13px] border-t border-black pt-1.5">
+              <span>TOTAL</span>
+              <span>{formatCurrency(selectedVoucher.amount)}</span>
+            </div>
+
+            <div className="text-center my-3">***</div>
+
+            <div className="text-center text-[10px]">
+              <div>This is a computer generated slip.</div>
+              <div>Subject to audit verification.</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

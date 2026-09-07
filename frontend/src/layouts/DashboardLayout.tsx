@@ -15,6 +15,7 @@ export const DashboardLayout: React.FC = () => {
 
   // Automatically close mobile sidebar whenever navigating to any route
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMobileOpen(false);
   }, [location.pathname]);
 
@@ -53,7 +54,7 @@ export const DashboardLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#FAFAF8] flex flex-col">
       {/* Desktop Fixed Sidebar (Only rendered/visible on >= 768px screens) */}
-      <div className="hidden md:block fixed top-0 left-0 bottom-0 z-40">
+      <div className="hidden md:block fixed top-0 left-0 bottom-0 z-40 print:hidden">
         <Sidebar
           user={user}
           collapsed={collapsed}
@@ -64,7 +65,7 @@ export const DashboardLayout: React.FC = () => {
       {/* Mobile Drawer Backdrop */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-50 md:hidden backdrop-blur-xs transition-opacity duration-200"
+          className="fixed inset-0 bg-black/50 z-50 md:hidden backdrop-blur-xs transition-opacity duration-200 print:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -72,7 +73,7 @@ export const DashboardLayout: React.FC = () => {
       {/* Mobile Slide-in Drawer (Hidden & translated off-screen when closed) */}
       <div
         className={cn(
-          'fixed inset-y-0 left-0 w-64 z-50 md:hidden transition-transform duration-300 ease-in-out shadow-2xl bg-white flex flex-col',
+          'fixed inset-y-0 left-0 w-64 z-50 md:hidden transition-transform duration-300 ease-in-out shadow-2xl bg-white flex flex-col print:hidden',
           mobileOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none invisible'
         )}
       >
@@ -88,7 +89,7 @@ export const DashboardLayout: React.FC = () => {
       {/* Main Content Area - offset by fixed sidebar width on desktop */}
       <div
         className={cn(
-          'flex-1 flex flex-col min-w-0 transition-all duration-200 ease-in-out pb-16 md:pb-0',
+          'flex-1 flex flex-col min-w-0 transition-all duration-200 ease-in-out pb-16 md:pb-0 print:pl-0',
           collapsed ? 'md:pl-16' : 'md:pl-64'
         )}
       >

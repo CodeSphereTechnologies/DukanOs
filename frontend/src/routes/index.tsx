@@ -17,6 +17,7 @@ import { CashierDashboard } from '../features/dashboard/pages/CashierDashboard';
 import { ForbiddenPage } from '../features/dashboard/pages/ForbiddenPage';
 import { POSPage } from '../features/pos/pages/POSPage';
 import { ProductsPage } from '../features/products/pages/ProductsPage';
+import { ProductDetailPage } from '../features/products/pages/ProductDetailPage';
 import { InvoicesPage } from '../features/invoices/pages/InvoicesPage';
 import { QuotationsPage } from '../features/quotations/pages/QuotationsPage';
 import { CustomersPage } from '../features/customers/pages/CustomersPage';
@@ -154,6 +155,14 @@ export const AppRoutes: React.FC = () => {
           element={
             <RoleRoute allowedRoles={['owner', 'manager', 'cashier']}>
               <ProductsPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/products/:id"
+          element={
+            <RoleRoute allowedRoles={['owner', 'manager', 'cashier']}>
+              <ProductDetailPage />
             </RoleRoute>
           }
         />

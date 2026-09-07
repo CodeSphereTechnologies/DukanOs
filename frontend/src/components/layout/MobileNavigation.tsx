@@ -11,7 +11,7 @@ export const MobileNavigation: React.FC = () => {
 
   if (isSuperAdmin) {
     return (
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-14 bg-white border-t border-[#E4E4E7] flex items-center justify-around z-40 px-2 shadow-lg">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-14 bg-white border-t border-[#E4E4E7] flex items-center justify-around z-40 px-2 shadow-lg print:hidden">
         <NavLink
           to="/super-admin/dashboard"
           className={({ isActive }) =>
@@ -56,7 +56,7 @@ export const MobileNavigation: React.FC = () => {
   }
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 h-14 bg-white border-t border-[#E4E4E7] flex items-center justify-around z-40 px-2 shadow-lg">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 h-14 bg-white border-t border-[#E4E4E7] flex items-center justify-around z-40 px-2 shadow-lg print:hidden">
       <NavLink
         to="/"
         className={({ isActive }) =>

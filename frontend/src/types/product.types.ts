@@ -47,6 +47,7 @@ export interface Product {
   brand?: Brand;
   specifications?: Record<string, string | number>;
   image_url?: string;
+  gallery?: string[];
 }
 
 export interface InventoryItem {

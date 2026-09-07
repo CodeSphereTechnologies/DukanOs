@@ -297,9 +297,11 @@ export const PayrollPage: React.FC = () => {
   ];
 
   return (
-    <PageContainer
-      title="Employee Payroll & Salaries"
-      subtitle="Monthly employee salary records, payment disbursement, and financial expense ledger posting."
+    <>
+      <PageContainer
+        title="Employee Payroll & Salaries"
+        subtitle="Monthly employee salary records, payment disbursement, and financial expense ledger posting."
+        className="print:hidden"
       primaryAction={
         <Button
           variant="primary"
@@ -581,7 +583,7 @@ export const PayrollPage: React.FC = () => {
             <FormField label="Disbursement Payment Method" required>
               <Select
                 value={disbursementMethod}
-                onChange={(e) => setDisbursementMethod(e.target.value as any)}
+                onChange={(e) => setDisbursementMethod(e.target.value as 'cash' | 'bank_transfer' | 'cheque')}
                 options={[
                   { label: 'Bank Transfer (Corporate / Salary Account)', value: 'bank_transfer' },
                   { label: 'Cash Drawer Disbursement', value: 'cash' },
@@ -688,7 +690,78 @@ export const PayrollPage: React.FC = () => {
           </div>
         )}
       </Dialog>
-    </PageContainer>
+      </PageContainer>
+
+      {/* Print-Only Payslip */}
+      {selectedPayslip && (
+        <div className="hidden print:block">
+          <div className="mx-auto bg-white text-black max-w-[320px] p-6 font-mono text-[11px] leading-[1.6]">
+            <div className="text-center mb-1">
+              <div className="text-lg font-bold tracking-[0.2em]">DUKANOS</div>
+              <div className="text-[10px]">ELECTRICAL &amp; APPLIANCE STORE</div>
+              <div>Brandreth Road, Lahore, Pakistan</div>
+              <div>Tel: 0300-1234567</div>
+            </div>
+
+            <div className="text-center my-2">- - - - - - - - - - - - - - - -</div>
+
+            <div className="flex justify-between">
+              <span className="font-bold uppercase">SALARY SLIP</span>
+              <span className="font-bold">SLIP-{selectedPayslip.id}-{new Date().getFullYear()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Date</span>
+              <span>{formatDate(selectedPayslip.disbursed_at || selectedPayslip.joining_date)}</span>
+            </div>
+
+            <div className="text-center my-2">- - - - - - - - - - - - - - - -</div>
+
+            <div>
+              <div className="uppercase text-[10px]">Employee</div>
+              <div className="font-bold">{selectedPayslip.name}</div>
+              <div>{selectedPayslip.designation}</div>
+            </div>
+            <div className="flex justify-between mt-1">
+              <span>CNIC</span>
+              <span>{selectedPayslip.cnic || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Contact</span>
+              <span>{selectedPayslip.phone || 'No contact'}</span>
+            </div>
+
+            <div className="text-center my-2">- - - - - - - - - - - - - - - -</div>
+
+            <div className="flex justify-between">
+              <span>Base Salary</span>
+              <span>{formatCurrency(selectedPayslip.salary)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Bonus / Allowance</span>
+              <span>+{formatCurrency(selectedPayslip.bonus)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Deductions</span>
+              <span>-{formatCurrency(selectedPayslip.deductions)}</span>
+            </div>
+
+            <div className="text-center my-2">- - - - - - - - - - - - - - - -</div>
+
+            <div className="flex justify-between font-bold text-[13px] border-t border-black pt-1.5">
+              <span>NET PAYABLE</span>
+              <span>{formatCurrency(selectedPayslip.net_payable)}</span>
+            </div>
+
+            <div className="text-center my-3">***</div>
+
+            <div className="text-center text-[10px]">
+              <div>This is a computer generated slip.</div>
+              <div>Subject to management verification.</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

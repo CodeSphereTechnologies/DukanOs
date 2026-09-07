@@ -3,6 +3,7 @@ import type { ApiResponse } from '../types/api.types';
 import type { Customer, CustomerLedgerEntry } from '../types/customer.types';
 
 export const STORAGE_KEY_CUSTOMERS = 'dukanos_customers';
+export const STORAGE_KEY_CUSTOMER_LEDGER = 'dukanos_customer_ledger';
 
 export const INITIAL_CUSTOMERS: Customer[] = [
   { id: 1, name: 'Chaudhry Bilal (Contractor)', phone: '+92 300 1234567', email: 'bilal@contractors.pk', address: 'Model Town, Lahore', current_balance: 142000, status: 'active' },
@@ -30,6 +31,26 @@ function saveStoredCustomers(customers: Customer[]): void {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(STORAGE_KEY_CUSTOMERS, JSON.stringify(customers));
+  } catch {
+    // ignore
+  }
+}
+
+function getStoredLedger(): CustomerLedgerEntry[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_CUSTOMER_LEDGER);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredLedger(entries: CustomerLedgerEntry[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEY_CUSTOMER_LEDGER, JSON.stringify(entries));
   } catch {
     // ignore
   }
@@ -80,12 +101,56 @@ export const customerService = {
     return newCust;
   },
 
-  async getLedger(customerId: number): Promise<ApiResponse<CustomerLedgerEntry[]>> {
+  async deleteCustomer(id: number): Promise<void> {
+    const list = getStoredCustomers();
+    saveStoredCustomers(list.filter((c) => c.id !== id));
+  },
+
+  async findByNameOrPhone(query: string): Promise<Customer[]> {
+    const list = getStoredCustomers();
+    const q = query.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.phone && c.phone.replace(/[^0-9]/g, '').includes(q.replace(/[^0-9]/g, '')))
+    );
+  },
+
+  async updateBalance(customerId: number, addAmount: number): Promise<Customer | null> {
+    const list = getStoredCustomers();
+    const idx = list.findIndex((c) => c.id === customerId);
+    if (idx < 0) return null;
+    const current = list[idx].current_balance || 0;
+    list[idx] = {
+      ...list[idx],
+      current_balance: Math.max(0, current + addAmount),
+    };
+    saveStoredCustomers(list);
+    return list[idx];
+  },
+
+  async recordLedgerEntry(entry: Omit<CustomerLedgerEntry, 'id'>): Promise<CustomerLedgerEntry> {
+    const ledger = getStoredLedger();
+    const newEntry: CustomerLedgerEntry = {
+      ...entry,
+      id: ledger.length > 0 ? Math.max(...ledger.map((e) => e.id)) + 1 : 1,
+    };
+    saveStoredLedger([newEntry, ...ledger]);
+    return newEntry;
+  },
+
+  async getLedger(customerId?: number): Promise<ApiResponse<CustomerLedgerEntry[]>> {
     try {
-      return await apiClient.get<CustomerLedgerEntry[]>(`/customers/${customerId}/ledger`);
+      if (customerId) {
+        return await apiClient.get<CustomerLedgerEntry[]>(`/customers/${customerId}/ledger`);
+      }
     } catch {
-      return { data: [], status: 200, message: 'Offline' };
+      // offline
     }
+    const local = getStoredLedger();
+    const filtered = customerId ? local.filter((e) => e.customer_id === customerId) : local;
+    return { data: filtered, status: 200, message: 'Loaded from local storage' };
   },
 };
 

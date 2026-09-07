@@ -12,7 +12,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
   const { tenant } = useTenant();
 
   return (
-    <header className="h-14 bg-white border-b border-[#E4E4E7] px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30">
+    <header className="h-14 bg-white border-b border-[#E4E4E7] px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 print:hidden">
       <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 mr-2">
         {onMenuToggle && (
           <button
