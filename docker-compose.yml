@@ -11,7 +11,7 @@
 #
 # Coolify Deployment Rules:
 #   - No hardcoded port mappings (all traffic routed via Coolify Traefik)
-#   - Only nginx has traefik.enable=true
+#   - Only nginx has traefik.enable=true (Coolify auto-generates routers/services)
 #   - Volumes use local driver managed by Docker / Coolify
 ###############################################################################
 
@@ -22,29 +22,24 @@ services:
       context: .
       dockerfile: coolify/docker/nginx/Dockerfile
       args:
-        VITE_API_URL: ""
+        VITE_API_URL: "/api/v1"
         VITE_APP_NAME: "${APP_NAME:-DukanOS}"
     restart: unless-stopped
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - dukanos_storage:/var/www/backend/storage/app/public:ro
     networks:
       - dukanos_network
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1/nginx-health"]
-      interval: 15s
+      interval: 10s
       timeout: 3s
       retries: 3
       start_period: 5s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.${COOLIFY_CONTAINER_NAME:-dukanos}.entrypoints=websecure"
-      - "traefik.http.routers.${COOLIFY_CONTAINER_NAME:-dukanos}.rule=Host(`${COOLIFY_FQDN:-app.dukanos.pk}`)"
-      - "traefik.http.routers.${COOLIFY_CONTAINER_NAME:-dukanos}.tls=true"
-      - "traefik.http.routers.${COOLIFY_CONTAINER_NAME:-dukanos}.tls.certresolver=letsencrypt"
-      - "traefik.http.services.${COOLIFY_CONTAINER_NAME:-dukanos}.loadbalancer.server.port=80"
 
   # ── Laravel 13 API Backend (PHP 8.4-FPM) ──────────────────────────────────
   backend:
@@ -59,9 +54,9 @@ services:
       APP_ENV: "${APP_ENV:-production}"
       APP_KEY: "${APP_KEY:-}"
       APP_DEBUG: "${APP_DEBUG:-false}"
-      APP_URL: "${APP_URL:-https://app.dukanos.pk}"
-      FRONTEND_URL: "${FRONTEND_URL:-https://app.dukanos.pk}"
-      SANCTUM_STATEFUL_DOMAINS: "${SANCTUM_STATEFUL_DOMAINS:-app.dukanos.pk}"
+      APP_URL: "${APP_URL:-https://pos.shahzadhermes.com}"
+      FRONTEND_URL: "${FRONTEND_URL:-https://pos.shahzadhermes.com}"
+      SANCTUM_STATEFUL_DOMAINS: "${SANCTUM_STATEFUL_DOMAINS:-pos.shahzadhermes.com}"
 
       # Database
       DB_CONNECTION: "${DB_CONNECTION:-pgsql}"
@@ -108,6 +103,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php -r '$$fp = @fsockopen(\"127.0.0.1\", 9000, $$errno, $$errstr, 2); if ($$fp) { fclose($$fp); exit(0); } exit(1);'"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
 
   # ── Laravel Queue Worker ───────────────────────────────────────────────────
   queue:
@@ -144,9 +145,15 @@ services:
       - dukanos_network
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "ps aux | grep -v grep | grep -q 'artisan queue:work'"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   # ── Laravel Task Scheduler ────────────────────────────────────────────────
   scheduler:
@@ -183,9 +190,15 @@ services:
       - dukanos_network
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "ps aux | grep -v grep | grep -q 'artisan schedule:work'"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   # ── PostgreSQL Database ────────────────────────────────────────────────────
   postgres:
@@ -239,4 +252,3 @@ volumes:
 networks:
   dukanos_network:
     driver: bridge
-

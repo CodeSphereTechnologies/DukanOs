@@ -1,6 +1,6 @@
 export const APP_CONFIG = {
   name: 'DukanOS',
-  apiBaseUrl: import.meta.env.VITE_API_URL || '/api',
+  apiBaseUrl: import.meta.env.VITE_API_URL || '/api/v1',
   tokenKey: 'dukanos_auth_token',
   userKey: 'dukanos_auth_user',
 };
