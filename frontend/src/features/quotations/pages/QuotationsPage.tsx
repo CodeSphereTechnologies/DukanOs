@@ -38,6 +38,7 @@ const PRESET_CUSTOMERS = [
 ];
 
 export const QuotationsPage: React.FC = () => {
+
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [search, setSearch] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);

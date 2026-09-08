@@ -40,11 +40,6 @@ services:
       start_period: 5s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.${COOLIFY_CONTAINER_NAME:-dukanos}.entrypoints=websecure"
-      - "traefik.http.routers.${COOLIFY_CONTAINER_NAME:-dukanos}.rule=Host(`${COOLIFY_FQDN:-app.dukanos.pk}`)"
-      - "traefik.http.routers.${COOLIFY_CONTAINER_NAME:-dukanos}.tls=true"
-      - "traefik.http.routers.${COOLIFY_CONTAINER_NAME:-dukanos}.tls.certresolver=letsencrypt"
-      - "traefik.http.services.${COOLIFY_CONTAINER_NAME:-dukanos}.loadbalancer.server.port=80"
 
   # ── Laravel 13 API Backend (PHP 8.4-FPM) ──────────────────────────────────
   backend:
@@ -52,6 +47,8 @@ services:
       context: .
       dockerfile: coolify/docker/php/Dockerfile
     restart: unless-stopped
+    labels:
+      - "traefik.enable=false"
     environment:
       APP_NAME: "${APP_NAME:-DukanOS}"
       APP_ENV: "${APP_ENV:-production}"
@@ -114,6 +111,8 @@ services:
       dockerfile: coolify/docker/php/Dockerfile
     command: ["php", "artisan", "queue:work", "redis", "--tries=3", "--timeout=90", "--sleep=3"]
     restart: unless-stopped
+    labels:
+      - "traefik.enable=false"
     environment:
       APP_NAME: "${APP_NAME:-DukanOS}"
       APP_ENV: "${APP_ENV:-production}"
@@ -151,6 +150,8 @@ services:
       dockerfile: coolify/docker/php/Dockerfile
     command: ["php", "artisan", "schedule:work"]
     restart: unless-stopped
+    labels:
+      - "traefik.enable=false"
     environment:
       APP_NAME: "${APP_NAME:-DukanOS}"
       APP_ENV: "${APP_ENV:-production}"
@@ -185,6 +186,8 @@ services:
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
+    labels:
+      - "traefik.enable=false"
     environment:
       POSTGRES_DB: "${DB_DATABASE:-dukanos}"
       POSTGRES_USER: "${DB_USERNAME:-dukanos_user}"
@@ -204,6 +207,8 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    labels:
+      - "traefik.enable=false"
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-dukanos_redis_secret}"]
     volumes:
       - dukanos_redis_data:/data
