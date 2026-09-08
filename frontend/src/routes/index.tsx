@@ -35,6 +35,7 @@ import { SpecificationsPage } from '../features/specifications/pages/Specificati
 const RootRedirect: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   if (!isAuthenticated || !user) {
+    return <Navigate to="/login" replace />;
     return <LandingPage />;
   }
   const target = ROLE_DASHBOARDS[user.role.slug] || '/dashboard';
@@ -69,6 +70,7 @@ export const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       >
+        <Route path="/" element={<RootRedirect />} />
         <Route path="/403" element={<ForbiddenPage />} />
 
         <Route
