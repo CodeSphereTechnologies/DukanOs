@@ -39,9 +39,12 @@ fi
 cd /var/www/backend
 
 # ── 2. Auto-generate APP_KEY ────────────────────────────────────────────────
-if [ "${GENERATE_APP_KEY:-true}" = "true" ] && [ -z "${APP_KEY}" ]; then
-    echo "==> APP_KEY not provided — generating new application key"
-    php artisan key:generate --force
+if [ -z "${APP_KEY}" ]; then
+    if [ "${GENERATE_APP_KEY:-true}" = "true" ]; then
+        echo "==> APP_KEY not provided — generating new application key"
+        touch /var/www/backend/.env
+        php artisan key:generate --force
+    fi
 fi
 
 # ── 3. Database Migrations ──────────────────────────────────────────────────
