@@ -49,6 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       const response = await authService.login(credentials);
+      if (!response.data) throw new Error(response.message || 'Login failed');
       const authUser = response.data.user;
       const authToken = response.data.token;
 

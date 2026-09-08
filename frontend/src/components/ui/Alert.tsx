@@ -3,7 +3,8 @@ import { cn } from '../../lib/utils';
 import { CheckCircle2, AlertTriangle, AlertCircle, Info, X } from 'lucide-react';
 
 export interface AlertProps {
-  type?: 'success' | 'warning' | 'error' | 'info';
+  type?: 'success' | 'warning' | 'error' | 'info' | 'destructive';
+  variant?: 'success' | 'warning' | 'error' | 'info' | 'destructive';
   title?: string;
   children: React.ReactNode;
   onClose?: () => void;
@@ -11,12 +12,15 @@ export interface AlertProps {
 }
 
 export const Alert: React.FC<AlertProps> = ({
-  type = 'info',
+  type,
+  variant = 'info',
   title,
   children,
   onClose,
   className,
 }) => {
+  const rawType = type || variant;
+  const alertType = rawType === 'destructive' ? 'error' : rawType;
   const icons = {
     success: <CheckCircle2 className="w-5 h-5 text-[#065F46] shrink-0" />,
     warning: <AlertTriangle className="w-5 h-5 text-[#92400E] shrink-0" />,
@@ -32,8 +36,8 @@ export const Alert: React.FC<AlertProps> = ({
   };
 
   return (
-    <div className={cn('p-4 rounded-xl border flex items-start gap-3 relative', styles[type], className)}>
-      {icons[type]}
+    <div className={cn('p-4 rounded-xl border flex items-start gap-3 relative', styles[alertType], className)}>
+      {icons[alertType]}
       <div className="flex-1 text-xs">
         {title && <h5 className="font-semibold mb-0.5">{title}</h5>}
         <div className="leading-relaxed">{children}</div>

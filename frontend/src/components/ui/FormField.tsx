@@ -6,6 +6,7 @@ export interface FormFieldProps {
   required?: boolean;
   error?: string;
   helperText?: string;
+  description?: string;
   className?: string;
   children: React.ReactNode;
   id?: string;
@@ -16,10 +17,12 @@ export const FormField: React.FC<FormFieldProps> = ({
   required,
   error,
   helperText,
+  description,
   className,
   children,
   id,
 }) => {
+  const note = helperText || description;
   return (
     <div className={cn('w-full flex flex-col gap-1.5', className)}>
       {label && (
@@ -33,8 +36,8 @@ export const FormField: React.FC<FormFieldProps> = ({
       {children}
       {error ? (
         <p className="text-xs font-medium text-[#DC2626]">{error}</p>
-      ) : helperText ? (
-        <p className="text-xs text-[#71717A]">{helperText}</p>
+      ) : note ? (
+        <p className="text-xs text-[#71717A]">{note}</p>
       ) : null}
     </div>
   );

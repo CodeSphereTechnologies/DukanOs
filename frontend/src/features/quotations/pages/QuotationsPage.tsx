@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { PageContainer } from '../../../components/ui/PageContainer';
 import { DataTable, type Column } from '../../../components/ui/DataTable';
 import { SearchToolbar } from '../../../components/ui/SearchToolbar';
@@ -9,16 +8,12 @@ import { Dialog } from '../../../components/ui/Dialog';
 import { FormField } from '../../../components/ui/FormField';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
-import { Textarea } from '../../../components/ui/Textarea';
 import { Alert } from '../../../components/ui/Alert';
 import {
   Plus,
   ArrowRight,
   Printer,
   Trash2,
-  CheckCircle2,
-  FileText,
-  Calendar,
   User,
   Eye,
 } from 'lucide-react';
@@ -43,8 +38,6 @@ const PRESET_CUSTOMERS = [
 ];
 
 export const QuotationsPage: React.FC = () => {
-  const navigate = useNavigate();
-
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [search, setSearch] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);

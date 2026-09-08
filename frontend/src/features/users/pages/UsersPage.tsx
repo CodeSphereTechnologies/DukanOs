@@ -20,7 +20,6 @@ import {
   Trash2,
   Lock,
   UserCheck,
-  Building,
 } from 'lucide-react';
 import { formatDate } from '../../../lib/formatters';
 import { userService, ROLES_CONFIG } from '../../../services/user.service';

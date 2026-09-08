@@ -85,7 +85,8 @@ export const userService = {
     try {
       const res = await apiClient.post<StoreUser>('/users', userPayload);
       if (res && res.data) {
-        const updated = [res.data, ...users.filter((u) => u.id !== res.data.id)];
+        const savedUser = res.data;
+        const updated = [savedUser, ...users.filter((u) => u.id !== savedUser.id)];
         saveStoredUsers(updated);
         return res;
       }

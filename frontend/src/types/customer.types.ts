@@ -14,7 +14,7 @@ export interface Customer {
 export interface CustomerLedgerEntry {
   id: number;
   customer_id: number;
-  invoice_id?: number;
+  invoice_id?: number | null;
   transaction_type: 'debit' | 'credit';
   amount: number;
   running_balance: number;

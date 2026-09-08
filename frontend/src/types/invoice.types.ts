@@ -28,7 +28,7 @@ export interface Invoice {
   total_amount: number;
   paid_amount: number;
   balance_amount: number;
-  payment_method: 'cash' | 'bank_transfer' | 'card' | 'other';
+  payment_method: 'cash' | 'bank_transfer' | 'card' | 'other' | 'ledger';
   notes?: string;
   items: InvoiceItem[];
   created_at: string;
