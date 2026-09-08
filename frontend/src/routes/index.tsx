@@ -9,6 +9,7 @@ import { useAuth } from '../features/auth/hooks/useAuth';
 import { ROLE_DASHBOARDS } from '../lib/constants';
 
 import { LoginPage } from '../features/auth/pages/LoginPage';
+import { LandingPage } from '../features/landing/pages/LandingPage';
 import { SuperAdminDashboard } from '../features/dashboard/pages/SuperAdminDashboard';
 import { OwnerDashboard } from '../features/dashboard/pages/OwnerDashboard';
 import { ManagerDashboard } from '../features/dashboard/pages/ManagerDashboard';
@@ -30,10 +31,11 @@ import { TenantsPage } from '../features/tenants/pages/TenantsPage';
 import { CreateTenantPage } from '../features/tenants/pages/CreateTenantPage';
 import { SpecificationsPage } from '../features/specifications/pages/SpecificationsPage';
 
+// If authenticated → redirect to role dashboard; otherwise show landing page
 const RootRedirect: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace />;
+    return <LandingPage />;
   }
   const target = ROLE_DASHBOARDS[user.role.slug] || '/dashboard';
   return <Navigate to={target} replace />;
@@ -42,6 +44,8 @@ const RootRedirect: React.FC = () => {
 export const AppRoutes: React.FC = () => {
   return (
     <Routes>
+      {/* Public landing page & auth */}
+      <Route path="/" element={<RootRedirect />} />
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<LoginPage />} />
       </Route>
@@ -65,7 +69,6 @@ export const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       >
-        <Route path="/" element={<RootRedirect />} />
         <Route path="/403" element={<ForbiddenPage />} />
 
         <Route
