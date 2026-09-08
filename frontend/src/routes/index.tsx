@@ -31,10 +31,12 @@ import { TenantsPage } from '../features/tenants/pages/TenantsPage';
 import { CreateTenantPage } from '../features/tenants/pages/CreateTenantPage';
 import { SpecificationsPage } from '../features/specifications/pages/SpecificationsPage';
 
+// If authenticated → redirect to role dashboard; otherwise show landing page
 // If authenticated → redirect to role dashboard; otherwise show the landing page
 const RootRedirect: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   if (!isAuthenticated || !user) {
+    return <Navigate to="/login" replace />;
     return <LandingPage />;
   }
   const target = ROLE_DASHBOARDS[user.role.slug] || '/dashboard';
@@ -69,6 +71,7 @@ export const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       >
+        <Route path="/" element={<RootRedirect />} />
         <Route path="/403" element={<ForbiddenPage />} />
 
         <Route
