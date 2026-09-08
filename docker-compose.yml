@@ -40,6 +40,11 @@ services:
       start_period: 5s
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.${COOLIFY_CONTAINER_NAME:-dukanos}.entrypoints=websecure"
+      - "traefik.http.routers.${COOLIFY_CONTAINER_NAME:-dukanos}.rule=Host(`${COOLIFY_FQDN:-app.dukanos.pk}`)"
+      - "traefik.http.routers.${COOLIFY_CONTAINER_NAME:-dukanos}.tls=true"
+      - "traefik.http.routers.${COOLIFY_CONTAINER_NAME:-dukanos}.tls.certresolver=letsencrypt"
+      - "traefik.http.services.${COOLIFY_CONTAINER_NAME:-dukanos}.loadbalancer.server.port=80"
 
   # ── Laravel 13 API Backend (PHP 8.4-FPM) ──────────────────────────────────
   backend:
