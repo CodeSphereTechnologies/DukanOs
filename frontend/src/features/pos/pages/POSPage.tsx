@@ -853,7 +853,8 @@ export const POSPage: React.FC = () => {
       <Dialog
         isOpen={isCheckoutOpen}
         onClose={() => {
-          if (!isCompleted) setIsCheckoutOpen(false);
+          if (isCompleted) resetPOS();
+          else setIsCheckoutOpen(false);
         }}
         title={isCompleted ? 'Order Complete' : 'Checkout'}
         maxWidth="lg"

@@ -15,6 +15,13 @@ export interface Brand {
   status: 'active' | 'inactive';
 }
 
+export interface Unit {
+  id: number;
+  code: string;
+  name: string;
+  status: 'active' | 'inactive';
+}
+
 export interface Specification {
   id: number;
   name: string;

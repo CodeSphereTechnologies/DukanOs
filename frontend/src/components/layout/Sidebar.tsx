@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -16,7 +16,9 @@ import {
   Building2,
   Receipt,
   UserCheck,
-  Tags,
+  FolderTree,
+  Award,
+  Ruler,
   X,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -27,6 +29,17 @@ export interface NavItemConfig {
   path: string;
   icon: React.ReactNode;
   allowedRoles: RoleSlug[];
+  catalogTab?: 'categories' | 'brands' | 'units';
+}
+
+type CatalogTab = 'categories' | 'brands' | 'units';
+
+function isCatalogActive(linkTab: CatalogTab, pathname: string, search: string): boolean {
+  if (pathname !== '/catalog') return false;
+  const param = new URLSearchParams(search).get('tab');
+  const effective: CatalogTab =
+    param === 'brands' || param === 'units' ? param : 'categories';
+  return linkTab === effective;
 }
 
 const NAV_ITEMS: NavItemConfig[] = [
@@ -44,7 +57,9 @@ const NAV_ITEMS: NavItemConfig[] = [
   // Store Operational Modules
   { label: 'POS Terminal', path: '/pos', icon: <ShoppingCart className="w-4 h-4" />, allowedRoles: ['cashier', 'owner', 'manager'] },
   { label: 'Products & Stock', path: '/products', icon: <Package className="w-4 h-4" />, allowedRoles: ['owner', 'manager', 'cashier'] },
-  { label: 'Categories & Brands', path: '/catalog', icon: <Tags className="w-4 h-4" />, allowedRoles: ['owner', 'manager'] },
+  { label: 'Categories', path: '/catalog?tab=categories', icon: <FolderTree className="w-4 h-4" />, allowedRoles: ['owner', 'manager'], catalogTab: 'categories' },
+  { label: 'Brands', path: '/catalog?tab=brands', icon: <Award className="w-4 h-4" />, allowedRoles: ['owner', 'manager'], catalogTab: 'brands' },
+  { label: 'Units', path: '/catalog?tab=units', icon: <Ruler className="w-4 h-4" />, allowedRoles: ['owner', 'manager'], catalogTab: 'units' },
   { label: 'Invoices', path: '/invoices', icon: <Receipt className="w-4 h-4" />, allowedRoles: ['owner', 'manager', 'cashier', 'accountant'] },
   { label: 'Quotations', path: '/quotations', icon: <Receipt className="w-4 h-4" />, allowedRoles: ['owner', 'manager'] },
   { label: 'Customers & Ledger', path: '/customers', icon: <Users className="w-4 h-4" />, allowedRoles: ['owner', 'manager', 'cashier', 'accountant'] },
@@ -73,6 +88,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   className,
 }) => {
   const isSuperAdmin = user.role.slug === 'super_admin';
+
+  const location = useLocation();
 
   const visibleNavItems = NAV_ITEMS.filter((item) => {
     if (isSuperAdmin) return true;
@@ -149,15 +166,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => {
                 if (onNavigate) onNavigate();
               }}
-              className={({ isActive }) =>
-                cn(
+              className={({ isActive }) => {
+                const active = item.catalogTab
+                  ? isCatalogActive(item.catalogTab, location.pathname, location.search)
+                  : isActive;
+                return cn(
                   'flex items-center gap-2 rounded-full py-1.5 px-2 text-xs font-medium transition-colors',
-                  isActive
+                  active
                     ? 'bg-black text-white shadow-sm'
                     : 'text-[#52525B] hover:text-black hover:bg-[#F4F4F5]',
                   collapsed && 'justify-center'
-                )
-              }
+                );
+              }}
               title={collapsed ? item.label : undefined}
             >
               <span className="flex w-4 items-center justify-center">{item.icon}</span>

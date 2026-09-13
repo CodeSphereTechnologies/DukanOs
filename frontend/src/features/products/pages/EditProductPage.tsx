@@ -9,8 +9,9 @@ import { Button } from '../../../components/ui/Button';
 import { LoadingState } from '../../../components/ui/LoadingState';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { ArrowLeft, Plus, Upload, X, CheckCircle2, Tag } from 'lucide-react';
-import type { Product, Category, Brand } from '../../../types/product.types';
+import type { Product, Category, Brand, Unit } from '../../../types/product.types';
 import { productService } from '../../../services/product.service';
+import { unitService } from '../../../services/unit.service';
 
 export const EditProductPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +23,7 @@ export const EditProductPage: React.FC = () => {
   const [notFound, setNotFound] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
 
   const [name, setName] = useState('');
   const [sku, setSku] = useState('');
@@ -47,10 +49,11 @@ export const EditProductPage: React.FC = () => {
   useEffect(() => {
     let active = true;
     (async () => {
-      const [prod, cats, brds] = await Promise.all([
+      const [prod, cats, brds, unts] = await Promise.all([
         productService.getById(productId),
         productService.getCategories(),
         productService.getBrands(),
+        unitService.getAll(),
       ]);
       if (!active) return;
       if (!prod) {
@@ -61,6 +64,7 @@ export const EditProductPage: React.FC = () => {
       setProduct(prod);
       setCategories(cats.data || []);
       setBrands(brds.data || []);
+      setUnits(unts.data || []);
       setName(prod.name);
       setSku(prod.sku);
       setBarcode(prod.barcode || '');
@@ -407,10 +411,7 @@ export const EditProductPage: React.FC = () => {
                     value={unit}
                     onChange={(e) => setUnit(e.target.value)}
                     options={[
-                      { label: 'Piece (pc)', value: 'pc' },
-                      { label: 'Coil / Roll (coil)', value: 'coil' },
-                      { label: 'Meter (m)', value: 'm' },
-                      { label: 'Box (box)', value: 'box' },
+                      ...units.map((u) => ({ label: `${u.name} (${u.code})`, value: u.code })),
                     ]}
                   />
                 </FormField>

@@ -7,14 +7,16 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { Button } from '../../../components/ui/Button';
 import { ArrowLeft, Plus, X, ImagePlus, Upload, Tag, CheckCircle2 } from 'lucide-react';
-import type { Category, Brand } from '../../../types/product.types';
+import type { Category, Brand, Unit } from '../../../types/product.types';
 import { productService } from '../../../services/product.service';
+import { unitService } from '../../../services/unit.service';
 
 export const CreateProductPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
 
   const [name, setName] = useState('');
   const [sku, setSku] = useState('');
@@ -39,6 +41,9 @@ export const CreateProductPage: React.FC = () => {
     });
     productService.getBrands().then((res) => {
       if (res.data) setBrands(res.data);
+    });
+    unitService.getAll().then((res) => {
+      if (res.data) setUnits(res.data);
     });
   }, []);
 
@@ -324,10 +329,7 @@ export const CreateProductPage: React.FC = () => {
                   value={unit}
                   onChange={(e) => setUnit(e.target.value)}
                   options={[
-                    { label: 'Piece (pc)', value: 'pc' },
-                    { label: 'Coil / Roll (coil)', value: 'coil' },
-                    { label: 'Meter (m)', value: 'm' },
-                    { label: 'Box (box)', value: 'box' },
+                    ...units.map((u) => ({ label: `${u.name} (${u.code})`, value: u.code })),
                   ]}
                 />
               </FormField>
