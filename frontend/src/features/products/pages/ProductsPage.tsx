@@ -11,7 +11,8 @@ import { Dialog } from '../../../components/ui/Dialog';
 import { FormField } from '../../../components/ui/FormField';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
-import { Plus, SlidersHorizontal, RotateCcw, ImagePlus, Upload, X, Tag, ChevronRight } from 'lucide-react';
+import { Plus, SlidersHorizontal, RotateCcw, ImagePlus, Upload, X, Tag, ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { formatCurrency } from '../../../lib/formatters';
 import type { Product, Category, Brand } from '../../../types/product.types';
 import { productService } from '../../../services/product.service';
@@ -23,6 +24,10 @@ export const ProductsPage: React.FC = () => {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [search, setSearch] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [editProductId, setEditProductId] = useState<number | null>(null);
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
   // Filter States
@@ -50,6 +55,20 @@ export const ProductsPage: React.FC = () => {
   const [imageUrl, setImageUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Edit Product Form State
+  const [editName, setEditName] = useState('');
+  const [editSku, setEditSku] = useState('');
+  const [editBarcode, setEditBarcode] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editCategoryId, setEditCategoryId] = useState<string>('');
+  const [editBrandId, setEditBrandId] = useState<string>('');
+  const [editPrice, setEditPrice] = useState<number>(0);
+  const [editCost, setEditCost] = useState<number>(0);
+  const [editStock, setEditStock] = useState<number>(0);
+  const [editThreshold, setEditThreshold] = useState<number>(0);
+  const [editUnit, setEditUnit] = useState('pc');
+  const [editStatus, setEditStatus] = useState<'active' | 'inactive' | 'archived'>('active');
+
   useEffect(() => {
     productService.getAll().then((res) => {
       if (res.data) setProducts(res.data);
@@ -61,6 +80,15 @@ export const ProductsPage: React.FC = () => {
       if (res.data) setBrands(res.data);
     });
   }, []);
+
+  useEffect(() => {
+    // Refresh products after edit or delete
+    if (editProductId !== null || deleteId !== null) {
+      productService.getAll().then((res) => {
+        if (res.data) setProducts(res.data);
+      });
+    }
+  }, [editProductId, deleteId]);
 
   const handleAddCategoryInline = async () => {
     const catName = newCategoryName.trim();
@@ -80,6 +108,73 @@ export const ProductsPage: React.FC = () => {
     setBrandId(String(brand.id));
     setShowNewBrand(false);
     setNewBrandName('');
+  };
+
+  const handleEditProduct = (id: number) => {
+    const product = products.find((p) => p.id === id);
+    if (!product) return;
+    setEditProductId(id);
+    setEditName(product.name);
+    setEditSku(product.sku);
+    setEditBarcode(product.barcode || '');
+    setEditDescription(product.description || '');
+    setEditCategoryId(product.category ? String(product.category.id) : '');
+    setEditBrandId(product.brand ? String(product.brand.id) : '');
+    setEditPrice(product.selling_price);
+    setEditCost(product.purchase_cost || 0);
+    setEditStock(product.current_stock);
+    setEditThreshold(product.min_quantity_threshold || 0);
+    setEditUnit(product.unit);
+    setEditStatus(product.status);
+    setShowNewCategory(false);
+    setShowNewBrand(false);
+    setIsEditOpen(true);
+  };
+
+  const handleDeleteProduct = (id: number) => {
+    setDeleteId(id);
+    setIsDeleteOpen(true);
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (deleteId === null) return;
+    await productService.deleteProduct(deleteId);
+    setProducts((prev) => prev.filter((p) => p.id !== deleteId));
+    setDeleteId(null);
+    setIsDeleteOpen(false);
+  };
+
+  const saveEditedProduct = async () => {
+    if (editProductId === null || !editName.trim() || !editSku.trim()) return;
+    const productIndex = products.findIndex((p) => p.id === editProductId);
+    if (productIndex < 0) return;
+    
+    const selectedCat = categories.find((c) => c.id === Number(editCategoryId)) || categories[0];
+    const selectedBrd = brands.find((b) => b.id === Number(editBrandId)) || brands[0];
+    
+    const updated = await productService.saveProduct({
+      id: editProductId,
+      name: editName.trim(),
+      sku: editSku.trim(),
+      barcode: editBarcode.trim() || undefined,
+      description: editDescription.trim() || undefined,
+      category: selectedCat,
+      brand: selectedBrd,
+      selling_price: Number(editPrice) || 0,
+      purchase_cost: Number(editCost) || undefined,
+      current_stock: Number(editStock) || 0,
+      unit,
+      status: editStatus,
+    });
+    
+    setProducts((prev) => {
+      const next = [...prev];
+      next[productIndex] = updated;
+      return next;
+    });
+    
+    setIsEditOpen(false);
+    setEditProductId(null);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -242,12 +337,26 @@ export const ProductsPage: React.FC = () => {
     setShowNewBrand(false);
     setNewCategoryName('');
     setNewBrandName('');
+    setEditProductId(null);
+    setEditName('');
+    setEditSku('');
+    setEditBarcode('');
+    setEditDescription('');
+    setEditCategoryId('');
+    setEditBrandId('');
+    setEditPrice(0);
+    setEditCost(0);
+    setEditStock(0);
+    setEditThreshold(0);
+    setEditUnit('pc');
+    setEditStatus('active');
   };
 
-  const columns: Column<Product>[] = [
+const columns: Column<Product>[] = [
     {
       key: 'name',
       header: 'Product Details',
+      className: 'w-48',
       render: (p) => (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center shrink-0">
@@ -283,6 +392,7 @@ export const ProductsPage: React.FC = () => {
     {
       key: 'category',
       header: 'Category / Brand',
+      className: 'w-40',
       render: (p) => (
         <span className="text-xs text-[#52525B]">
           {p.category?.name || 'General'} · {p.brand?.name || 'Generic'}
@@ -293,13 +403,14 @@ export const ProductsPage: React.FC = () => {
       key: 'current_stock',
       header: 'Stock',
       align: 'center',
+      className: 'w-28',
       render: (p) => {
         const isLow = (p.current_stock || 0) <= (p.min_quantity_threshold || 5);
         const isOut = (p.current_stock || 0) === 0;
         return (
           <span
             className={`font-semibold ${
-              isOut ? 'text-[#DC2626] font-extrabold' : isLow ? 'text-[#D97706]' : 'text-[#065F46]'
+              isOut ? 'text-[#DC2626] font-extrabold' : isLow ? 'text-[#D97706]' : 'text-[#065F46]'}
             }`}
           >
             {p.current_stock} {p.unit}
@@ -311,12 +422,14 @@ export const ProductsPage: React.FC = () => {
       key: 'selling_price',
       header: 'Selling Price',
       align: 'right',
+      className: 'w-36',
       render: (p) => <span className="font-bold text-black">{formatCurrency(p.selling_price)}</span>,
     },
     {
       key: 'status',
       header: 'Status',
       align: 'center',
+      className: 'w-24',
       render: (p) => (
         <Badge
           variant={
@@ -329,6 +442,36 @@ export const ProductsPage: React.FC = () => {
         >
           {p.status}
         </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'center',
+      className: 'w-32',
+      render: (p) => (
+        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="link"
+            size="sm"
+            leftIcon={<Pencil className="w-3 h-3" />}
+            onClick={() => handleEditProduct(p.id)}
+            className="text-[#047857] hover:text-[#18181B]"
+            title="Edit"
+          >
+            Edit
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            leftIcon={<Trash2 className="w-3 h-3" />}
+            onClick={() => handleDeleteProduct(p.id)}
+            className="text-[#DC2626] hover:text-[#18181B]"
+            title="Delete"
+          >
+            Delete
+          </Button>
+        </div>
       ),
     },
   ];
@@ -488,6 +631,202 @@ export const ProductsPage: React.FC = () => {
           </div>
         </div>
       </Drawer>
+
+      {/* Edit Product Modal */}
+      <Dialog
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        title="Edit Product"
+        description="Update product details"
+        maxWidth="lg"
+        footer={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => setIsEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" size="sm" onClick={saveEditedProduct} isLoading={false}>
+              Save Changes
+            </Button>
+          </>
+        }
+      >
+        <form onSubmit={(e) => { e.preventDefault(); saveEditedProduct(); }} className="space-y-4">
+          <FormField label="Product Name" required>
+            <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Product name" autoFocus />
+          </FormField>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField label="Category" required>
+              {!showNewCategory ? (
+                <Select
+                  value={editCategoryId}
+                  onChange={(e) => {
+                    if (e.target.value === '__new__') setShowNewCategory(true);
+                    else setEditCategoryId(e.target.value);
+                  }}
+                  options={[
+                    { label: 'Select a category...', value: '' },
+                    ...categories.map((c) => ({ label: c.name, value: String(c.id) })),
+                    { label: '+ Add New Category...', value: '__new__' },
+                  ]}
+                />
+              ) : (
+                <div className="flex items-end gap-2">
+                  <Input
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="Type new category name"
+                    autoFocus
+                  />
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    leftIcon={<Plus className="w-3.5 h-3.5" />}
+                    onClick={handleAddCategoryInline}
+                    disabled={!newCategoryName.trim()}
+                  >
+                    Add
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowNewCategory(false);
+                      setNewCategoryName('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
+            </FormField>
+
+            <FormField label="Brand" required>
+              {!showNewBrand ? (
+                <Select
+                  value={editBrandId}
+                  onChange={(e) => {
+                    if (e.target.value === '__new__') setShowNewBrand(true);
+                    else setEditBrandId(e.target.value);
+                  }}
+                  options={[
+                    { label: 'Select a brand...', value: '' },
+                    ...brands.map((b) => ({ label: b.name, value: String(b.id) })),
+                    { label: '+ Add New Brand...', value: '__new__' },
+                  ]}
+                />
+              ) : (
+                <div className="flex items-end gap-2">
+                  <Input
+                    value={newBrandName}
+                    onChange={(e) => setNewBrandName(e.target.value)}
+                    placeholder="Type new brand name"
+                    autoFocus
+                  />
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    leftIcon={<Plus className="w-3.5 h-3.5" />}
+                    onClick={handleAddBrandInline}
+                    disabled={!newBrandName.trim()}
+                  >
+                    Add
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowNewBrand(false);
+                      setNewBrandName('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField label="SKU Code" required>
+              <Input value={editSku} onChange={(e) => setEditSku(e.target.value)} placeholder="e.g. ROY-FAN-56" />
+            </FormField>
+            <FormField label="Barcode (EAN/UPC)">
+              <Input value={editBarcode} onChange={(e) => setEditBarcode(e.target.value)} placeholder="e.g. 8901234567890" />
+            </FormField>
+          </div>
+
+          <FormField label="Description">
+            <textarea
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              placeholder="Optional product description..."
+              rows={2}
+              className="w-full px-3.5 py-2.5 text-sm bg-white text-[#18181B] placeholder:text-[#A1A1AA] rounded-lg border border-[#E4E4E7] transition-all focus:outline-none focus:border-black focus:ring-1 focus:ring-black resize-none"
+            />
+          </FormField>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField label="Selling Price (PKR)" required>
+              <Input type="number" value={editPrice || ''} onChange={(e) => setEditPrice(Number(e.target.value))} placeholder="e.g. 9500" />
+            </FormField>
+            <FormField label="Purchase Cost (PKR)">
+              <Input type="number" value={editCost || ''} onChange={(e) => setEditCost(Number(e.target.value))} placeholder="e.g. 7800" />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField label="Current Stock">
+              <Input type="number" value={editStock || ''} onChange={(e) => setEditStock(Number(e.target.value))} placeholder="e.g. 20" />
+            </FormField>
+            <FormField label="Low-Stock Threshold">
+              <Input type="number" value={editThreshold || ''} onChange={(e) => setEditThreshold(Number(e.target.value))} placeholder="e.g. 5" />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <FormField label="Unit of Sale">
+              <Select
+                value={editUnit}
+                onChange={(e) => setEditUnit(e.target.value)}
+                options={[
+                  { label: 'Piece (pc)', value: 'pc' },
+                  { label: 'Coil / Roll (coil)', value: 'coil' },
+                  { label: 'Meter (m)', value: 'm' },
+                  { label: 'Box (box)', value: 'box' },
+                ]}
+              />
+            </FormField>
+            <FormField label="Status">
+              <Select
+                value={editStatus}
+                onChange={(e) => setEditStatus(e.target.value as Product['status'])}
+                options={[
+                  { label: 'Active (Available for sale)', value: 'active' },
+                  { label: 'Inactive (Hidden from POS)', value: 'inactive' },
+                  { label: 'Archived', value: 'archived' },
+                ]}
+              />
+            </FormField>
+          </div>
+        </form>
+      </Dialog>
+
+      {/* Delete Confirm */}
+      <ConfirmDialog
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        onConfirm={confirmDeleteProduct}
+        title="Delete this product?"
+        message="This permanently removes the product from the catalog. Historical invoices and quotations will still show its name, but the product can no longer be sold. This cannot be undone."
+        confirmText="Delete Product"
+        variant="destructive"
+        isLoading={false}
+      />
 
       {/* Add Product Modal */}
       <Dialog

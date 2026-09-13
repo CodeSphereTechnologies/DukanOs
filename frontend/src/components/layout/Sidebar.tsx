@@ -98,8 +98,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </span>
             </div>
           ) : (
-            <div className="w-7 h-7 bg-black rounded-lg flex items-center justify-center text-white font-bold text-sm mx-auto shadow-sm">
-              D
+            <div className="flex items-center">
+              <div className="w-7 h-7 bg-black rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                D
+              </div>
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                className="p-1 rounded-full text-[#71717A] hover:text-black hover:bg-[#F4F4F5] transition-colors flex-shrink-0"
+                title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+              </button>
             </div>
           )}
 
@@ -125,7 +135,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Navigation List */}
-        <nav className="flex-1 p-2 space-y-1 overflow-y-auto overflow-x-hidden">
+        <nav className="flex-1 p-2 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-width-none">
+          <style>{`
+            *::-webkit-scrollbar { display: none; }
+            * { scrollbar-width: none; }
+          `}</style>
           {visibleNavItems.map((item) => (
             <NavLink
               key={item.path}
@@ -135,16 +149,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-full text-xs font-medium transition-colors',
+                  'flex items-center gap-2 rounded-full py-1.5 px-2 text-xs font-medium transition-colors',
                   isActive
                     ? 'bg-black text-white shadow-sm'
                     : 'text-[#52525B] hover:text-black hover:bg-[#F4F4F5]',
-                  collapsed && 'justify-center px-0'
+                  collapsed && 'justify-center'
                 )
               }
               title={collapsed ? item.label : undefined}
             >
-              <span className="shrink-0">{item.icon}</span>
+              <span className="flex w-4 items-center justify-center">{item.icon}</span>
               {!collapsed && <span className="truncate">{item.label}</span>}
             </NavLink>
           ))}
