@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '../../../lib/formatters';
 import { cn } from '../../../lib/utils';
-import type { Product } from '../../../types/product.types';
+import type { Product, Category, Brand } from '../../../types/product.types';
 import type { Customer } from '../../../types/customer.types';
 import type { InvoiceItem } from '../../../types/invoice.types';
 import { productService } from '../../../services/product.service';
@@ -47,6 +47,8 @@ export const POSPage: React.FC = () => {
   const [search, setSearch] = useState(location.state?.barcode || '');
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [allBrands, setAllBrands] = useState<Brand[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
 
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -80,6 +82,12 @@ export const POSPage: React.FC = () => {
     productService.getAll().then((res) => {
       if (res.data) setProducts(res.data.filter((p) => p.status === 'active'));
     });
+    productService.getCategories().then((res) => {
+      if (res.data) setAllCategories(res.data);
+    });
+    productService.getBrands().then((res) => {
+      if (res.data) setAllBrands(res.data);
+    });
     customerService.getAll().then((res) => {
       if (res.data) setCustomers(res.data);
     });
@@ -111,12 +119,8 @@ export const POSPage: React.FC = () => {
     }
   }, [location.state]);
 
-  const categories = Array.from(
-    new Map(products.filter((p) => p.category).map((p) => [p.category!.id, p.category!])).values()
-  );
-  const brands = Array.from(
-    new Map(products.filter((p) => p.brand).map((p) => [p.brand!.id, p.brand!])).values()
-  );
+  const categories = allCategories.filter((c) => c.status === 'active');
+  const brands = allBrands.filter((b) => b.status === 'active');
 
   let filteredCatalog = products.filter(
     (item) =>
