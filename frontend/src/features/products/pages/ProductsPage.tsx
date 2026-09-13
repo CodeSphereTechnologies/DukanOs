@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PageContainer } from '../../../components/ui/PageContainer';
 import { DataTable, type Column } from '../../../components/ui/DataTable';
@@ -11,7 +11,7 @@ import { Dialog } from '../../../components/ui/Dialog';
 import { FormField } from '../../../components/ui/FormField';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
-import { Plus, SlidersHorizontal, RotateCcw, ImagePlus, Upload, X, Tag, ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import { Plus, SlidersHorizontal, RotateCcw, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { formatCurrency } from '../../../lib/formatters';
 import type { Product, Category, Brand } from '../../../types/product.types';
@@ -23,7 +23,6 @@ export const ProductsPage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [search, setSearch] = useState('');
-  const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -38,22 +37,11 @@ export const ProductsPage: React.FC = () => {
   const [minPrice, setMinPrice] = useState<string>('');
   const [maxPrice, setMaxPrice] = useState<string>('');
 
-  // Add Product Form State
-  const [name, setName] = useState('');
-  const [sku, setSku] = useState('');
-  const [barcode, setBarcode] = useState('');
-  const [categoryId, setCategoryId] = useState<string>('');
-  const [brandId, setBrandId] = useState<string>('');
+  // Category & Brand Inline Add State
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [showNewBrand, setShowNewBrand] = useState(false);
   const [newBrandName, setNewBrandName] = useState('');
-  const [price, setPrice] = useState<number>(0);
-  const [cost, setCost] = useState<number>(0);
-  const [stock, setStock] = useState<number>(0);
-  const [unit, setUnit] = useState('pc');
-  const [imageUrl, setImageUrl] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Edit Product Form State
   const [editName, setEditName] = useState('');
@@ -95,7 +83,7 @@ export const ProductsPage: React.FC = () => {
     if (!catName) return;
     const cat = await productService.addCategory(catName);
     setCategories((prev) => [...prev.filter((c) => c.id !== cat.id), cat]);
-    setCategoryId(String(cat.id));
+    setEditCategoryId(String(cat.id));
     setShowNewCategory(false);
     setNewCategoryName('');
   };
@@ -105,7 +93,7 @@ export const ProductsPage: React.FC = () => {
     if (!bName) return;
     const brand = await productService.addBrand(bName);
     setBrands((prev) => [...prev.filter((b) => b.id !== brand.id), brand]);
-    setBrandId(String(brand.id));
+    setEditBrandId(String(brand.id));
     setShowNewBrand(false);
     setNewBrandName('');
   };
@@ -163,7 +151,7 @@ export const ProductsPage: React.FC = () => {
       selling_price: Number(editPrice) || 0,
       purchase_cost: Number(editCost) || undefined,
       current_stock: Number(editStock) || 0,
-      unit,
+      unit: editUnit,
       status: editStatus,
     });
     
@@ -175,16 +163,6 @@ export const ProductsPage: React.FC = () => {
     
     setIsEditOpen(false);
     setEditProductId(null);
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setImageUrl(reader.result as string);
-    };
-    reader.readAsDataURL(file);
   };
 
   // Dynamic filter lists
@@ -299,60 +277,7 @@ export const ProductsPage: React.FC = () => {
     });
   }, [products, search, selectedCategory, selectedBrand, stockStatus, selectedStatus, minPrice, maxPrice]);
 
-  const handleAddProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !sku || !price) return;
-
-    const selectedCat = categories.find((c) => c.id === Number(categoryId)) || categories[0];
-    const selectedBrd = brands.find((b) => b.id === Number(brandId)) || brands[0];
-
-    await productService.saveProduct({
-      name,
-      sku,
-      barcode: barcode || undefined,
-      category: selectedCat,
-      brand: selectedBrd,
-      selling_price: Number(price),
-      purchase_cost: Number(cost) || undefined,
-      current_stock: Number(stock) || 0,
-      unit,
-      status: 'active',
-      image_url: imageUrl || undefined,
-    });
-
-    const saved = await productService.getAll();
-    if (saved.data) setProducts(saved.data);
-
-    setIsAddOpen(false);
-    setName('');
-    setSku('');
-    setBarcode('');
-    setCategoryId('');
-    setBrandId('');
-    setPrice(0);
-    setCost(0);
-    setStock(0);
-    setImageUrl('');
-    setShowNewCategory(false);
-    setShowNewBrand(false);
-    setNewCategoryName('');
-    setNewBrandName('');
-    setEditProductId(null);
-    setEditName('');
-    setEditSku('');
-    setEditBarcode('');
-    setEditDescription('');
-    setEditCategoryId('');
-    setEditBrandId('');
-    setEditPrice(0);
-    setEditCost(0);
-    setEditStock(0);
-    setEditThreshold(0);
-    setEditUnit('pc');
-    setEditStatus('active');
-  };
-
-const columns: Column<Product>[] = [
+  const columns: Column<Product>[] = [
     {
       key: 'name',
       header: 'Product Details',
@@ -485,7 +410,7 @@ const columns: Column<Product>[] = [
           variant="primary"
           size="md"
           leftIcon={<Plus className="w-4 h-4" />}
-          onClick={() => setIsAddOpen(true)}
+          onClick={() => navigate('/products/create')}
         >
           Add Product
         </Button>
@@ -827,244 +752,6 @@ const columns: Column<Product>[] = [
         variant="destructive"
         isLoading={false}
       />
-
-      {/* Add Product Modal */}
-      <Dialog
-        isOpen={isAddOpen}
-        onClose={() => setIsAddOpen(false)}
-        title="Add Catalog Product"
-        description="Register an appliance item with pricing, barcode, category, brand, and make it available in the POS terminal."
-        maxWidth="lg"
-        footer={
-          <>
-            <Button variant="secondary" size="sm" onClick={() => setIsAddOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" size="sm" onClick={handleAddProduct}>
-              Save Product
-            </Button>
-          </>
-        }
-      >
-        <form onSubmit={handleAddProduct} className="space-y-4">
-          {/* Image Upload */}
-          <FormField label="Product Image">
-            <div className="flex items-start gap-3">
-              <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center shrink-0 border border-[#E4E4E7]">
-                {imageUrl ? (
-                  <img src={imageUrl} alt="Product preview" className="w-full h-full object-cover" />
-                ) : (
-                  <ImagePlus className="w-6 h-6 text-slate-400" />
-                )}
-              </div>
-              <div className="flex-1 space-y-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  leftIcon={<Upload className="w-3.5 h-3.5" />}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  Upload Image
-                </Button>
-                <Input
-                  value={imageUrl.startsWith('data:') ? '' : imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="or paste image URL..."
-                  disabled={imageUrl.startsWith('data:')}
-                />
-                {imageUrl && (
-                  <button
-                    type="button"
-                    onClick={() => setImageUrl('')}
-                    className="text-xs text-[#DC2626] hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    <X className="w-3 h-3" /> Remove image
-                  </button>
-                )}
-              </div>
-            </div>
-          </FormField>
-
-          <FormField label="Product Name" required>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Royal Deluxe Fan 56''"
-              autoFocus
-            />
-          </FormField>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label="Category" required>
-              {!showNewCategory ? (
-                <div className="flex items-end gap-2">
-                  <Select
-                    value={categoryId}
-                    onChange={(e) => {
-                      if (e.target.value === '__new__') {
-                        setShowNewCategory(true);
-                      } else {
-                        setCategoryId(e.target.value);
-                      }
-                    }}
-                    options={[
-                      { label: 'Select a category...', value: '' },
-                      ...categories.map((c) => ({ label: c.name, value: String(c.id) })),
-                      { label: '+ Add New Category...', value: '__new__' },
-                    ]}
-                  />
-                </div>
-              ) : (
-                <div className="flex items-end gap-2">
-                  <Input
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    placeholder="Type new category name"
-                    autoFocus
-                  />
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="sm"
-                    leftIcon={<Plus className="w-3.5 h-3.5" />}
-                    onClick={handleAddCategoryInline}
-                    disabled={!newCategoryName.trim()}
-                  >
-                    Add
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setShowNewCategory(false);
-                      setNewCategoryName('');
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              )}
-            </FormField>
-
-            <FormField label="Brand" required>
-              {!showNewBrand ? (
-                <Select
-                  value={brandId}
-                  onChange={(e) => {
-                    if (e.target.value === '__new__') {
-                      setShowNewBrand(true);
-                    } else {
-                      setBrandId(e.target.value);
-                    }
-                  }}
-                  options={[
-                    { label: 'Select a brand...', value: '' },
-                    ...brands.map((b) => ({ label: b.name, value: String(b.id) })),
-                    { label: '+ Add New Brand...', value: '__new__' },
-                  ]}
-                />
-              ) : (
-                <div className="flex items-end gap-2">
-                  <Input
-                    value={newBrandName}
-                    onChange={(e) => setNewBrandName(e.target.value)}
-                    placeholder="Type new brand name"
-                    autoFocus
-                  />
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="sm"
-                    leftIcon={<Plus className="w-3.5 h-3.5" />}
-                    onClick={handleAddBrandInline}
-                    disabled={!newBrandName.trim()}
-                  >
-                    Add
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setShowNewBrand(false);
-                      setNewBrandName('');
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              )}
-            </FormField>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label="SKU Code" required>
-              <Input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="e.g. ROY-FAN-56" />
-            </FormField>
-            <FormField label="Barcode (EAN/UPC)">
-              <Input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="e.g. 8901234567890" />
-            </FormField>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label="Selling Price (PKR)" required>
-              <Input
-                type="number"
-                value={price || ''}
-                onChange={(e) => setPrice(Number(e.target.value))}
-                placeholder="e.g. 9500"
-              />
-            </FormField>
-            <FormField label="Purchase Cost (PKR)">
-              <Input
-                type="number"
-                value={cost || ''}
-                onChange={(e) => setCost(Number(e.target.value))}
-                placeholder="e.g. 7800"
-              />
-            </FormField>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label="Opening Stock">
-              <Input
-                type="number"
-                value={stock || ''}
-                onChange={(e) => setStock(Number(e.target.value))}
-                placeholder="e.g. 20"
-              />
-            </FormField>
-            <FormField label="Unit of Sale">
-              <Select
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                options={[
-                  { label: 'Piece (pc)', value: 'pc' },
-                  { label: 'Coil / Roll (coil)', value: 'coil' },
-                  { label: 'Meter (m)', value: 'm' },
-                  { label: 'Box (box)', value: 'box' },
-                ]}
-              />
-            </FormField>
-          </div>
-
-          {(!categoryId || !brandId) && (
-            <div className="flex items-center gap-2 p-2.5 bg-[#FEF3C7] rounded-lg text-xs text-[#92400E]">
-              <Tag className="w-3.5 h-3.5 shrink-0" />
-              Select a category and brand, or add a new one directly (e.g. "Sequential Brand", "Industrial Switches").
-            </div>
-          )}
-        </form>
-      </Dialog>
     </PageContainer>
   );
 };
