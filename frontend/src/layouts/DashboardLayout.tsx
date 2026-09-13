@@ -47,6 +47,33 @@ export const DashboardLayout: React.FC = () => {
     }
   }, [mobileOpen]);
 
+  // Global Keyboard Shortcut: Ctrl+B or Cmd+B to toggle sidebar / drawer
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        if (window.innerWidth >= 768) {
+          setCollapsed((prev) => !prev);
+        } else {
+          setMobileOpen((prev) => !prev);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   if (!user) {
     return <LoadingState fullPage message="Authenticating session..." />;
   }
@@ -65,15 +92,15 @@ export const DashboardLayout: React.FC = () => {
       {/* Mobile Drawer Backdrop */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-50 md:hidden backdrop-blur-xs transition-opacity duration-200 print:hidden"
+          className="fixed inset-0 bg-black/40 z-50 md:hidden backdrop-blur-xs transition-opacity duration-300 print:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
-      {/* Mobile Slide-in Drawer (Hidden & translated off-screen when closed) */}
+      {/* Mobile Slide-in Drawer */}
       <div
         className={cn(
-          'fixed inset-y-0 left-0 w-64 z-50 md:hidden transition-transform duration-300 ease-in-out shadow-2xl bg-white flex flex-col print:hidden',
+          'fixed inset-y-0 left-0 w-72 max-w-[85vw] z-50 md:hidden transition-transform duration-300 ease-in-out shadow-2xl bg-white flex flex-col print:hidden rounded-r-2xl overflow-hidden',
           mobileOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none invisible'
         )}
       >
@@ -89,8 +116,8 @@ export const DashboardLayout: React.FC = () => {
       {/* Main Content Area - offset by fixed sidebar width on desktop */}
       <div
         className={cn(
-          'flex-1 flex flex-col min-w-0 transition-all duration-200 ease-in-out pb-16 md:pb-0 print:pl-0',
-          collapsed ? 'md:pl-16' : 'md:pl-64'
+          'flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out pb-16 md:pb-0 print:pl-0',
+          collapsed ? 'md:pl-[68px]' : 'md:pl-64'
         )}
       >
         <Header onMenuToggle={() => setMobileOpen(!mobileOpen)} />

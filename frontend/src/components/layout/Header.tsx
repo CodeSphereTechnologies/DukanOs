@@ -1,28 +1,33 @@
 import React from 'react';
 import { Breadcrumb } from './Breadcrumb';
 import { UserMenu } from './UserMenu';
-import { Menu, Zap } from 'lucide-react';
+import { PanelLeft, Zap } from 'lucide-react';
 import { useTenant } from '../../hooks/useTenant';
-
 export interface HeaderProps {
   onMenuToggle?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
+export const Header: React.FC<HeaderProps> = ({
+  onMenuToggle,
+}) => {
   const { tenant } = useTenant();
 
   return (
-    <header className="h-14 bg-white border-b border-[#E4E4E7] px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 print:hidden">
+    <header className="h-14 bg-white border-b border-[#E4E4E7] px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 print:hidden transition-colors">
       <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 mr-2">
+        {/* Mobile Menu Drawer Toggle */}
         {onMenuToggle && (
           <button
             type="button"
             onClick={onMenuToggle}
-            className="md:hidden p-1.5 -ml-1 rounded-lg text-[#71717A] hover:text-black hover:bg-[#F4F4F5] shrink-0"
+            className="md:hidden p-1.5 -ml-1 rounded-lg text-[#71717A] hover:text-[#18181B] hover:bg-[#F4F4F5] shrink-0 transition-colors"
+            title="Open menu"
+            aria-label="Open menu"
           >
-            <Menu className="w-5 h-5" />
+            <PanelLeft className="w-5 h-5" />
           </button>
         )}
+
         <div className="min-w-0 overflow-hidden">
           <Breadcrumb />
         </div>
