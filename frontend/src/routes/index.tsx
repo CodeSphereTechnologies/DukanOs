@@ -21,6 +21,7 @@ import { ProductsPage } from '../features/products/pages/ProductsPage';
 import { CreateProductPage } from '../features/products/pages/CreateProductPage';
 import { EditProductPage } from '../features/products/pages/EditProductPage';
 import { ProductDetailPage } from '../features/products/pages/ProductDetailPage';
+import { CatalogPage } from '../features/products/pages/CatalogPage';
 import { InvoicesPage } from '../features/invoices/pages/InvoicesPage';
 import { QuotationsPage } from '../features/quotations/pages/QuotationsPage';
 import { CustomersPage } from '../features/customers/pages/CustomersPage';
@@ -163,6 +164,14 @@ export const AppRoutes: React.FC = () => {
           element={
             <RoleRoute allowedRoles={['owner', 'manager', 'cashier']}>
               <ProductsPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/catalog"
+          element={
+            <RoleRoute allowedRoles={['owner', 'manager']}>
+              <CatalogPage />
             </RoleRoute>
           }
         />

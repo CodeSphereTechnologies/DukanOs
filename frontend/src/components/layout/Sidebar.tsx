@@ -16,6 +16,7 @@ import {
   Building2,
   Receipt,
   UserCheck,
+  Tags,
   X,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -43,6 +44,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   // Store Operational Modules
   { label: 'POS Terminal', path: '/pos', icon: <ShoppingCart className="w-4 h-4" />, allowedRoles: ['cashier', 'owner', 'manager'] },
   { label: 'Products & Stock', path: '/products', icon: <Package className="w-4 h-4" />, allowedRoles: ['owner', 'manager', 'cashier'] },
+  { label: 'Categories & Brands', path: '/catalog', icon: <Tags className="w-4 h-4" />, allowedRoles: ['owner', 'manager'] },
   { label: 'Invoices', path: '/invoices', icon: <Receipt className="w-4 h-4" />, allowedRoles: ['owner', 'manager', 'cashier', 'accountant'] },
   { label: 'Quotations', path: '/quotations', icon: <Receipt className="w-4 h-4" />, allowedRoles: ['owner', 'manager'] },
   { label: 'Customers & Ledger', path: '/customers', icon: <Users className="w-4 h-4" />, allowedRoles: ['owner', 'manager', 'cashier', 'accountant'] },

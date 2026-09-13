@@ -184,6 +184,52 @@ export const productService = {
     return newBrand;
   },
 
+  async updateCategory(id: number, data: Partial<Pick<Category, 'name' | 'status'>>): Promise<Category | null> {
+    const list = getStoredCategories();
+    const idx = list.findIndex((c) => c.id === id);
+    if (idx < 0) return null;
+    list[idx] = {
+      ...list[idx],
+      ...data,
+      ...(data.name !== undefined
+        ? { slug: data.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') }
+        : {}),
+    };
+    saveStoredCategories(list);
+    return list[idx];
+  },
+
+  async deleteCategory(id: number): Promise<boolean> {
+    const list = getStoredCategories();
+    const next = list.filter((c) => c.id !== id);
+    if (next.length === list.length) return false;
+    saveStoredCategories(next);
+    return true;
+  },
+
+  async updateBrand(id: number, data: Partial<Pick<Brand, 'name' | 'status'>>): Promise<Brand | null> {
+    const list = getStoredBrands();
+    const idx = list.findIndex((b) => b.id === id);
+    if (idx < 0) return null;
+    list[idx] = {
+      ...list[idx],
+      ...data,
+      ...(data.name !== undefined
+        ? { slug: data.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') }
+        : {}),
+    };
+    saveStoredBrands(list);
+    return list[idx];
+  },
+
+  async deleteBrand(id: number): Promise<boolean> {
+    const list = getStoredBrands();
+    const next = list.filter((b) => b.id !== id);
+    if (next.length === list.length) return false;
+    saveStoredBrands(next);
+    return true;
+  },
+
   async saveProduct(
     data: Omit<Product, 'id'> & { id?: number }
   ): Promise<Product> {
