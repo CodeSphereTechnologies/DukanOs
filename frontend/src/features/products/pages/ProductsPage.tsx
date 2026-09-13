@@ -13,12 +13,14 @@ import { Select } from '../../../components/ui/Select';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { Plus, SlidersHorizontal, RotateCcw, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import { formatCurrency } from '../../../lib/formatters';
-import type { Product } from '../../../types/product.types';
+import type { Product, Category, Brand } from '../../../types/product.types';
 import { productService } from '../../../services/product.service';
 
 export const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [search, setSearch] = useState('');
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -36,6 +38,12 @@ export const ProductsPage: React.FC = () => {
     productService.getAll().then((res) => {
       if (res.data) setProducts(res.data);
     });
+    productService.getCategories().then((res) => {
+      if (res.data) setCategories(res.data);
+    });
+    productService.getBrands().then((res) => {
+      if (res.data) setBrands(res.data);
+    });
   }, []);
 
   const handleDeleteProduct = (id: number) => {
@@ -51,22 +59,10 @@ export const ProductsPage: React.FC = () => {
     setIsDeleteOpen(false);
   };
 
-  // Dynamic filter lists
-  const categoriesFilter = useMemo(() => {
-    const set = new Set<string>();
-    products.forEach((p) => {
-      if (p.category?.name) set.add(p.category.name);
-    });
-    return Array.from(set);
-  }, [products]);
+  // Dynamic filter lists (all configured categories/brands, not just ones in use)
+  const categoriesFilter = useMemo(() => categories.map((c) => c.name), [categories]);
 
-  const brandsFilter = useMemo(() => {
-    const set = new Set<string>();
-    products.forEach((p) => {
-      if (p.brand?.name) set.add(p.brand.name);
-    });
-    return Array.from(set);
-  }, [products]);
+  const brandsFilter = useMemo(() => brands.map((b) => b.name), [brands]);
 
   // Active filters for FilterBar
   const activeFilters = useMemo(() => {
