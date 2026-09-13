@@ -19,6 +19,7 @@ import { ForbiddenPage } from '../features/dashboard/pages/ForbiddenPage';
 import { POSPage } from '../features/pos/pages/POSPage';
 import { ProductsPage } from '../features/products/pages/ProductsPage';
 import { CreateProductPage } from '../features/products/pages/CreateProductPage';
+import { EditProductPage } from '../features/products/pages/EditProductPage';
 import { ProductDetailPage } from '../features/products/pages/ProductDetailPage';
 import { InvoicesPage } from '../features/invoices/pages/InvoicesPage';
 import { QuotationsPage } from '../features/quotations/pages/QuotationsPage';
@@ -170,6 +171,14 @@ export const AppRoutes: React.FC = () => {
           element={
             <RoleRoute allowedRoles={['owner', 'manager', 'cashier']}>
               <CreateProductPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/products/:id/edit"
+          element={
+            <RoleRoute allowedRoles={['owner', 'manager', 'cashier']}>
+              <EditProductPage />
             </RoleRoute>
           }
         />

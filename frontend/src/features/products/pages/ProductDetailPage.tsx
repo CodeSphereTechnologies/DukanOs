@@ -20,15 +20,12 @@ import {
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
-import { Dialog } from '../../../components/ui/Dialog';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
-import { FormField } from '../../../components/ui/FormField';
 import { Input } from '../../../components/ui/Input';
-import { Select } from '../../../components/ui/Select';
 import { LoadingState } from '../../../components/ui/LoadingState';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { formatCurrency, formatDate } from '../../../lib/formatters';
-import type { Product, Category, Brand } from '../../../types/product.types';
+import type { Product } from '../../../types/product.types';
 import type { InvoiceItem, Invoice, Quotation } from '../../../types/invoice.types';
 import { productService } from '../../../services/product.service';
 import { invoiceService } from '../../../services/invoice.service';
@@ -51,8 +48,6 @@ export const ProductDetailPage: React.FC = () => {
   const productId = Number(id);
 
   const [product, setProduct] = useState<Product | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [brands, setBrands] = useState<Brand[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,42 +56,18 @@ export const ProductDetailPage: React.FC = () => {
   const [imageUrlInput, setImageUrlInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [isEditOpen, setIsEditOpen] = useState(false);
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const [editName, setEditName] = useState('');
-  const [editSku, setEditSku] = useState('');
-  const [editBarcode, setEditBarcode] = useState('');
-  const [editDescription, setEditDescription] = useState('');
-  const [editCategoryId, setEditCategoryId] = useState<string>('');
-  const [editBrandId, setEditBrandId] = useState<string>('');
-  const [showNewCategory, setShowNewCategory] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [showNewBrand, setShowNewBrand] = useState(false);
-  const [newBrandName, setNewBrandName] = useState('');
-  const [editPrice, setEditPrice] = useState<number>(0);
-  const [editCost, setEditCost] = useState<number>(0);
-  const [editStock, setEditStock] = useState<number>(0);
-  const [editThreshold, setEditThreshold] = useState<number>(0);
-  const [editUnit, setEditUnit] = useState('pc');
-  const [editStatus, setEditStatus] = useState<Product['status']>('active');
-
   useEffect(() => {
     let active = true;
     (async () => {
-      const [prod, cats, brds] = await Promise.all([
-        productService.getById(productId),
-        productService.getCategories(),
-        productService.getBrands(),
-      ]);
+      const prod = await productService.getById(productId);
       const inv = await invoiceService.getAll();
       const quo = await invoiceService.getQuotations();
       if (!active) return;
       setProduct(prod);
-      setCategories(cats.data || []);
-      setBrands(brds.data || []);
       setInvoices(inv.data || []);
       setQuotations(quo.data || []);
       setActiveImage(prod?.image_url || prod?.gallery?.[0] || '');
@@ -204,50 +175,6 @@ export const ProductDetailPage: React.FC = () => {
     return { units, revenue, invoicesCount, quotationsCount, lastSale };
   }, [salesRecords]);
 
-  const openEdit = () => {
-    if (!product) return;
-    setEditName(product.name);
-    setEditSku(product.sku);
-    setEditBarcode(product.barcode || '');
-    setEditDescription(product.description || '');
-    setEditCategoryId(product.category ? String(product.category.id) : '');
-    setEditBrandId(product.brand ? String(product.brand.id) : '');
-    setEditPrice(product.selling_price);
-    setEditCost(product.purchase_cost || 0);
-    setEditStock(product.current_stock);
-    setEditThreshold(product.min_quantity_threshold || 0);
-    setEditUnit(product.unit);
-    setEditStatus(product.status);
-    setShowNewCategory(false);
-    setShowNewBrand(false);
-    setIsEditOpen(true);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!product || !editName.trim() || !editSku.trim()) return;
-    setBusy(true);
-    const selectedCat = categories.find((c) => c.id === Number(editCategoryId)) || product.category;
-    const selectedBrd = brands.find((b) => b.id === Number(editBrandId)) || product.brand;
-    const updated = await productService.saveProduct({
-      ...product,
-      name: editName.trim(),
-      sku: editSku.trim(),
-      barcode: editBarcode.trim() || undefined,
-      description: editDescription.trim() || undefined,
-      category: selectedCat,
-      brand: selectedBrd,
-      selling_price: Number(editPrice) || 0,
-      purchase_cost: Number(editCost) || undefined,
-      current_stock: Number(editStock) || 0,
-      min_quantity_threshold: Number(editThreshold) || undefined,
-      unit: editUnit,
-      status: editStatus,
-    });
-    setProduct(updated);
-    setBusy(false);
-    setIsEditOpen(false);
-  };
-
   const handleArchive = async () => {
     if (!product) return;
     setBusy(true);
@@ -272,26 +199,6 @@ export const ProductDetailPage: React.FC = () => {
     setBusy(false);
     setIsDeleteOpen(false);
     navigate('/products');
-  };
-
-  const handleAddCategoryInline = async () => {
-    const name = newCategoryName.trim();
-    if (!name) return;
-    const cat = await productService.addCategory(name);
-    setCategories((prev) => [...prev.filter((c) => c.id !== cat.id), cat]);
-    setEditCategoryId(String(cat.id));
-    setShowNewCategory(false);
-    setNewCategoryName('');
-  };
-
-  const handleAddBrandInline = async () => {
-    const name = newBrandName.trim();
-    if (!name) return;
-    const brand = await productService.addBrand(name);
-    setBrands((prev) => [...prev.filter((b) => b.id !== brand.id), brand]);
-    setEditBrandId(String(brand.id));
-    setShowNewBrand(false);
-    setNewBrandName('');
   };
 
   const stockValue = (product?.current_stock || 0) * (product?.purchase_cost || 0);
@@ -377,7 +284,7 @@ export const ProductDetailPage: React.FC = () => {
               Archive
             </Button>
           )}
-          <Button variant="primary" size="sm" leftIcon={<Pencil className="w-3.5 h-3.5" />} onClick={openEdit}>
+          <Button variant="primary" size="sm" leftIcon={<Pencil className="w-3.5 h-3.5" />} onClick={() => navigate(`/products/${product.id}/edit`)}>
             Edit
           </Button>
           <Button variant="destructive" size="sm" leftIcon={<Trash2 className="w-3.5 h-3.5" />} onClick={() => setIsDeleteOpen(true)}>
@@ -660,182 +567,6 @@ export const ProductDetailPage: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Edit Dialog */}
-      <Dialog
-        isOpen={isEditOpen}
-        onClose={() => setIsEditOpen(false)}
-        title="Edit Product"
-        description={`Update details for ${product.name}`}
-        maxWidth="lg"
-        footer={
-          <>
-            <Button variant="secondary" size="sm" onClick={() => setIsEditOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" size="sm" onClick={handleSaveEdit} isLoading={busy}>
-              Save Changes
-            </Button>
-          </>
-        }
-      >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSaveEdit();
-          }}
-          className="space-y-4"
-        >
-          <FormField label="Product Name" required>
-            <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Product name" autoFocus />
-          </FormField>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label="Category" required>
-              {!showNewCategory ? (
-                <Select
-                  value={editCategoryId}
-                  onChange={(e) => {
-                    if (e.target.value === '__new__') setShowNewCategory(true);
-                    else setEditCategoryId(e.target.value);
-                  }}
-                  options={[
-                    { label: 'Select a category...', value: '' },
-                    ...categories.map((c) => ({ label: c.name, value: String(c.id) })),
-                    { label: '+ Add New Category...', value: '__new__' },
-                  ]}
-                />
-              ) : (
-                <div className="flex items-end gap-2">
-                  <Input
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    placeholder="Type new category name"
-                    autoFocus
-                  />
-                  <Button type="button" variant="primary" size="sm" onClick={handleAddCategoryInline} disabled={!newCategoryName.trim()}>
-                    Add
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setShowNewCategory(false);
-                      setNewCategoryName('');
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              )}
-            </FormField>
-
-            <FormField label="Brand" required>
-              {!showNewBrand ? (
-                <Select
-                  value={editBrandId}
-                  onChange={(e) => {
-                    if (e.target.value === '__new__') setShowNewBrand(true);
-                    else setEditBrandId(e.target.value);
-                  }}
-                  options={[
-                    { label: 'Select a brand...', value: '' },
-                    ...brands.map((b) => ({ label: b.name, value: String(b.id) })),
-                    { label: '+ Add New Brand...', value: '__new__' },
-                  ]}
-                />
-              ) : (
-                <div className="flex items-end gap-2">
-                  <Input
-                    value={newBrandName}
-                    onChange={(e) => setNewBrandName(e.target.value)}
-                    placeholder="Type new brand name"
-                    autoFocus
-                  />
-                  <Button type="button" variant="primary" size="sm" onClick={handleAddBrandInline} disabled={!newBrandName.trim()}>
-                    Add
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setShowNewBrand(false);
-                      setNewBrandName('');
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              )}
-            </FormField>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label="SKU Code" required>
-              <Input value={editSku} onChange={(e) => setEditSku(e.target.value)} placeholder="e.g. ROY-FAN-56" />
-            </FormField>
-            <FormField label="Barcode (EAN/UPC)">
-              <Input value={editBarcode} onChange={(e) => setEditBarcode(e.target.value)} placeholder="e.g. 8901234567890" />
-            </FormField>
-          </div>
-
-          <FormField label="Description">
-            <textarea
-              value={editDescription}
-              onChange={(e) => setEditDescription(e.target.value)}
-              placeholder="Optional product description..."
-              rows={2}
-              className="w-full px-3.5 py-2.5 text-sm bg-white text-[#18181B] placeholder:text-[#A1A1AA] rounded-lg border border-[#E4E4E7] transition-all focus:outline-none focus:border-black focus:ring-1 focus:ring-black resize-none"
-            />
-          </FormField>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label="Selling Price (PKR)" required>
-              <Input type="number" value={editPrice || ''} onChange={(e) => setEditPrice(Number(e.target.value))} placeholder="e.g. 9500" />
-            </FormField>
-            <FormField label="Purchase Cost (PKR)">
-              <Input type="number" value={editCost || ''} onChange={(e) => setEditCost(Number(e.target.value))} placeholder="e.g. 7800" />
-            </FormField>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label="Current Stock">
-              <Input type="number" value={editStock || ''} onChange={(e) => setEditStock(Number(e.target.value))} placeholder="e.g. 20" />
-            </FormField>
-            <FormField label="Low-Stock Threshold">
-              <Input type="number" value={editThreshold || ''} onChange={(e) => setEditThreshold(Number(e.target.value))} placeholder="e.g. 5" />
-            </FormField>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label="Unit of Sale">
-              <Select
-                value={editUnit}
-                onChange={(e) => setEditUnit(e.target.value)}
-                options={[
-                  { label: 'Piece (pc)', value: 'pc' },
-                  { label: 'Coil / Roll (coil)', value: 'coil' },
-                  { label: 'Meter (m)', value: 'm' },
-                  { label: 'Box (box)', value: 'box' },
-                ]}
-              />
-            </FormField>
-            <FormField label="Status">
-              <Select
-                value={editStatus}
-                onChange={(e) => setEditStatus(e.target.value as Product['status'])}
-                options={[
-                  { label: 'Active (Available for sale)', value: 'active' },
-                  { label: 'Inactive (Hidden from POS)', value: 'inactive' },
-                  { label: 'Archived', value: 'archived' },
-                ]}
-              />
-            </FormField>
-          </div>
-        </form>
-      </Dialog>
 
       {/* Archive Confirm */}
       <ConfirmDialog
