@@ -23,8 +23,6 @@ export const CreateProductPage: React.FC = () => {
   const [brandId, setBrandId] = useState<string>('');
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [showNewBrand, setShowNewBrand] = useState(false);
-  const [newBrandName, setNewBrandName] = useState('');
   const [price, setPrice] = useState<number>(0);
   const [cost, setCost] = useState<number>(0);
   const [stock, setStock] = useState<number>(0);
@@ -52,16 +50,6 @@ export const CreateProductPage: React.FC = () => {
     setCategoryId(String(cat.id));
     setShowNewCategory(false);
     setNewCategoryName('');
-  };
-
-  const handleAddBrandInline = async () => {
-    const bName = newBrandName.trim();
-    if (!bName) return;
-    const brand = await productService.addBrand(bName);
-    setBrands((prev) => [...prev.filter((b) => b.id !== brand.id), brand]);
-    setBrandId(String(brand.id));
-    setShowNewBrand(false);
-    setNewBrandName('');
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,9 +108,7 @@ export const CreateProductPage: React.FC = () => {
     setUnit('pc');
     setImageUrl('');
     setShowNewCategory(false);
-    setShowNewBrand(false);
     setNewCategoryName('');
-    setNewBrandName('');
     setError(null);
     setSuccess(false);
   };
@@ -280,53 +266,14 @@ export const CreateProductPage: React.FC = () => {
                 </FormField>
 
                 <FormField label="Brand" required>
-                  {!showNewBrand ? (
-                    <Select
-                      value={brandId}
-                      onChange={(e) => {
-                        if (e.target.value === '__new__') {
-                          setShowNewBrand(true);
-                        } else {
-                          setBrandId(e.target.value);
-                        }
-                      }}
-                      options={[
-                        { label: 'Select a brand...', value: '' },
-                        ...brands.map((b) => ({ label: b.name, value: String(b.id) })),
-                        { label: '+ Add New Brand...', value: '__new__' },
-                      ]}
-                    />
-                  ) : (
-                    <div className="flex items-end gap-2">
-                      <Input
-                        value={newBrandName}
-                        onChange={(e) => setNewBrandName(e.target.value)}
-                        placeholder="Type new brand name"
-                        autoFocus
-                      />
-                      <Button
-                        type="button"
-                        variant="primary"
-                        size="sm"
-                        leftIcon={<Plus className="w-3.5 h-3.5" />}
-                        onClick={handleAddBrandInline}
-                        disabled={!newBrandName.trim()}
-                      >
-                        Add
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setShowNewBrand(false);
-                          setNewBrandName('');
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  )}
+                  <Select
+                    value={brandId}
+                    onChange={(e) => setBrandId(e.target.value)}
+                    options={[
+                      { label: 'Select a brand...', value: '' },
+                      ...brands.map((b) => ({ label: b.name, value: String(b.id) })),
+                    ]}
+                  />
                 </FormField>
               </div>
             </div>
