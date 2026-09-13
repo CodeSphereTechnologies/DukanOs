@@ -25,6 +25,8 @@ import { CatalogPage } from '../features/products/pages/CatalogPage';
 import { InvoicesPage } from '../features/invoices/pages/InvoicesPage';
 import { QuotationsPage } from '../features/quotations/pages/QuotationsPage';
 import { CustomersPage } from '../features/customers/pages/CustomersPage';
+import { CustomerDetailPage } from '../features/customers/pages/CustomerDetailPage';
+import { EditCustomerPage } from '../features/customers/pages/EditCustomerPage';
 import { FinancePage } from '../features/finance/pages/FinancePage';
 import { PayrollPage } from '../features/payroll/pages/PayrollPage';
 import { ReportsPage } from '../features/reports/pages/ReportsPage';
@@ -220,6 +222,22 @@ export const AppRoutes: React.FC = () => {
           element={
             <RoleRoute allowedRoles={['owner', 'manager', 'cashier', 'accountant']}>
               <CustomersPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/customers/:id"
+          element={
+            <RoleRoute allowedRoles={['owner', 'manager', 'cashier', 'accountant']}>
+              <CustomerDetailPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/customers/:id/edit"
+          element={
+            <RoleRoute allowedRoles={['owner', 'manager', 'cashier', 'accountant']}>
+              <EditCustomerPage />
             </RoleRoute>
           }
         />

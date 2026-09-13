@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PageContainer } from '../../../components/ui/PageContainer';
 import { DataTable, type Column } from '../../../components/ui/DataTable';
 import { SearchToolbar } from '../../../components/ui/SearchToolbar';
@@ -7,17 +8,16 @@ import { Badge } from '../../../components/ui/Badge';
 import { Dialog } from '../../../components/ui/Dialog';
 import { FormField } from '../../../components/ui/FormField';
 import { Input } from '../../../components/ui/Input';
-import { UserPlus, Eye, Edit, Trash, Phone, Mail, MapPin } from 'lucide-react';
+import { UserPlus, Eye, Edit, Trash } from 'lucide-react';
 import { formatCurrency } from '../../../lib/formatters';
 import type { Customer } from '../../../types/customer.types';
 import { customerService } from '../../../services/customer.service';
 
 export const CustomersPage: React.FC = () => {
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [selectedLedgerCustomer, setSelectedLedgerCustomer] = useState<Customer | null>(null);
-  const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
 
   useEffect(() => {
     customerService.getAll().then((res) => {
@@ -29,10 +29,6 @@ export const CustomersPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [openingBalance, setOpeningBalance] = useState<number>(0);
-
-  const [editName, setEditName] = useState('');
-  const [editPhone, setEditPhone] = useState('');
-  const [editAddress, setEditAddress] = useState('');
 
   const filtered = customers.filter(
     (c) =>
@@ -67,29 +63,6 @@ export const CustomersPage: React.FC = () => {
       customerService.deleteCustomer(c.id);
       setCustomers(customers.filter((cust) => cust.id !== c.id));
     }
-  };
-
-  const openEditDialog = (c: Customer) => {
-    setEditCustomer(c);
-    setEditName(c.name);
-    setEditPhone(c.phone || '');
-    setEditAddress(c.address || '');
-  };
-
-  const handleUpdateCustomer = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editCustomer || !editName) return;
-
-    const updated: Customer = {
-      ...editCustomer,
-      name: editName,
-      phone: editPhone || undefined,
-      address: editAddress || undefined,
-    };
-
-    customerService.saveCustomer(updated);
-    setCustomers(customers.map((cust) => (cust.id === updated.id ? updated : cust)));
-    setEditCustomer(null);
   };
 
   const columns: Column<Customer>[] = [
@@ -134,7 +107,7 @@ export const CustomersPage: React.FC = () => {
             variant="secondary"
             size="sm"
             leftIcon={<Eye className="w-3.5 h-3.5" />}
-            onClick={() => setSelectedLedgerCustomer(c)}
+            onClick={() => navigate(`/customers/${c.id}`)}
           >
             View
           </Button>
@@ -142,7 +115,7 @@ export const CustomersPage: React.FC = () => {
             variant="secondary"
             size="sm"
             leftIcon={<Edit className="w-3.5 h-3.5" />}
-            onClick={() => openEditDialog(c)}
+            onClick={() => navigate(`/customers/${c.id}/edit`)}
           >
             Edit
           </Button>
@@ -231,196 +204,6 @@ export const CustomersPage: React.FC = () => {
             />
           </FormField>
         </form>
-      </Dialog>
-
-      <Dialog
-        isOpen={!!editCustomer}
-        onClose={() => setEditCustomer(null)}
-        title="Edit Customer Profile"
-        description={`Update details for ${editCustomer?.name || 'customer'}.`}
-        footer={
-          <>
-            <Button variant="secondary" size="sm" onClick={() => setEditCustomer(null)}>
-              Cancel
-            </Button>
-            <Button variant="primary" size="sm" onClick={handleUpdateCustomer}>
-              Save Changes
-            </Button>
-          </>
-        }
-      >
-        <form onSubmit={handleUpdateCustomer} className="space-y-4">
-          <FormField label="Full Name / Business Name" required>
-            <Input
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              placeholder="e.g. Chaudhry Bilal (Contractor)"
-              autoFocus
-            />
-          </FormField>
-          <FormField label="Mobile Phone Number">
-            <Input
-              value={editPhone}
-              onChange={(e) => setEditPhone(e.target.value)}
-              placeholder="e.g. +92 300 1234567"
-            />
-          </FormField>
-          <FormField label="Shop / Site Address">
-            <Input
-              value={editAddress}
-              onChange={(e) => setEditAddress(e.target.value)}
-              placeholder="e.g. Shop #4, Model Town Market"
-            />
-          </FormField>
-        </form>
-      </Dialog>
-
-      <Dialog
-        isOpen={!!selectedLedgerCustomer}
-        onClose={() => setSelectedLedgerCustomer(null)}
-        title="Customer Profile & Ledger"
-        description={`Viewing details for ${selectedLedgerCustomer?.name || 'customer'}.`}
-        maxWidth="xl"
-        footer={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                if (selectedLedgerCustomer) openEditDialog(selectedLedgerCustomer);
-              }}
-            >
-              Edit Profile
-            </Button>
-            <Button variant="primary" size="sm" onClick={() => setSelectedLedgerCustomer(null)}>
-              Close
-            </Button>
-          </div>
-        }
-      >
-        {selectedLedgerCustomer && (
-          <div className="space-y-5">
-            {/* Header card */}
-            <div className="w-full">
-              <div className="p-4 bg-[#FAFAF8] rounded-2xl border border-[#E4E4E7] flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <div className="w-14 h-14 rounded-full bg-[#000000] text-white flex items-center justify-center font-semibold text-lg shrink-0">
-                  {selectedLedgerCustomer.name
-                    .split(' ')
-                    .filter(Boolean)
-                    .slice(0, 2)
-                    .map((w) => w[0])
-                    .join('')
-                    .toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h4 className="text-base font-semibold text-[#18181B] truncate">
-                      {selectedLedgerCustomer.name}
-                    </h4>
-                    <Badge
-                      variant={selectedLedgerCustomer.status === 'active' ? 'mint' : 'neutral'}
-                      size="sm"
-                    >
-                      {selectedLedgerCustomer.status}
-                    </Badge>
-                  </div>
-                  <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#71717A]">
-                    {selectedLedgerCustomer.phone && (
-                      <span className="inline-flex items-center gap-1">
-                        <Phone className="w-3 h-3" />
-                        {selectedLedgerCustomer.phone}
-                      </span>
-                    )}
-                    {selectedLedgerCustomer.email && (
-                      <span className="inline-flex items-center gap-1">
-                        <Mail className="w-3 h-3" />
-                        {selectedLedgerCustomer.email}
-                      </span>
-                    )}
-                    {selectedLedgerCustomer.address && (
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {selectedLedgerCustomer.address}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="text-left sm:text-right shrink-0">
-                  <div className="text-[11px] uppercase tracking-wide text-[#71717A]">
-                    Outstanding Balance
-                  </div>
-                  <div
-                    className={`text-xl font-bold ${
-                      (selectedLedgerCustomer.current_balance || 0) > 0
-                        ? 'text-[#DC2626]'
-                        : 'text-[#065F46]'
-                    }`}
-                  >
-                    {formatCurrency(selectedLedgerCustomer.current_balance || 0)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Stats row */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="p-3 sm:p-4 bg-white rounded-xl border border-[#E4E4E7]">
-                <div className="text-[11px] uppercase tracking-wide text-[#71717A]">
-                  Customer ID
-                </div>
-                <div className="mt-1 text-sm font-semibold text-[#18181B] font-mono">
-                  #{String(selectedLedgerCustomer.id).padStart(4, '0')}
-                </div>
-              </div>
-              <div className="p-3 sm:p-4 bg-white rounded-xl border border-[#E4E4E7]">
-                <div className="text-[11px] uppercase tracking-wide text-[#71717A]">
-                  Account Type
-                </div>
-                <div className="mt-1 text-sm font-semibold text-[#18181B]">On-Account Credit</div>
-              </div>
-              <div className="p-3 sm:p-4 bg-white rounded-xl border border-[#E4E4E7]">
-                <div className="text-[11px] uppercase tracking-wide text-[#71717A]">
-                  Member Since
-                </div>
-                <div className="mt-1 text-sm font-semibold text-[#18181B]">
-                  {selectedLedgerCustomer.created_at
-                    ? new Date(selectedLedgerCustomer.created_at).toLocaleDateString()
-                    : 'N/A'}
-                </div>
-              </div>
-            </div>
-
-            {/* Ledger table */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h5 className="text-sm font-semibold text-[#18181B]">Ledger Transactions</h5>
-                <span className="text-xs text-[#71717A]">Latest activity</span>
-              </div>
-              <div className="border border-[#E4E4E7] rounded-2xl overflow-hidden">
-                <div className="grid grid-cols-4 min-w-[480px] bg-[#FAFAF8] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-[#71717A] border-b border-[#E4E4E7]">
-                  <span>Date</span>
-                  <span>Description</span>
-                  <span className="text-right">Debit / Credit</span>
-                  <span className="text-right">Balance</span>
-                </div>
-                <div className="px-4 py-3 grid grid-cols-4 min-w-[480px] border-b border-[#E4E4E7]/50 text-xs text-[#18181B]">
-                  <span className="text-[#71717A]">2026-09-01</span>
-                  <span>Invoice #INV-2026-0091</span>
-                  <span className="text-right text-[#DC2626] font-semibold">+PKR 92,400.00</span>
-                  <span className="text-right font-bold">
-                    {formatCurrency(selectedLedgerCustomer.current_balance || 0)}
-                  </span>
-                </div>
-                <div className="px-4 py-3 grid grid-cols-4 min-w-[480px] text-xs text-[#18181B]">
-                  <span className="text-[#71717A]">2026-08-22</span>
-                  <span>Payment received against prior invoice</span>
-                  <span className="text-right text-[#065F46] font-semibold">-PKR 15,000.00</span>
-                  <span className="text-right font-bold">{formatCurrency((selectedLedgerCustomer.current_balance || 0) - 15000)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </Dialog>
     </PageContainer>
   );
