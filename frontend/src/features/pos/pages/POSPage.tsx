@@ -101,22 +101,24 @@ export const POSPage: React.FC = () => {
   useEffect(() => {
     if (location.state?.autoAddProduct) {
       setTimeout(() => {
-        const p = location.state.autoAddProduct as Product;
+        const raw = location.state.autoAddProduct as Record<string, unknown>;
+        const id = Number(raw.id);
+        if (!id) return;
         setCart((prev) => {
-          const existing = prev.find((i) => i.id === p.id);
+          const existing = prev.find((i) => i.id === id);
           if (existing) {
-            return prev.map((i) => (i.id === p.id ? { ...i, quantity: i.quantity + 1 } : i));
+            return prev.map((i) => (i.id === id ? { ...i, quantity: i.quantity + 1 } : i));
           }
           return [
             ...prev,
             {
-              id: p.id,
-              name: p.name,
-              sku: p.sku,
-              price: p.selling_price,
+              id,
+              name: String(raw.name || 'Product'),
+              sku: String(raw.sku || ''),
+              price: Number(raw.selling_price ?? raw.price) || 0,
               quantity: 1,
               discount: 0,
-              stock: p.current_stock,
+              stock: Number(raw.current_stock ?? raw.stock) || 0,
             },
           ];
         });
