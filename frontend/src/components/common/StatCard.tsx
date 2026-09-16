@@ -14,6 +14,7 @@ export interface StatCardProps {
   };
   icon?: React.ReactNode;
   className?: string;
+  onClick?: () => void;
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
@@ -22,9 +23,13 @@ export const StatCard: React.FC<StatCardProps> = ({
   change,
   icon,
   className,
+  onClick,
 }) => {
   return (
-    <Card className={cn('p-5 flex flex-col justify-between', className)}>
+    <Card
+      className={cn('p-5 flex flex-col justify-between', onClick && 'cursor-pointer hover:shadow-md transition-shadow', className)}
+      onClick={onClick}
+    >
       <div className="flex items-start justify-between">
         <div>
           <span className="text-xs font-medium text-[#71717A] tracking-tight">{title}</span>

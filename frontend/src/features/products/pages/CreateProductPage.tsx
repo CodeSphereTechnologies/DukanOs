@@ -79,7 +79,7 @@ export const CreateProductPage: React.FC = () => {
     const selectedCat = categories.find((c) => c.id === Number(categoryId)) || categories[0];
     const selectedBrd = brands.find((b) => b.id === Number(brandId)) || brands[0];
 
-    const created = await productService.saveProduct({
+    await productService.saveProduct({
       name: name.trim(),
       sku: sku.trim(),
       barcode: barcode.trim() || undefined,
@@ -96,7 +96,7 @@ export const CreateProductPage: React.FC = () => {
 
     setSuccess(true);
     setTimeout(() => {
-      navigate(`/products/${created.id}`);
+      navigate('/products');
     }, 800);
   };
 

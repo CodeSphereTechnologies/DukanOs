@@ -14,9 +14,7 @@ import {
   Building2,
   Receipt,
   UserCheck,
-  FolderTree,
-  Award,
-  Ruler,
+  Tags,
   X,
   PanelLeftClose,
   PanelLeftOpen,
@@ -29,17 +27,6 @@ export interface NavItemConfig {
   path: string;
   icon: React.ReactNode;
   allowedRoles: RoleSlug[];
-  catalogTab?: 'categories' | 'brands' | 'units';
-}
-
-type CatalogTab = 'categories' | 'brands' | 'units';
-
-function isCatalogActive(linkTab: CatalogTab, pathname: string, search: string): boolean {
-  if (pathname !== '/catalog') return false;
-  const param = new URLSearchParams(search).get('tab');
-  const effective: CatalogTab =
-    param === 'brands' || param === 'units' ? param : 'categories';
-  return linkTab === effective;
 }
 
 const NAV_ITEMS: NavItemConfig[] = [
@@ -57,9 +44,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   // Store Operational Modules
   { label: 'POS Terminal', path: '/pos', icon: <ShoppingCart className="w-4 h-4" />, allowedRoles: ['cashier', 'owner', 'manager'] },
   { label: 'Products & Stock', path: '/products', icon: <Package className="w-4 h-4" />, allowedRoles: ['owner', 'manager', 'cashier'] },
-  { label: 'Categories', path: '/catalog?tab=categories', icon: <FolderTree className="w-4 h-4" />, allowedRoles: ['owner', 'manager'], catalogTab: 'categories' },
-  { label: 'Brands', path: '/catalog?tab=brands', icon: <Award className="w-4 h-4" />, allowedRoles: ['owner', 'manager'], catalogTab: 'brands' },
-  { label: 'Units', path: '/catalog?tab=units', icon: <Ruler className="w-4 h-4" />, allowedRoles: ['owner', 'manager'], catalogTab: 'units' },
+  { label: 'Categories, Brands & Units', path: '/catalog', icon: <Tags className="w-4 h-4" />, allowedRoles: ['owner', 'manager'] },
   { label: 'Invoices', path: '/invoices', icon: <Receipt className="w-4 h-4" />, allowedRoles: ['owner', 'manager', 'cashier', 'accountant'] },
   { label: 'Quotations', path: '/quotations', icon: <Receipt className="w-4 h-4" />, allowedRoles: ['owner', 'manager'] },
   { label: 'Customers & Ledger', path: '/customers', icon: <Users className="w-4 h-4" />, allowedRoles: ['owner', 'manager', 'cashier', 'accountant'] },
@@ -165,8 +150,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 if (onNavigate) onNavigate();
               }}
               className={({ isActive }) => {
-                const active = item.catalogTab
-                  ? isCatalogActive(item.catalogTab, location.pathname, location.search)
+                const active = item.path === '/catalog'
+                  ? location.pathname === '/catalog'
                   : isActive;
                 return cn(
                   'group relative flex items-center gap-2.5 rounded-lg py-2 px-2.5 text-xs font-medium transition-all duration-150',

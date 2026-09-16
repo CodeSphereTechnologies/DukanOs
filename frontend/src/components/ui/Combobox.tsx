@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { cn } from '../../lib/utils';
-import { Search, Check, ChevronDown } from 'lucide-react';
+import { Search, Check, ChevronDown, Plus } from 'lucide-react';
 
 export interface ComboboxOption {
   label: string;
@@ -15,6 +15,8 @@ export interface ComboboxProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  onAddNew?: (query: string) => void;
+  addNewText?: string;
 }
 
 export const Combobox: React.FC<ComboboxProps> = ({
@@ -24,6 +26,8 @@ export const Combobox: React.FC<ComboboxProps> = ({
   placeholder = 'Select option...',
   disabled = false,
   className,
+  onAddNew,
+  addNewText,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -76,29 +80,61 @@ export const Combobox: React.FC<ComboboxProps> = ({
 
           <div className="overflow-y-auto max-h-48 p-1">
             {filtered.length === 0 ? (
-              <div className="p-3 text-xs text-center text-[#71717A]">No options found.</div>
+              <div className="p-3 text-xs text-center text-[#71717A] space-y-2">
+                <div>No options found.</div>
+                {onAddNew && query.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onAddNew(query.trim());
+                      setIsOpen(false);
+                      setQuery('');
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-black hover:bg-zinc-800 transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>{addNewText ? `${addNewText} "${query.trim()}"` : `Add "${query.trim()}"`}</span>
+                  </button>
+                )}
+              </div>
             ) : (
-              filtered.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => {
-                    onChange(opt.value);
-                    setIsOpen(false);
-                    setQuery('');
-                  }}
-                  className={cn(
-                    'w-full text-left px-3 py-2 text-xs rounded-lg flex items-center justify-between hover:bg-[#F4F4F5] transition-colors',
-                    opt.value === value && 'bg-[#F4F4F5] font-semibold text-black'
-                  )}
-                >
-                  <div>
-                    <div>{opt.label}</div>
-                    {opt.sublabel && <div className="text-[11px] text-[#71717A]">{opt.sublabel}</div>}
-                  </div>
-                  {opt.value === value && <Check className="w-3.5 h-3.5 text-black" />}
-                </button>
-              ))
+              <>
+                {filtered.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      onChange(opt.value);
+                      setIsOpen(false);
+                      setQuery('');
+                    }}
+                    className={cn(
+                      'w-full text-left px-3 py-2 text-xs rounded-lg flex items-center justify-between hover:bg-[#F4F4F5] transition-colors',
+                      opt.value === value && 'bg-[#F4F4F5] font-semibold text-black'
+                    )}
+                  >
+                    <div>
+                      <div>{opt.label}</div>
+                      {opt.sublabel && <div className="text-[11px] text-[#71717A]">{opt.sublabel}</div>}
+                    </div>
+                    {opt.value === value && <Check className="w-3.5 h-3.5 text-black" />}
+                  </button>
+                ))}
+                {onAddNew && query.trim() && !options.some((o) => o.label.toLowerCase() === query.trim().toLowerCase()) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onAddNew(query.trim());
+                      setIsOpen(false);
+                      setQuery('');
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs rounded-lg flex items-center gap-1.5 text-emerald-800 bg-emerald-50/70 hover:bg-emerald-100 transition-colors font-medium border-t border-[#E4E4E7] mt-1 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
+                    <span className="truncate">{addNewText ? `${addNewText} "${query.trim()}"` : `Add "${query.trim()}" as new customer`}</span>
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>

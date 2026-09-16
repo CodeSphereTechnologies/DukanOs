@@ -22,6 +22,7 @@ import {
   Receipt,
   Edit,
   Save,
+  Phone,
 } from 'lucide-react';
 import { formatCurrency } from '../../../lib/formatters';
 import { cn } from '../../../lib/utils';
@@ -77,6 +78,10 @@ export const POSPage: React.FC = () => {
   const [checkoutCustomerName, setCheckoutCustomerName] = useState('Walk-in Customer');
   const [checkoutCustomerPhone, setCheckoutCustomerPhone] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<number>(0);
+  const [customerMode, setCustomerMode] = useState<'existing' | 'new'>('existing');
+  const [newCustomerType, setNewCustomerType] = useState<'temporary' | 'permanent'>('temporary');
+  const [newCustomerAddress, setNewCustomerAddress] = useState('');
+  const [customerError, setCustomerError] = useState('');
 
   useEffect(() => {
     productService.getAll().then((res) => {
@@ -229,6 +234,10 @@ export const POSPage: React.FC = () => {
     setCheckoutCustomerName('Walk-in Customer');
     setCheckoutCustomerPhone('');
     setSelectedCustomerId(0);
+    setCustomerMode('existing');
+    setNewCustomerType('temporary');
+    setNewCustomerAddress('');
+    setCustomerError('');
     setPaymentMethod('cash');
     setAmountPaid(0);
     setDocType('invoice');
@@ -237,6 +246,10 @@ export const POSPage: React.FC = () => {
 
   const handleStartCheckout = () => {
     setAmountPaid(grandTotal);
+    setCustomerMode('existing');
+    setNewCustomerType('temporary');
+    setNewCustomerAddress('');
+    setCustomerError('');
     setCheckoutCustomerName(customer.id === 0 ? 'Walk-in Customer' : customer.name);
     setCheckoutCustomerPhone(customer.phone || '');
     setSelectedCustomerId(customer.id || 0);
@@ -244,21 +257,61 @@ export const POSPage: React.FC = () => {
   };
 
   const handleCompleteSale = async () => {
-    let finalCustomer: Customer = { id: selectedCustomerId, name: checkoutCustomerName, current_balance: 0, status: 'active' };
+    setCustomerError('');
+    let finalCustomer: Customer;
 
-    if (!finalCustomer.name) {
-      finalCustomer.name = 'Walk-in Customer';
-    }
+    if (customerMode === 'new') {
+      const trimmedName = checkoutCustomerName.trim();
+      if (!trimmedName || trimmedName.toLowerCase() === 'walk-in customer') {
+        setCustomerError('Please enter a valid customer name for the new/temporary customer.');
+        return;
+      }
 
-    if (selectedCustomerId === 0) {
-      const saved = await customerService.saveCustomer({
-        name: checkoutCustomerName || 'Walk-in Customer',
-        phone: checkoutCustomerPhone || undefined,
-        status: 'active',
-        current_balance: 0,
-      });
-      finalCustomer = saved;
-      setCustomers((prev) => [saved, ...prev]);
+      if (paymentMethod === 'ledger' || newCustomerType === 'permanent') {
+        // Save to permanent customer accounts
+        const saved = await customerService.saveCustomer({
+          name: trimmedName,
+          phone: checkoutCustomerPhone.trim() || undefined,
+          address: newCustomerAddress.trim() || undefined,
+          status: 'active',
+          current_balance: 0,
+        });
+        finalCustomer = saved;
+        setCustomers((prev) => [saved, ...prev.filter((c) => c.id !== saved.id)]);
+      } else {
+        // Temporary Customer: for this transaction only, not saved into customer accounts directory
+        finalCustomer = {
+          id: 0,
+          name: trimmedName,
+          phone: checkoutCustomerPhone.trim() || undefined,
+          current_balance: 0,
+          status: 'active',
+        };
+      }
+    } else {
+      // Existing mode
+      if (selectedCustomerId === 0) {
+        if (paymentMethod === 'ledger') {
+          setCustomerError('On-Account (Ledger) payment cannot be assigned to Walk-in Customer. Please select an existing customer account or save as permanent account.');
+          return;
+        }
+        finalCustomer = {
+          id: 0,
+          name: checkoutCustomerName.trim() || 'Walk-in Customer',
+          phone: checkoutCustomerPhone.trim() || undefined,
+          current_balance: 0,
+          status: 'active',
+        };
+      } else {
+        const found = customers.find((c) => c.id === selectedCustomerId);
+        finalCustomer = found || {
+          id: selectedCustomerId,
+          name: checkoutCustomerName || 'Walk-in Customer',
+          phone: checkoutCustomerPhone || undefined,
+          current_balance: 0,
+          status: 'active',
+        };
+      }
     }
 
     await Promise.all(
@@ -281,7 +334,7 @@ export const POSPage: React.FC = () => {
     let docNumber;
     if (docType === 'invoice') {
       const res = await invoiceService.createInvoice({
-        customer_id: finalCustomer.id,
+        customer_id: finalCustomer.id > 0 ? finalCustomer.id : undefined,
         customer: finalCustomer,
         items,
         subtotal: subtotal - totalItemDiscount,
@@ -307,7 +360,7 @@ export const POSPage: React.FC = () => {
       }
     } else {
       const res = await invoiceService.createQuotation({
-        customer_id: finalCustomer.id,
+        customer_id: finalCustomer.id > 0 ? finalCustomer.id : undefined,
         customer: finalCustomer,
         items,
         subtotal,
@@ -318,6 +371,7 @@ export const POSPage: React.FC = () => {
       docNumber = res.data?.quotation_number || 'QTN-000000';
     }
 
+    setCustomer(finalCustomer);
     setCompletedDoc({ number: docNumber, type: docType });
     setIsCompleted(true);
   };
@@ -772,7 +826,7 @@ export const POSPage: React.FC = () => {
               onClick={handleStartCheckout}
               className="text-xs font-bold shadow-md flex-[1.4] !bg-emerald-600 hover:!bg-emerald-700"
             >
-              Panel
+              Next
             </Button>
           </div>
         </div>
@@ -899,6 +953,12 @@ export const POSPage: React.FC = () => {
             </h4>
             <p className="text-xs text-[#71717A]">
               Customer: {checkoutCustomerName || 'Walk-in Customer'}
+              {customerMode === 'new' && newCustomerType === 'temporary' && (
+                <span className="text-amber-700 font-medium"> (Temporary)</span>
+              )}
+              {customerMode === 'new' && newCustomerType === 'permanent' && (
+                <span className="text-[#047857] font-medium"> (New Account)</span>
+              )}
             </p>
             <p className="text-xs text-[#71717A]">
               Total: {formatCurrency(grandTotal)}
@@ -910,44 +970,215 @@ export const POSPage: React.FC = () => {
         ) : (
           <div className="space-y-4">
             {/* Customer Selection */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <FormField label="Customer Name" required>
-                <Combobox
-                  options={customerOptions}
-                  value={selectedCustomerId}
-                  onChange={(val) => {
-                    const id = Number(val);
-                    setSelectedCustomerId(id);
-                    const opt = customerOptions.find((o) => o.value === id);
-                    if (opt && opt.value !== 0) {
-                      const c = customers.find((cust) => cust.id === id);
-                      setCheckoutCustomerName(opt.label);
-                      setCheckoutCustomerPhone(c?.phone || '');
-                    } else {
-                      setCheckoutCustomerName('Walk-in Customer');
-                      setCheckoutCustomerPhone('');
-                    }
-                  }}
-                  placeholder="Search or select a customer..."
-                />
-              </FormField>
-              <FormField label="Customer Phone Number" required>
-                <div className="relative">
-                  <User className="w-3.5 h-3.5 text-[#71717A] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={checkoutCustomerPhone}
-                    onChange={(e) => {
-                      setCheckoutCustomerPhone(e.target.value);
-                      if (selectedCustomerId === 0 && checkoutCustomerName !== 'Walk-in Customer') {
-                        // keep as-is
+            <div className="p-3.5 bg-[#FAFAF8] rounded-xl border border-[#E4E4E7] space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-1.5">
+                  <User className="w-4 h-4 text-emerald-700" />
+                  <span className="text-xs font-bold text-[#18181B] tracking-tight">Customer Information</span>
+                </div>
+                <div className="flex items-center bg-white border border-[#E4E4E7] rounded-lg p-0.5 shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomerMode('existing');
+                      setCustomerError('');
+                      if (selectedCustomerId === 0) {
+                        setCheckoutCustomerName('Walk-in Customer');
+                        setCheckoutCustomerPhone('');
+                      } else {
+                        const c = customers.find((cust) => cust.id === selectedCustomerId);
+                        if (c) {
+                          setCheckoutCustomerName(c.name);
+                          setCheckoutCustomerPhone(c.phone || '');
+                        }
                       }
                     }}
-                    placeholder="e.g. +92 300 1234567"
-                    className="w-full h-[44px] pl-9 pr-3.5 py-2 text-sm bg-white text-[#18181B] placeholder:text-[#A1A1AA] rounded-lg border border-[#E4E4E7] transition-all focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
-                  />
+                    className={cn(
+                      'px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer',
+                      customerMode === 'existing'
+                        ? 'bg-black text-white shadow-xs'
+                        : 'text-[#71717A] hover:text-black hover:bg-[#F4F4F5]'
+                    )}
+                  >
+                    Select Existing
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomerMode('new');
+                      setCustomerError('');
+                      if (checkoutCustomerName === 'Walk-in Customer') {
+                        setCheckoutCustomerName('');
+                      }
+                    }}
+                    className={cn(
+                      'px-2.5 py-1 text-xs font-medium rounded-md transition-all flex items-center gap-1 cursor-pointer',
+                      customerMode === 'new'
+                        ? 'bg-black text-white shadow-xs'
+                        : 'text-[#71717A] hover:text-black hover:bg-[#F4F4F5]'
+                    )}
+                  >
+                    <Plus className="w-3 h-3" />
+                    New / Temporary
+                  </button>
                 </div>
-              </FormField>
+              </div>
+
+              {customerError && (
+                <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-600 shrink-0" />
+                  <span>{customerError}</span>
+                </div>
+              )}
+
+              {customerMode === 'existing' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FormField label="Customer Name" required>
+                    <Combobox
+                      options={customerOptions}
+                      value={selectedCustomerId}
+                      onChange={(val) => {
+                        const id = Number(val);
+                        setSelectedCustomerId(id);
+                        const opt = customerOptions.find((o) => o.value === id);
+                        if (opt && opt.value !== 0) {
+                          const c = customers.find((cust) => cust.id === id);
+                          setCheckoutCustomerName(opt.label);
+                          setCheckoutCustomerPhone(c?.phone || '');
+                        } else {
+                          setCheckoutCustomerName('Walk-in Customer');
+                          setCheckoutCustomerPhone('');
+                        }
+                      }}
+                      onAddNew={(query) => {
+                        setCustomerMode('new');
+                        setNewCustomerType('temporary');
+                        setCheckoutCustomerName(query);
+                        setCustomerError('');
+                      }}
+                      addNewText="Add as New / Temporary Customer"
+                      placeholder="Search or select a customer..."
+                    />
+                  </FormField>
+                  <FormField label="Customer Phone Number">
+                    <Input
+                      type="text"
+                      value={checkoutCustomerPhone}
+                      onChange={(e) => setCheckoutCustomerPhone(e.target.value)}
+                      placeholder="e.g. +92 300 1234567"
+                      leftIcon={<Phone className="w-3.5 h-3.5" />}
+                    />
+                  </FormField>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <FormField label="Customer Name" required>
+                      <Input
+                        type="text"
+                        value={checkoutCustomerName}
+                        onChange={(e) => {
+                          setCheckoutCustomerName(e.target.value);
+                          if (customerError) setCustomerError('');
+                        }}
+                        placeholder="e.g. Bilal Ahmed / Star Electrical"
+                        leftIcon={<User className="w-3.5 h-3.5" />}
+                        autoFocus
+                      />
+                    </FormField>
+                    <FormField label="Customer Phone Number">
+                      <Input
+                        type="text"
+                        value={checkoutCustomerPhone}
+                        onChange={(e) => setCheckoutCustomerPhone(e.target.value)}
+                        placeholder="e.g. +92 300 1234567"
+                        leftIcon={<Phone className="w-3.5 h-3.5" />}
+                      />
+                    </FormField>
+                  </div>
+
+                  {/* Customer Type Selector: Temporary vs Save to Directory */}
+                  <div className="p-2.5 rounded-lg border border-[#E4E4E7] bg-white space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-[#52525B] uppercase tracking-wider">
+                        Customer Type
+                      </span>
+                      {newCustomerType === 'temporary' ? (
+                        <span className="text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                          Temporary Customer
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          Permanent Account
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setNewCustomerType('temporary')}
+                        className={cn(
+                          'p-2.5 rounded-lg border text-left transition-all cursor-pointer',
+                          newCustomerType === 'temporary'
+                            ? 'border-black bg-[#FAFAF8] ring-1 ring-black'
+                            : 'border-[#E4E4E7] hover:border-[#A1A1AA] bg-white'
+                        )}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={cn(
+                              'w-2 h-2 rounded-full',
+                              newCustomerType === 'temporary' ? 'bg-amber-500' : 'bg-zinc-300'
+                            )}
+                          />
+                          <span className="text-xs font-semibold text-black">Temporary Customer</span>
+                        </div>
+                        <p className="text-[11px] text-[#71717A] mt-1 leading-snug">
+                          For this sale only. Prints name &amp; phone on bill without saving to accounts directory.
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setNewCustomerType('permanent')}
+                        className={cn(
+                          'p-2.5 rounded-lg border text-left transition-all cursor-pointer',
+                          newCustomerType === 'permanent'
+                            ? 'border-black bg-[#FAFAF8] ring-1 ring-black'
+                            : 'border-[#E4E4E7] hover:border-[#A1A1AA] bg-white'
+                        )}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={cn(
+                              'w-2 h-2 rounded-full',
+                              newCustomerType === 'permanent' ? 'bg-emerald-600' : 'bg-zinc-300'
+                            )}
+                          />
+                          <span className="text-xs font-semibold text-black">Save to Directory</span>
+                        </div>
+                        <p className="text-[11px] text-[#71717A] mt-1 leading-snug">
+                          Creates a permanent customer account for future visits, credit ledger &amp; histories.
+                        </p>
+                      </button>
+                    </div>
+
+                    {newCustomerType === 'permanent' && (
+                      <div className="pt-2 border-t border-[#E4E4E7]">
+                        <FormField label="Address / Shop Location (Optional)">
+                          <Input
+                            type="text"
+                            value={newCustomerAddress}
+                            onChange={(e) => setNewCustomerAddress(e.target.value)}
+                            placeholder="e.g. Shop #12, Market Square, Lahore"
+                          />
+                        </FormField>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Discount */}
@@ -996,7 +1227,15 @@ export const POSPage: React.FC = () => {
             <FormField label="Payment Method" required>
               <Select
                 value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value as typeof paymentMethod)}
+                onChange={(e) => {
+                  const method = e.target.value as typeof paymentMethod;
+                  setPaymentMethod(method);
+                  if (method === 'ledger') {
+                    if (customerMode === 'new' && newCustomerType === 'temporary') {
+                      setNewCustomerType('permanent');
+                    }
+                  }
+                }}
                 options={[
                   { label: 'Cash Payment', value: 'cash' },
                   { label: 'Bank Transfer / Online', value: 'bank_transfer' },
@@ -1007,6 +1246,17 @@ export const POSPage: React.FC = () => {
                 ]}
               />
             </FormField>
+
+            {paymentMethod === 'ledger' && customerMode === 'existing' && selectedCustomerId === 0 && (
+              <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                ⚠️ On-Account (Ledger) credit sales cannot be assigned to Walk-in Customer. Please select an existing customer account or switch to &ldquo;New / Temporary&rdquo; and choose &ldquo;Save to Directory&rdquo;.
+              </div>
+            )}
+            {paymentMethod === 'ledger' && customerMode === 'new' && (
+              <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">
+                ℹ️ Customer will be saved to your accounts directory to record ledger debt of {formatCurrency(grandTotal)}.
+              </div>
+            )}
 
             {paymentMethod !== 'ledger' && (
               <FormField label="Amount Received (PKR)" required>
@@ -1024,11 +1274,25 @@ export const POSPage: React.FC = () => {
                 <span>Customer:</span>
                 <span className="font-semibold text-black max-w-[60%] truncate">
                   {checkoutCustomerName || 'Walk-in Customer'}
-                  {selectedCustomerId === 0 && checkoutCustomerName.trim() !== '' && checkoutCustomerName !== 'Walk-in Customer' && (
-                    <span className="text-[#047857]"> (new)</span>
+                  {customerMode === 'new' ? (
+                    newCustomerType === 'temporary' ? (
+                      <span className="text-amber-600 font-medium"> (temporary)</span>
+                    ) : (
+                      <span className="text-[#047857] font-medium"> (new account)</span>
+                    )
+                  ) : (
+                    selectedCustomerId === 0 ? (
+                      <span className="text-[#71717A] font-normal"> (walk-in)</span>
+                    ) : null
                   )}
                 </span>
               </div>
+              {checkoutCustomerPhone && (
+                <div className="flex justify-between text-[#71717A]">
+                  <span>Phone:</span>
+                  <span className="font-medium text-black">{checkoutCustomerPhone}</span>
+                </div>
+              )}
               <div className="flex justify-between text-[#71717A]">
                 <span>Subtotal:</span>
                 <span className="font-semibold text-black">{formatCurrency(subtotal)}</span>
@@ -1090,7 +1354,12 @@ export const POSPage: React.FC = () => {
           </div>
           <div className="flex justify-between items-start gap-2">
             <span>Customer</span>
-            <span className="font-bold text-right">{checkoutCustomerName || 'Walk-in Customer'}</span>
+            <div className="text-right">
+              <span className="font-bold">{checkoutCustomerName || 'Walk-in Customer'}</span>
+              {customerMode === 'new' && newCustomerType === 'temporary' && (
+                <span className="text-[10px] block text-zinc-500 font-normal">(Temporary Customer)</span>
+              )}
+            </div>
           </div>
           {checkoutCustomerPhone && (
             <div className="flex justify-between">

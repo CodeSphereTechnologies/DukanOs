@@ -37,7 +37,7 @@ class ProductRepository extends BaseRepository
             ->when($categoryId, fn ($q) => $q->where('category_id', $categoryId))
             ->when($brandId, fn ($q) => $q->where('brand_id', $brandId))
             ->when($status, fn ($q) => $q->where('status', $status))
-            ->orderBy('name')
+            ->latest('created_at')
             ->paginate($perPage);
     }
 

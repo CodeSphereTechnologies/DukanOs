@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageContainer } from '../../../components/ui/PageContainer';
 import { StatCard } from '../../../components/common/StatCard';
 import { QuickActionCard } from '../../../components/common/QuickActionCard';
 import { Button } from '../../../components/ui/Button';
-import { DataTable, type Column } from '../../../components/ui/DataTable';
+import { Badge } from '../../../components/ui/Badge';
 import {
   DollarSign,
   Users,
@@ -14,60 +14,49 @@ import {
   CreditCard,
   UserPlus,
   ArrowUpRight,
+  FileText,
+  ChevronRight,
 } from 'lucide-react';
-import { formatCurrency } from '../../../lib/formatters';
+import { formatCurrency, formatDate } from '../../../lib/formatters';
+import { productService } from '../../../services/product.service';
+import { invoiceService } from '../../../services/invoice.service';
+import type { Invoice } from '../../../types/invoice.types';
 
-interface LowStockAlert {
-  id: number;
-  name: string;
-  sku: string;
-  current_stock: number;
-  threshold: number;
-  category: string;
-}
-
-const LOW_STOCK: LowStockAlert[] = [
-  { id: 1, name: 'Pakistan Cables 7/29 Single Core Red 90m', sku: 'PAK-CAB-729R', current_stock: 8, threshold: 15, category: 'Cables' },
-  { id: 2, name: 'Royal Deluxe Fan 56" Copper Winding', sku: 'ROY-FAN-56', current_stock: 12, threshold: 15, category: 'Fans' },
-  { id: 3, name: 'Schneider MCB 32A Double Pole 6kA', sku: 'SCH-MCB-32DP', current_stock: 6, threshold: 10, category: 'Breakers' },
-];
+const PAYMENT_VARIANT: Record<Invoice['payment_status'], 'mint' | 'warning' | 'destructive'> = {
+  paid: 'mint',
+  partial: 'warning',
+  unpaid: 'destructive',
+  ledger: 'destructive',
+};
 
 export const OwnerDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const [lowStockCount, setLowStockCount] = useState(0);
+  const [recentInvoices, setRecentInvoices] = useState<Invoice[]>([]);
 
-  const columns: Column<LowStockAlert>[] = [
-    {
-      key: 'name',
-      header: 'Product Details',
-      render: (item) => (
-        <div>
-          <div className="font-semibold text-[#18181B]">{item.name}</div>
-          <div className="text-xs text-[#71717A] font-mono">{item.sku}</div>
-        </div>
-      ),
-    },
-    { key: 'category', header: 'Category' },
-    {
-      key: 'current_stock',
-      header: 'Stock / Threshold',
-      align: 'right',
-      render: (item) => (
-        <span className="font-bold text-[#DC2626]">
-          {item.current_stock} / {item.threshold} units
-        </span>
-      ),
-    },
-    {
-      key: 'actions',
-      header: 'Action',
-      align: 'right',
-      render: () => (
-        <Button variant="secondary" size="sm" onClick={() => navigate('/products')}>
-          Restock
-        </Button>
-      ),
-    },
-  ];
+  useEffect(() => {
+    productService.getAll().then((res) => {
+      if (res.data) {
+        const count = res.data.filter((p) => {
+          const stock = p.current_stock || 0;
+          const threshold = p.min_quantity_threshold || 5;
+          return stock > 0 && stock <= threshold;
+        }).length;
+        setLowStockCount(count);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    invoiceService.getAll().then((res) => {
+      if (res.data) {
+        const sorted = [...res.data].sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        setRecentInvoices(sorted.slice(0, 5));
+      }
+    });
+  }, []);
 
   return (
     <PageContainer
@@ -105,13 +94,14 @@ export const OwnerDashboard: React.FC = () => {
         />
         <StatCard
           title="Low Stock Watchlist"
-          value={LOW_STOCK.length}
-          change={{ value: 'Requires purchase order', trend: 'down' }}
+          value={lowStockCount}
+          change={{ value: lowStockCount > 0 ? 'Requires purchase order' : 'All stock healthy', trend: lowStockCount > 0 ? 'down' : 'neutral' }}
           icon={<AlertTriangle className="w-5 h-5 text-[#DC2626]" />}
+          onClick={() => navigate('/products', { state: { stockFilter: 'low_stock' } })}
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <QuickActionCard
           title="New POS Invoice"
           description="High speed counter sales"
@@ -138,17 +128,56 @@ export const OwnerDashboard: React.FC = () => {
         />
       </div>
 
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-[#18181B] font-display flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-[#DC2626]" />
-            Low Stock Reorder Alerts
-          </h3>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/products')}>
-            View Full Inventory
-          </Button>
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-[#71717A]" />
+            <h3 className="text-sm font-semibold text-[#18181B] font-display">Recent Invoices</h3>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/invoices')}
+            className="inline-flex items-center gap-1 text-xs font-medium text-[#52525B] hover:text-black transition-colors"
+          >
+            View All
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
         </div>
-        <DataTable columns={columns} data={LOW_STOCK} keyExtractor={(item) => item.id} />
+
+        <div className="bg-white border border-[#E4E4E7] rounded-2xl shadow-subtle overflow-hidden">
+          {recentInvoices.length === 0 ? (
+            <div className="p-8 text-center text-sm text-[#A1A1AA]">
+              No invoices yet. Start your first sale from the POS counter.
+            </div>
+          ) : (
+            <div className="divide-y divide-[#E4E4E7]/60">
+              {recentInvoices.map((inv) => (
+                <button
+                  key={inv.id}
+                  type="button"
+                  onClick={() => navigate('/invoices')}
+                  className="w-full flex items-center justify-between gap-4 px-5 py-3.5 text-left hover:bg-[#FAFAF8] transition-colors"
+                >
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div>
+                      <div className="text-sm font-semibold text-black">{inv.invoice_number}</div>
+                      <div className="text-xs text-[#71717A]">
+                        {inv.customer?.name || 'Walk-in Customer'} · {formatDate(inv.invoice_date)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-sm font-bold text-[#18181B]">{formatCurrency(inv.total_amount)}</span>
+                    <Badge variant={PAYMENT_VARIANT[inv.payment_status]} size="sm">
+                      {inv.payment_status}
+                    </Badge>
+                    <ChevronRight className="w-4 h-4 text-[#A1A1AA]" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </PageContainer>
   );

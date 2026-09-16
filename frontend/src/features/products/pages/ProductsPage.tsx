@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { PageContainer } from '../../../components/ui/PageContainer';
 import { DataTable, type Column } from '../../../components/ui/DataTable';
 import { SearchToolbar } from '../../../components/ui/SearchToolbar';
@@ -18,6 +18,7 @@ import { productService } from '../../../services/product.service';
 
 export const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -29,7 +30,9 @@ export const ProductsPage: React.FC = () => {
   // Filter States
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedBrand, setSelectedBrand] = useState('all');
-  const [stockStatus, setStockStatus] = useState<'all' | 'in_stock' | 'low_stock' | 'out_of_stock'>('all');
+  const [stockStatus, setStockStatus] = useState<'all' | 'in_stock' | 'low_stock' | 'out_of_stock'>(
+    (location.state as { stockFilter?: 'all' | 'in_stock' | 'low_stock' | 'out_of_stock' } | null)?.stockFilter || 'all'
+  );
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'active' | 'inactive' | 'archived'>('all');
   const [minPrice, setMinPrice] = useState<string>('');
   const [maxPrice, setMaxPrice] = useState<string>('');
