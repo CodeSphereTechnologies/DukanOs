@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageContainer } from '../../../components/ui/PageContainer';
 import { StatCard } from '../../../components/common/StatCard';
@@ -8,35 +8,58 @@ import { Dialog } from '../../../components/ui/Dialog';
 import { FormField } from '../../../components/ui/FormField';
 import { Input } from '../../../components/ui/Input';
 import { Package, FileText, CheckCircle2 } from 'lucide-react';
-
-interface StockAlert {
-  id: number;
-  name: string;
-  sku: string;
-  current_stock: number;
-  threshold: number;
-}
-
-const INITIAL_ALERTS: StockAlert[] = [
-  { id: 1, name: 'Pakistan Cables 7/29 Single Core Red 90m', sku: 'PAK-CAB-729R', current_stock: 8, threshold: 15 },
-  { id: 2, name: 'Royal Deluxe Fan 56" Copper', sku: 'ROY-FAN-56', current_stock: 12, threshold: 15 },
-  { id: 3, name: 'Schneider MCB 32A Double Pole', sku: 'SCH-MCB-32DP', current_stock: 6, threshold: 10 },
-];
+import { inventoryService, type ReorderQueueItem } from '../../../services/inventory.service';
 
 export const ManagerDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [alerts, setAlerts] = useState<StockAlert[]>(INITIAL_ALERTS);
-  const [adjustItem, setAdjustItem] = useState<StockAlert | null>(null);
+  const [alerts, setAlerts] = useState<ReorderQueueItem[]>([]);
+  const [loadingQueue, setLoadingQueue] = useState(true);
+  const [adjustItem, setAdjustItem] = useState<ReorderQueueItem | null>(null);
   const [newStock, setNewStock] = useState<number>(0);
+  const [adjustError, setAdjustError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const handleSaveAdjustment = (e: React.FormEvent) => {
+  useEffect(() => {
+    let active = true;
+    inventoryService
+      .getReorderQueue()
+      .then((items) => {
+        if (active) setAlerts(items);
+      })
+      .catch(() => {
+        if (active) setAlerts([]);
+      })
+      .finally(() => {
+        if (active) setLoadingQueue(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleSaveAdjustment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!adjustItem) return;
-    setAlerts(alerts.map((a) => (a.id === adjustItem.id ? { ...a, current_stock: Number(newStock) } : a)));
+    setAdjustError(null);
+    const delta = Number(newStock) - adjustItem.current_stock;
+    if (delta === 0) {
+      setAdjustItem(null);
+      return;
+    }
+    setBusy(true);
+    const ok = await inventoryService.adjustStock(adjustItem.id, delta);
+    if (!ok) {
+      setBusy(false);
+      setAdjustError('Unable to save the stock adjustment. Please try again.');
+      return;
+    }
+    const refreshed = await inventoryService.getReorderQueue().catch(() => alerts.filter((a) => a.id !== adjustItem.id));
+    setAlerts(refreshed);
+    setBusy(false);
     setAdjustItem(null);
   };
 
-  const columns: Column<StockAlert>[] = [
+  const columns: Column<ReorderQueueItem>[] = [
     {
       key: 'name',
       header: 'Item Description',
@@ -106,7 +129,13 @@ export const ManagerDashboard: React.FC = () => {
 
       <div className="space-y-3">
         <h3 className="text-sm font-semibold text-[#18181B] font-display">Inventory Stock Reorder Queue</h3>
-        <DataTable columns={columns} data={alerts} keyExtractor={(item) => item.id} />
+        <DataTable
+          columns={columns}
+          data={alerts}
+          keyExtractor={(item) => item.id}
+          isLoading={loadingQueue}
+          emptyMessage="No items currently need reordering. Low stock stays above its threshold."
+        />
       </div>
 
       {/* Adjust Stock Dialog */}
@@ -117,21 +146,23 @@ export const ManagerDashboard: React.FC = () => {
         description={`Record verified count for ${adjustItem?.name}`}
         footer={
           <>
-            <Button variant="secondary" size="sm" onClick={() => setAdjustItem(null)}>
+            <Button variant="secondary" size="sm" onClick={() => setAdjustItem(null)} disabled={busy}>
               Cancel
             </Button>
-            <Button variant="primary" size="sm" onClick={handleSaveAdjustment}>
+            <Button variant="primary" size="sm" onClick={handleSaveAdjustment} isLoading={busy}>
               Save Stock
             </Button>
           </>
         }
       >
         <form onSubmit={handleSaveAdjustment} className="space-y-4">
+          {adjustError && <p className="text-xs text-[#DC2626]">{adjustError}</p>}
           <FormField label="Verified Physical Stock" required>
             <Input
               type="number"
               value={newStock}
               onChange={(e) => setNewStock(Number(e.target.value))}
+              min={0}
               autoFocus
             />
           </FormField>

@@ -10,3 +10,4 @@ export * from './user.service';
 export * from './specification.service';
 export * from './finance.service';
 export * from './payroll.service';
+export * from './inventory.service';
