@@ -18,7 +18,7 @@ class UserStoreRequest extends ApiRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
-            'password' => ['required', 'string', 'min:8'],
+            'password' => ['nullable', 'string', 'min:8'],
             'phone' => ['nullable', 'string', 'max:30'],
             'role' => ['required', Rule::in(['owner', 'manager', 'cashier', 'accountant'])],
             'status' => ['required', Rule::enum(ActiveStatus::class)],

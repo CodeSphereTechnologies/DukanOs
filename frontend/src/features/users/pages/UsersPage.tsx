@@ -94,6 +94,7 @@ export const UsersPage: React.FC = () => {
         phone: phone.trim() || undefined,
         role_slug: roleSlug,
         status,
+        password: tempPassword,
       });
 
       if (res.data) {

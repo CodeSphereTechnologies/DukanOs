@@ -64,6 +64,7 @@ export const userService = {
     phone?: string;
     role_slug: RoleSlug;
     status?: 'active' | 'inactive';
+    password?: string;
   }): Promise<ApiResponse<StoreUser>> {
     const roleMeta = ROLES_CONFIG[userPayload.role_slug] || ROLES_CONFIG.cashier;
     const users = getStoredUsers();
@@ -83,7 +84,14 @@ export const userService = {
     };
 
     try {
-      const res = await apiClient.post<StoreUser>('/users', userPayload);
+      const res = await apiClient.post<StoreUser>('/users', {
+        name: userPayload.name.trim(),
+        email: userPayload.email.trim().toLowerCase(),
+        phone: userPayload.phone?.trim() || undefined,
+        role: userPayload.role_slug,
+        status: userPayload.status || 'active',
+        password: userPayload.password || 'DukanOS@2026',
+      });
       if (res && res.data) {
         const savedUser = res.data;
         const updated = [savedUser, ...users.filter((u) => u.id !== savedUser.id)];

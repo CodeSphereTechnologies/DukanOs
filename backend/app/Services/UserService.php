@@ -2,10 +2,13 @@
 
 namespace App\Services;
 
+use App\Mail\StaffInvitation;
 use App\Models\Role;
 use App\Models\User;
 use App\Repositories\UserRepository;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class UserService
@@ -27,17 +30,31 @@ class UserService
             throw ValidationException::withMessages(['role' => ['A valid store role is required.']]);
         }
 
+        $temporaryPassword = $data['password'] ?? Str::random(12);
+
         $user = $this->users->create([
             'tenant_id' => $actor->tenant_id,
             'role_id' => $role->id,
             'name' => $data['name'],
             'email' => $data['email'],
-            'password' => Hash::make($data['password']),
+            'password' => Hash::make($temporaryPassword),
             'phone' => $data['phone'] ?? null,
             'status' => $data['status'] ?? 'active',
         ]);
 
         AuditService::log($actor, 'created', 'users', 'user', $user->id, null, $user->only(['name', 'email']));
+
+        try {
+            Mail::to($user->email)->send(new StaffInvitation(
+                name: $user->name,
+                email: $user->email,
+                temporaryPassword: $temporaryPassword,
+                storeName: $actor->tenant?->name ?? config('app.name'),
+                roleName: $role->name,
+            ));
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return $user->load('role');
     }
