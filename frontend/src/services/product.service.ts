@@ -95,12 +95,14 @@ export const productService = {
     try {
       const res = await apiClient.get<unknown>('/products');
       const list = unwrapList<unknown>(res?.data).map(mapProduct);
-      saveStoredProducts(list);
-      return {
-        success: true,
-        message: res?.message || 'Products retrieved',
-        data: list,
-      };
+      if (list.length > 0) {
+        saveStoredProducts(list);
+        return {
+          success: true,
+          message: res?.message || 'Products retrieved',
+          data: list,
+        };
+      }
     } catch {
       // offline fallback
     }
@@ -114,12 +116,14 @@ export const productService = {
     try {
       const res = await apiClient.get<unknown>('/categories');
       const list = unwrapList<unknown>(res?.data) as Category[];
-      saveStoredCategories(list);
-      return {
-        success: true,
-        message: res?.message || 'Categories retrieved',
-        data: list,
-      };
+      if (list.length > 0) {
+        saveStoredCategories(list);
+        return {
+          success: true,
+          message: res?.message || 'Categories retrieved',
+          data: list,
+        };
+      }
     } catch {
       // offline fallback
     }
@@ -134,12 +138,14 @@ export const productService = {
     try {
       const res = await apiClient.get<unknown>('/brands');
       const list = unwrapList<unknown>(res?.data) as Brand[];
-      saveStoredBrands(list);
-      return {
-        success: true,
-        message: res?.message || 'Brands retrieved',
-        data: list,
-      };
+      if (list.length > 0) {
+        saveStoredBrands(list);
+        return {
+          success: true,
+          message: res?.message || 'Brands retrieved',
+          data: list,
+        };
+      }
     } catch {
       // offline fallback
     }

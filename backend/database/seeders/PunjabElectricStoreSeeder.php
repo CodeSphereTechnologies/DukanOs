@@ -62,8 +62,6 @@ class PunjabElectricStoreSeeder extends Seeder
             $this->seedTenantUsers($tenant, $roles);
 
             $this->seedSpecifications();
-            $this->seedCategories($tenant);
-            $this->seedBrands($tenant);
             $this->seedLedgerCategories($tenant);
         });
 

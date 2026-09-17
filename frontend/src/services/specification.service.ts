@@ -31,7 +31,7 @@ export const specificationService = {
   async getAll(): Promise<ApiResponse<Specification[]>> {
     try {
       const res = await apiClient.get<Specification[]>('/specifications');
-      if (res && Array.isArray(res.data)) {
+      if (res && Array.isArray(res.data) && res.data.length > 0) {
         saveStoredSpecs(res.data);
         return res;
       }

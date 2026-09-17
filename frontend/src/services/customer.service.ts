@@ -89,12 +89,14 @@ export const customerService = {
     try {
       const res = await apiClient.get<unknown>('/customers');
       const list = unwrapList<unknown>(res?.data).map(mapCustomer);
-      saveStoredCustomers(list);
-      return {
-        success: true,
-        message: res?.message || 'Customers retrieved successfully',
-        data: list,
-      };
+      if (list.length > 0) {
+        saveStoredCustomers(list);
+        return {
+          success: true,
+          message: res?.message || 'Customers retrieved successfully',
+          data: list,
+        };
+      }
     } catch {
       // offline fallback
     }
