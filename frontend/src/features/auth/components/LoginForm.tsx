@@ -55,7 +55,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading = fals
         </Alert>
       )}
 
-      <FormField label="Email Address" required error={errors.email}>
+      <FormField label="Email Address" required error={errors.email} labelClassName="text-[#e5e5e5]">
         <Input
           type="email"
           value={email}
@@ -68,7 +68,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading = fals
         />
       </FormField>
 
-      <FormField label="Password" required error={errors.password}>
+      <FormField label="Password" required error={errors.password} labelClassName="text-[#e5e5e5]">
         <Input
           type="password"
           value={password}
