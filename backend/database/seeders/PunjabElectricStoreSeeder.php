@@ -59,20 +59,12 @@ class PunjabElectricStoreSeeder extends Seeder
             $this->seedSuperAdmin($roles['super_admin']);
 
             $tenant = $this->seedTenant();
-            $users = $this->seedTenantUsers($tenant, $roles);
+            $this->seedTenantUsers($tenant, $roles);
 
-            $specs = $this->seedSpecifications();
-            $categories = $this->seedCategories($tenant);
-            $brands = $this->seedBrands($tenant);
-            $products = $this->seedProducts($tenant, $categories, $brands, $specs);
-
-            $customers = $this->seedCustomers($tenant);
-
-            $this->seedQuotationsAndSales($tenant, $users, $customers, $products);
+            $this->seedSpecifications();
+            $this->seedCategories($tenant);
+            $this->seedBrands($tenant);
             $this->seedLedgerCategories($tenant);
-            $this->seedDailyTransactions($tenant, $users);
-            $this->seedEmployeesAndSalaries($tenant, $users);
-            $this->seedAuditLogs($tenant, $users, $products);
         });
 
         Model::reguard();
@@ -486,14 +478,6 @@ class PunjabElectricStoreSeeder extends Seeder
     private function seedQuotations(Tenant $tenant, array $users, array $customers, array $products, array &$specs): void
     {
         $defs = [
-            ['number' => 'QUO-0001', 'customer' => 'rashid', 'date' => '2026-06-02', 'status' => 'converted', 'items' => [['wire_2_5mm', 4], ['switch_1g', 10], ['socket_13a', 6], ['mcb_16a', 4]]],
-            ['number' => 'QUO-0002', 'customer' => 'haji', 'date' => '2026-06-10', 'status' => 'converted', 'items' => [['ceiling_fan_56', 6], ['led_bulb_12w', 12]]],
-            ['number' => 'QUO-0003', 'customer' => 'farhat', 'date' => '2026-07-05', 'status' => 'accepted', 'items' => [['microwave_20l', 1], ['kettle_1_8l', 1], ['toaster_2s', 1]]],
-            ['number' => 'QUO-0004', 'customer' => 'bilal', 'date' => '2026-07-14', 'status' => 'sent', 'items' => [['geyser_25l', 1], ['room_heater', 1]]],
-            ['number' => 'QUO-0005', 'customer' => 'imtiaz', 'date' => '2026-08-03', 'status' => 'sent', 'items' => [['inverter_1kva', 1], ['battery_150ah', 2], ['ups_650va', 1]]],
-            ['number' => 'QUO-0006', 'customer' => 'zafar', 'date' => '2026-08-11', 'status' => 'accepted', 'items' => [['ceiling_fan_48', 3], ['exhaust_fan_12', 2]]],
-            ['number' => 'QUO-0007', 'customer' => 'tariq', 'date' => '2026-08-18', 'status' => 'rejected', 'items' => [['inverter_3kva', 1], ['battery_175ah', 2]]],
-            ['number' => 'QUO-0008', 'customer' => 'aslam', 'date' => '2026-08-25', 'status' => 'sent', 'items' => [['wire_1_5mm', 6], ['wire_2_5mm', 6], ['cable_3core', 4]]],
         ];
 
         foreach ($defs as $def) {
@@ -615,7 +599,7 @@ class PunjabElectricStoreSeeder extends Seeder
                 'ledger' => 'ledger',
             };
 
-            $quoteId = $quoteNumber ? $quotes[$quoteNumber]->id : null;
+            $quoteId = $quoteNumber ? ($quotes[$quoteNumber]->id ?? null) : null;
 
             $invoice = Invoice::create([
                 'tenant_id' => $tenant->id,

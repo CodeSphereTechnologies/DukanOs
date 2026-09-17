@@ -20,6 +20,7 @@ import {
 import { formatCurrency, formatDate } from '../../../lib/formatters';
 import { productService } from '../../../services/product.service';
 import { invoiceService } from '../../../services/invoice.service';
+import { customerService } from '../../../services/customer.service';
 import type { Invoice } from '../../../types/invoice.types';
 
 const PAYMENT_VARIANT: Record<Invoice['payment_status'], 'mint' | 'warning' | 'destructive'> = {
@@ -33,6 +34,9 @@ export const OwnerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [lowStockCount, setLowStockCount] = useState(0);
   const [recentInvoices, setRecentInvoices] = useState<Invoice[]>([]);
+  const [todaySales, setTodaySales] = useState(0);
+  const [monthlyRevenue, setMonthlyRevenue] = useState(0);
+  const [totalReceivables, setTotalReceivables] = useState(0);
 
   useEffect(() => {
     productService.getAll().then((res) => {
@@ -54,6 +58,35 @@ export const OwnerDashboard: React.FC = () => {
           (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
         setRecentInvoices(sorted.slice(0, 5));
+
+        const today = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        const todaySalesSum = res.data
+          .filter((inv) => (inv.invoice_date || '').slice(0, 10) === today)
+          .reduce((sum, inv) => sum + (inv.paid_amount || 0), 0);
+
+        const monthlyRevenueSum = res.data
+          .filter((inv) => {
+            const d = new Date(inv.invoice_date || inv.created_at);
+            return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+          })
+          .reduce((sum, inv) => sum + (inv.paid_amount || 0), 0);
+
+        setTodaySales(todaySalesSum);
+        setMonthlyRevenue(monthlyRevenueSum);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    customerService.getAll().then((res) => {
+      if (res.data) {
+        setTotalReceivables(
+          res.data.reduce((sum, c) => sum + (c.current_balance || 0), 0)
+        );
       }
     });
   }, []);
@@ -76,20 +109,20 @@ export const OwnerDashboard: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
           title="Today's Sales"
-          value={formatCurrency(68450)}
-          change={{ value: '+14.2%', trend: 'up', label: 'vs yesterday' }}
+          value={formatCurrency(todaySales)}
+          change={{ value: 'Collected today', trend: 'neutral', label: 'vs yesterday' }}
           icon={<DollarSign className="w-5 h-5 text-[#065F46]" />}
         />
         <StatCard
           title="Monthly Revenue"
-          value={formatCurrency(820000)}
-          change={{ value: '+8.5%', trend: 'up', label: 'vs last month' }}
+          value={formatCurrency(monthlyRevenue)}
+          change={{ value: 'Collected this month', trend: 'neutral', label: 'vs last month' }}
           icon={<ArrowUpRight className="w-5 h-5 text-black" />}
         />
         <StatCard
           title="Customer Receivables"
-          value={formatCurrency(382400)}
-          change={{ value: '3 on-account ledgers', trend: 'neutral' }}
+          value={formatCurrency(totalReceivables)}
+          change={{ value: 'On-account ledgers', trend: 'neutral' }}
           icon={<Users className="w-5 h-5 text-[#92400E]" />}
         />
         <StatCard

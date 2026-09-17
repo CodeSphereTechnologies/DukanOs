@@ -2,28 +2,20 @@ import { apiClient } from './api-client';
 import type { ApiResponse } from '../types/api.types';
 import type { Customer, CustomerLedgerEntry } from '../types/customer.types';
 
-export const STORAGE_KEY_CUSTOMERS = 'dukanos_customers';
-export const STORAGE_KEY_CUSTOMER_LEDGER = 'dukanos_customer_ledger';
+export const STORAGE_KEY_CUSTOMERS = 'dukanos_customers_v4';
+export const STORAGE_KEY_CUSTOMER_LEDGER = 'dukanos_customer_ledger_v4';
 
-export const INITIAL_CUSTOMERS: Customer[] = [
-  { id: 1, name: 'Chaudhry Bilal (Contractor)', phone: '+92 300 1234567', email: 'bilal@contractors.pk', address: 'Model Town, Lahore', current_balance: 142000, status: 'active' },
-  { id: 2, name: 'Tariq Electric Works', phone: '+92 321 9876543', email: 'tariq@electric.pk', address: 'Brandreth Road, Lahore', current_balance: 98500, status: 'active' },
-  { id: 3, name: 'Al-Madina Construction', phone: '+92 300 7654321', email: 'madina@builders.pk', address: 'DHA Phase 5, Lahore', current_balance: 0, status: 'active' },
-  { id: 4, name: 'Malik Wiring & Hardware', phone: '+92 333 4567890', email: 'malik@wiring.pk', address: 'Shah Alam Market, Lahore', current_balance: 67200, status: 'active' },
-];
+export const INITIAL_CUSTOMERS: Customer[] = [];
 
 function getStoredCustomers(): Customer[] {
-  if (typeof window === 'undefined') return INITIAL_CUSTOMERS;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY_CUSTOMERS);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY_CUSTOMERS, JSON.stringify(INITIAL_CUSTOMERS));
-      return INITIAL_CUSTOMERS;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_CUSTOMERS;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return INITIAL_CUSTOMERS;
+    return [];
   }
 }
 
@@ -56,14 +48,53 @@ function saveStoredLedger(entries: CustomerLedgerEntry[]): void {
   }
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+}
+
+function asNumber(value: unknown): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function asString(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
+// Backend list endpoints return either a plain array or a paginated { data: [...] } wrapper.
+function unwrapList<T>(payload: unknown): T[] {
+  if (Array.isArray(payload)) return payload as T[];
+  const rec = asRecord(payload);
+  if (Array.isArray(rec.data)) return rec.data as T[];
+  return [];
+}
+
+function mapCustomer(raw: unknown): Customer {
+  const r = asRecord(raw);
+  return {
+    id: asNumber(r.id),
+    name: asString(r.name, ''),
+    phone: asString(r.phone) || undefined,
+    email: asString(r.email) || undefined,
+    address: asString(r.address) || undefined,
+    city: asString(r.city) || undefined,
+    current_balance: asNumber(r.current_balance ?? r.opening_balance ?? r.balance),
+    status: (asString(r.status, 'active') as Customer['status']) || 'active',
+    created_at: asString(r.created_at) || undefined,
+  };
+}
+
 export const customerService = {
   async getAll(): Promise<ApiResponse<Customer[]>> {
     try {
-      const res = await apiClient.get<Customer[]>('/customers');
-      if (res && res.data && res.data.length > 0) {
-        saveStoredCustomers(res.data);
-        return res;
-      }
+      const res = await apiClient.get<unknown>('/customers');
+      const list = unwrapList<unknown>(res?.data).map(mapCustomer);
+      saveStoredCustomers(list);
+      return {
+        success: true,
+        message: res?.message || 'Customers retrieved successfully',
+        data: list,
+      };
     } catch {
       // offline fallback
     }
@@ -72,7 +103,15 @@ export const customerService = {
 
   async getById(id: number): Promise<Customer | null> {
     const list = getStoredCustomers();
-    return list.find((c) => c.id === id) || null;
+    const found = list.find((c) => c.id === id);
+    if (found) return found;
+    try {
+      const res = await apiClient.get<unknown>(`/customers/${id}`);
+      if (res && res.data) return mapCustomer(res.data);
+    } catch {
+      // offline fallback
+    }
+    return null;
   },
 
   async recordRecovery(customerId: number, recoveryAmount: number): Promise<Customer | null> {
@@ -96,6 +135,29 @@ export const customerService = {
       ...customer,
       id: customer.id || Math.max(0, ...list.map((c) => c.id)) + 1,
     };
+
+    if (!customer.id) {
+      try {
+        const res = await apiClient.post<unknown>('/customers', {
+          name: customer.name,
+          phone: customer.phone || null,
+          email: customer.email || null,
+          address: customer.address || null,
+          notes: null,
+          opening_balance: customer.current_balance || 0,
+          status: customer.status || 'active',
+        });
+        if (res && res.data) {
+          const backend = mapCustomer(res.data);
+          const updated = [backend, ...list.filter((c) => c.id !== backend.id)];
+          saveStoredCustomers(updated);
+          return backend;
+        }
+      } catch {
+        // offline fallback to local storage
+      }
+    }
+
     const updated = [newCust, ...list.filter((c) => c.id !== newCust.id)];
     saveStoredCustomers(updated);
     return newCust;
@@ -143,7 +205,30 @@ export const customerService = {
   async getLedger(customerId?: number): Promise<ApiResponse<CustomerLedgerEntry[]>> {
     try {
       if (customerId) {
-        return await apiClient.get<CustomerLedgerEntry[]>(`/customers/${customerId}/ledger`);
+        const res = await apiClient.get<unknown>(`/customers/${customerId}/ledger`);
+        const list = unwrapList<unknown>(res?.data).map((raw) => {
+          const r = asRecord(raw);
+          const debit = asNumber(r.debit);
+          const credit = asNumber(r.credit);
+          const balance = asNumber(r.balance ?? r.running_balance);
+          return {
+            id: asNumber(r.id),
+            customer_id: asNumber(r.customer_id) || customerId,
+            invoice_id: r.invoice_id === undefined || r.invoice_id === null ? null : asNumber(r.invoice_id),
+            transaction_type: (debit > 0 ? 'debit' : 'credit') as CustomerLedgerEntry['transaction_type'],
+            amount: debit > 0 ? debit : credit,
+            running_balance: balance,
+            description: asString(r.notes, asString(r.entry_type, 'Ledger entry')),
+            date: asString(r.entry_date, asString(r.date, new Date().toISOString().split('T')[0])),
+          };
+        });
+        if (list.length > 0) {
+          return {
+            success: true,
+            message: res?.message || 'Customer ledger retrieved',
+            data: list,
+          };
+        }
       }
     } catch {
       // offline

@@ -29,7 +29,7 @@ export const CreateProductPage: React.FC = () => {
   const [cost, setCost] = useState<number>(0);
   const [stock, setStock] = useState<number>(0);
   const [threshold, setThreshold] = useState<number>(0);
-  const [unit, setUnit] = useState('pc');
+  const [unit, setUnit] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
@@ -110,7 +110,7 @@ export const CreateProductPage: React.FC = () => {
     setCost(0);
     setStock(0);
     setThreshold(0);
-    setUnit('pc');
+    setUnit('');
     setImageUrl('');
     setShowNewCategory(false);
     setNewCategoryName('');
@@ -329,6 +329,7 @@ export const CreateProductPage: React.FC = () => {
                   value={unit}
                   onChange={(e) => setUnit(e.target.value)}
                   options={[
+                    { label: 'Select the unit of sale...', value: '' },
                     ...units.map((u) => ({ label: `${u.name} (${u.code})`, value: u.code })),
                   ]}
                 />

@@ -16,82 +16,19 @@ export interface FinanceLedgerItem {
   created_at?: string;
 }
 
-export const STORAGE_KEY_FINANCE = 'dukanos_finance_ledger';
+export const STORAGE_KEY_FINANCE = 'dukanos_finance_ledger_v4';
 
-export const INITIAL_FINANCE_ENTRIES: FinanceLedgerItem[] = [
-  {
-    id: 1,
-    category: 'Customer Recovery',
-    type: 'income',
-    amount: 45000,
-    description: 'Khata credit recovery - Chaudhry Bilal (Contractor)',
-    date: '2026-09-02',
-    payment_method: 'bank_transfer',
-    customer_id: 1,
-    customer_name: 'Chaudhry Bilal (Contractor)',
-    reference_no: 'REC-2026-0042',
-    created_at: '2026-09-02T10:15:00Z',
-  },
-  {
-    id: 2,
-    category: 'Customer Payments',
-    type: 'income',
-    amount: 68450,
-    description: 'POS Counter cash and bank payments',
-    date: '2026-09-02',
-    payment_method: 'cash',
-    reference_no: 'POS-2026-0902',
-    created_at: '2026-09-02T16:45:00Z',
-  },
-  {
-    id: 3,
-    category: 'Electricity Bill',
-    type: 'expense',
-    amount: 34200,
-    description: 'LESCO Commercial Meter Bill for August',
-    date: '2026-09-01',
-    payment_method: 'bank_transfer',
-    reference_no: 'LESCO-991204',
-    created_at: '2026-09-01T11:20:00Z',
-  },
-  {
-    id: 4,
-    category: 'Shop Rent',
-    type: 'expense',
-    amount: 85000,
-    description: 'Plaza ground floor advance rent',
-    date: '2026-09-01',
-    payment_method: 'cheque',
-    reference_no: 'CHQ-448102',
-    created_at: '2026-09-01T09:00:00Z',
-  },
-  {
-    id: 5,
-    category: 'Customer Recovery',
-    type: 'income',
-    amount: 32000,
-    description: 'Khata recovery - Tariq Electric Works',
-    date: '2026-08-30',
-    payment_method: 'cash',
-    customer_id: 2,
-    customer_name: 'Tariq Electric Works',
-    reference_no: 'REC-2026-0039',
-    created_at: '2026-08-30T14:10:00Z',
-  },
-];
+export const INITIAL_FINANCE_ENTRIES: FinanceLedgerItem[] = [];
 
 function getStoredTransactions(): FinanceLedgerItem[] {
-  if (typeof window === 'undefined') return INITIAL_FINANCE_ENTRIES;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY_FINANCE);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY_FINANCE, JSON.stringify(INITIAL_FINANCE_ENTRIES));
-      return INITIAL_FINANCE_ENTRIES;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_FINANCE_ENTRIES;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return INITIAL_FINANCE_ENTRIES;
+    return [];
   }
 }
 
@@ -108,7 +45,7 @@ export const financeService = {
   async getTransactions(): Promise<ApiResponse<FinanceLedgerItem[]>> {
     try {
       const res = await apiClient.get<FinanceLedgerItem[]>('/finance');
-      if (res && res.data && res.data.length > 0) {
+      if (res && Array.isArray(res.data)) {
         saveStoredTransactions(res.data);
         return res;
       }

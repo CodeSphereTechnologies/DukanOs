@@ -2,27 +2,19 @@ import { apiClient } from './api-client';
 import type { ApiResponse } from '../types/api.types';
 import type { Unit } from '../types/product.types';
 
-export const STORAGE_KEY_UNITS = 'dukanos_units';
+export const STORAGE_KEY_UNITS = 'dukanos_units_v4';
 
-export const INITIAL_UNITS: Unit[] = [
-  { id: 1, code: 'pc', name: 'Piece', status: 'active' },
-  { id: 2, code: 'coil', name: 'Coil / Roll', status: 'active' },
-  { id: 3, code: 'm', name: 'Meter', status: 'active' },
-  { id: 4, code: 'box', name: 'Box', status: 'active' },
-];
+export const INITIAL_UNITS: Unit[] = [];
 
 function getStoredUnits(): Unit[] {
-  if (typeof window === 'undefined') return INITIAL_UNITS;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY_UNITS);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY_UNITS, JSON.stringify(INITIAL_UNITS));
-      return INITIAL_UNITS;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_UNITS;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return INITIAL_UNITS;
+    return [];
   }
 }
 

@@ -1,57 +1,91 @@
 import { apiClient } from './api-client';
 import type { ApiResponse } from '../types/api.types';
 import type { Invoice, Quotation } from '../types/invoice.types';
+import type { Customer } from '../types/customer.types';
 
-const STORAGE_KEY_QUOTATIONS = 'dukanos_quotations';
+const STORAGE_KEY_QUOTATIONS = 'dukanos_quotations_v4';
 
-export const INITIAL_QUOTATIONS: Quotation[] = [
-  {
-    id: 1,
-    quotation_number: 'QTN-2026-0042',
-    customer: { id: 1, name: 'Chaudhry Bilal (Contractor)', status: 'active', current_balance: 0 },
-    quotation_date: '2026-09-02',
-    valid_until: '2026-09-15',
-    status: 'sent',
-    subtotal: 185000,
-    discount_amount: 5000,
-    total_amount: 180000,
-    items: [
-      { id: 1, product_id: 1, product_name: 'Royal Deluxe Fan 56"', sku: 'ROY-FAN-56', unit_price: 9500, quantity: 10, discount_amount: 0, total_price: 95000 },
-      { id: 2, product_id: 2, product_name: 'Pakistan Cables 7/29 Single Core Red 90m', sku: 'PAK-CAB-729R', unit_price: 14500, quantity: 6, discount_amount: 5000, total_price: 82000 },
-    ],
-    notes: '50% advance on order confirmation, delivery within 48 hours.',
-    created_at: '2026-09-02T05:00:00Z',
-  },
-  {
-    id: 2,
-    quotation_number: 'QTN-2026-0041',
-    customer: { id: 2, name: 'Al-Madina Construction', status: 'active', current_balance: 0 },
-    quotation_date: '2026-09-01',
-    valid_until: '2026-09-10',
-    status: 'draft',
-    subtotal: 64000,
-    discount_amount: 0,
-    total_amount: 64000,
-    items: [
-      { id: 3, product_id: 5, product_name: 'Pak Fan Bracket Fan 18" Remote Control', sku: 'PAK-FAN-18B', unit_price: 12800, quantity: 5, discount_amount: 0, total_price: 64000 },
-    ],
-    notes: 'Price valid for 10 days.',
-    created_at: '2026-09-01T14:30:00Z',
-  },
-];
+export const INITIAL_QUOTATIONS: Quotation[] = [];
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+}
+
+function asNumber(value: unknown): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function asString(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
+// Backend list endpoints return either a plain array or a paginated { data: [...] } wrapper.
+function unwrapList<T>(payload: unknown): T[] {
+  if (Array.isArray(payload)) return payload as T[];
+  const rec = asRecord(payload);
+  if (Array.isArray(rec.data)) return rec.data as T[];
+  return [];
+}
+
+function mapQuotation(raw: unknown): Quotation {
+  const r = asRecord(raw);
+  const rawCustomer = asRecord(r.customer);
+  const customer: Customer | undefined =
+    Object.keys(rawCustomer).length > 0
+      ? {
+          id: asNumber(rawCustomer.id),
+          name: asString(rawCustomer.name, 'Walk-in'),
+          phone: asString(rawCustomer.phone) || undefined,
+          status: (asString(rawCustomer.status, 'active') as Customer['status']),
+          current_balance: asNumber(rawCustomer.current_balance ?? rawCustomer.opening_balance),
+        }
+      : undefined;
+
+  const rawItems = Array.isArray(r.items) ? r.items : [];
+
+  return {
+    id: asNumber(r.id),
+    quotation_number: asString(r.quotation_number),
+    customer_id: asNumber(r.customer_id) || customer?.id,
+    customer,
+    quotation_date: asString(r.quotation_date),
+    valid_until: asString(r.valid_until),
+    status: asString(r.status, 'sent') as Quotation['status'],
+    subtotal: asNumber(r.subtotal),
+    discount_type: (asString(r.discount_type) || undefined) as Quotation['discount_type'],
+    discount_value: asNumber(r.discount_value),
+    discount_amount: asNumber(r.discount_amount),
+    total_amount: asNumber(r.total_amount ?? r.total),
+    notes: asString(r.notes),
+    items: rawItems.map((item, idx) => {
+      const i = asRecord(item);
+      const unitPrice = asNumber(i.unit_price);
+      const quantity = asNumber(i.quantity);
+      return {
+        id: asNumber(i.id) || idx + 1,
+        product_id: asNumber(i.product_id),
+        product_name: asString(i.product_name) || asString(i.name),
+        sku: asString(i.sku),
+        unit_price: unitPrice,
+        quantity,
+        discount_amount: asNumber(i.discount_amount),
+        total_price: asNumber(i.total_price ?? i.line_total) || unitPrice * quantity,
+      };
+    }),
+    created_at: asString(r.created_at, new Date().toISOString()),
+  };
+}
 
 function getStoredQuotations(): Quotation[] {
-  if (typeof window === 'undefined') return INITIAL_QUOTATIONS;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY_QUOTATIONS);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY_QUOTATIONS, JSON.stringify(INITIAL_QUOTATIONS));
-      return INITIAL_QUOTATIONS;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_QUOTATIONS;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return INITIAL_QUOTATIONS;
+    return [];
   }
 }
 
@@ -64,114 +98,93 @@ function saveStoredQuotations(quotations: Quotation[]): void {
   }
 }
 
-const STORAGE_KEY_INVOICES = 'dukanos_invoices';
+const STORAGE_KEY_INVOICES = 'dukanos_invoices_v4';
 
-export const INITIAL_INVOICES: Invoice[] = [
-  {
-    id: 1,
-    invoice_number: 'INV-2026-0094',
-    customer_id: 1,
-    customer: { id: 1, name: 'Al-Madina Construction', status: 'active', current_balance: 0 },
-    invoice_date: '2026-09-02',
-    status: 'issued',
-    payment_status: 'paid',
-    subtotal: 145000,
-    discount_amount: 0,
-    total_amount: 145000,
-    paid_amount: 145000,
-    balance_amount: 0,
-    payment_method: 'cash',
-    items: [
-      { id: 1, product_id: 1, product_name: 'Royal Deluxe Fan 56"', sku: 'ROY-FAN-56', unit_price: 9500, quantity: 10, discount_amount: 0, total_price: 95000 },
-      { id: 2, product_id: 3, product_name: 'Philips LED Bulb 18W Cool Daylight E27', sku: 'PHI-LED-18W', unit_price: 650, quantity: 50, discount_amount: 0, total_price: 32500 },
-      { id: 3, product_id: 4, product_name: 'Schneider Electric Switch Socket 13A White', sku: 'SCH-SW-13A', unit_price: 850, quantity: 20, discount_amount: 0, total_price: 17500 },
-    ],
-    created_at: '2026-09-02T06:45:00Z',
-  },
-  {
-    id: 2,
-    invoice_number: 'INV-2026-0093',
-    customer_id: 2,
-    customer: { id: 2, name: 'Tariq Electric Works', status: 'active', current_balance: 18500 },
-    invoice_date: '2026-09-02',
-    status: 'issued',
-    payment_status: 'partial',
-    subtotal: 38500,
-    discount_amount: 0,
-    total_amount: 38500,
-    paid_amount: 20000,
-    balance_amount: 18500,
-    payment_method: 'bank_transfer',
-    items: [
-      { id: 4, product_id: 2, product_name: 'Pakistan Cables 7/29 Single Core Red 90m', sku: 'PAK-CAB-729R', unit_price: 14500, quantity: 2, discount_amount: 0, total_price: 29000 },
-      { id: 5, product_id: 1, product_name: 'Royal Deluxe Fan 56"', sku: 'ROY-FAN-56', unit_price: 9500, quantity: 1, discount_amount: 0, total_price: 9500 },
-    ],
-    created_at: '2026-09-02T06:12:00Z',
-  },
-  {
-    id: 3,
-    invoice_number: 'INV-2026-0092',
-    customer_id: undefined,
-    customer: { id: 0, name: 'Walk-in Customer', status: 'active', current_balance: 0 },
-    invoice_date: '2026-09-02',
-    status: 'issued',
-    payment_status: 'paid',
-    subtotal: 6200,
-    discount_amount: 0,
-    total_amount: 6200,
-    paid_amount: 6200,
-    balance_amount: 0,
-    payment_method: 'cash',
-    items: [
-      { id: 6, product_id: 3, product_name: 'Philips LED Bulb 18W Cool Daylight E27', sku: 'PHI-LED-18W', unit_price: 650, quantity: 8, discount_amount: 0, total_price: 5200 },
-      { id: 7, product_id: 4, product_name: 'Schneider Electric Switch Socket 13A White', sku: 'SCH-SW-13A', unit_price: 1000, quantity: 1, discount_amount: 0, total_price: 1000 },
-    ],
-    created_at: '2026-09-02T05:30:00Z',
-  },
-  {
-    id: 4,
-    invoice_number: 'INV-2026-0091',
-    customer_id: 1,
-    customer: { id: 1, name: 'Chaudhry Bilal (Contractor)', status: 'active', current_balance: 92400 },
-    invoice_date: '2026-09-01',
-    status: 'issued',
-    payment_status: 'ledger',
-    subtotal: 92400,
-    discount_amount: 0,
-    total_amount: 92400,
-    paid_amount: 0,
-    balance_amount: 92400,
-    payment_method: 'ledger',
-    items: [
-      { id: 8, product_id: 2, product_name: 'Pakistan Cables 7/29 Single Core Red 90m', sku: 'PAK-CAB-729R', unit_price: 14500, quantity: 6, discount_amount: 0, total_price: 87000 },
-      { id: 9, product_id: 4, product_name: 'Schneider Electric Switch Socket 13A White', sku: 'SCH-SW-13A', unit_price: 900, quantity: 6, discount_amount: 0, total_price: 5400 },
-    ],
-    created_at: '2026-09-01T11:00:00Z',
-  },
-];
+export const INITIAL_INVOICES: Invoice[] = [];
 
 function getStoredInvoices(): Invoice[] {
-  if (typeof window === 'undefined') return INITIAL_INVOICES;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY_INVOICES);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY_INVOICES, JSON.stringify(INITIAL_INVOICES));
-      return INITIAL_INVOICES;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_INVOICES;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return INITIAL_INVOICES;
+    return [];
   }
+}
+
+function mapInvoice(raw: unknown): Invoice {
+  const r = asRecord(raw);
+  const rawCustomer = asRecord(r.customer);
+  const customer: Customer | undefined =
+    Object.keys(rawCustomer).length > 0
+      ? {
+          id: asNumber(rawCustomer.id),
+          name: asString(rawCustomer.name, 'Walk-in'),
+          phone: asString(rawCustomer.phone) || undefined,
+          status: (asString(rawCustomer.status, 'active') as Customer['status']),
+          current_balance: asNumber(rawCustomer.current_balance ?? rawCustomer.opening_balance),
+        }
+      : undefined;
+
+  const rawItems = Array.isArray(r.items) ? r.items : [];
+
+  const statusRaw = asString(r.status);
+  const paymentRaw = asString(r.payment_status);
+
+  return {
+    id: asNumber(r.id),
+    invoice_number: asString(r.invoice_number),
+    customer_id: asNumber(r.customer_id) || customer?.id,
+    customer,
+    invoice_date: asString(r.invoice_date),
+    status: (['draft', 'issued', 'paid', 'cancelled'].includes(statusRaw)
+      ? statusRaw
+      : 'issued') as Invoice['status'],
+    payment_status: (['paid', 'partial', 'unpaid', 'ledger'].includes(paymentRaw)
+      ? paymentRaw
+      : 'unpaid') as Invoice['payment_status'],
+    subtotal: asNumber(r.subtotal),
+    discount_type: (asString(r.discount_type) || undefined) as Invoice['discount_type'],
+    discount_value: asNumber(r.discount_value),
+    discount_amount: asNumber(r.discount_amount),
+    tax_amount: asNumber(r.tax_amount),
+    total_amount: asNumber(r.total_amount ?? r.total),
+    paid_amount: asNumber(r.paid_amount ?? r.amount_paid),
+    balance_amount: asNumber(r.balance_amount ?? r.balance_due),
+    payment_method: (asString(r.payment_method, 'cash') as Invoice['payment_method']) || 'cash',
+    notes: asString(r.notes),
+    items: rawItems.map((item, idx) => {
+      const i = asRecord(item);
+      const unitPrice = asNumber(i.unit_price);
+      const quantity = asNumber(i.quantity);
+      return {
+        id: asNumber(i.id) || idx + 1,
+        product_id: asNumber(i.product_id),
+        product_name: asString(i.product_name) || asString(i.name),
+        sku: asString(i.sku),
+        unit_price: unitPrice,
+        quantity,
+        discount_amount: asNumber(i.discount_amount),
+        total_price: asNumber(i.total_price ?? i.line_total) || unitPrice * quantity,
+      };
+    }),
+    created_at: asString(r.created_at, new Date().toISOString()),
+  };
 }
 
 export const invoiceService = {
   async getAll(): Promise<ApiResponse<Invoice[]>> {
     try {
-      const res = await apiClient.get<Invoice[]>('/invoices');
-      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-        return res;
-      }
+      const res = await apiClient.get<unknown>('/invoices');
+      const list = unwrapList<unknown>(res?.data).map(mapInvoice);
+      saveStoredInvoices(list);
+      return {
+        success: true,
+        message: res?.message || 'Invoices retrieved successfully',
+        data: list,
+      };
     } catch {
       // offline fallback
     }
@@ -184,21 +197,23 @@ export const invoiceService = {
 
   async getQuotations(): Promise<ApiResponse<Quotation[]>> {
     try {
-      const res = await apiClient.get<Quotation[]>('/quotations');
-      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-        saveStoredQuotations(res.data);
-        return res;
-      }
+      const res = await apiClient.get<unknown>('/quotations');
+      const list = unwrapList<unknown>(res?.data).map(mapQuotation);
+      saveStoredQuotations(list);
+      return {
+        success: true,
+        message: res?.message || 'Quotations retrieved successfully',
+        data: list,
+      };
     } catch {
       // Offline fallback
+      const localData = getStoredQuotations();
+      return {
+        success: true,
+        message: 'Quotations retrieved successfully',
+        data: localData,
+      };
     }
-
-    const localData = getStoredQuotations();
-    return {
-      success: true,
-      message: 'Quotations retrieved successfully',
-      data: localData,
-    };
   },
 
   async createQuotation(data: Partial<Quotation>): Promise<ApiResponse<Quotation>> {
@@ -225,12 +240,16 @@ export const invoiceService = {
     };
 
     try {
-      const res = await apiClient.post<Quotation>('/quotations', data);
+      const res = await apiClient.post<unknown>('/quotations', data);
       if (res && res.data) {
-        const saved = res.data;
+        const saved = mapQuotation(res.data);
         const updated = [saved, ...current.filter((q) => q.id !== saved.id)];
         saveStoredQuotations(updated);
-        return res;
+        return {
+          success: true,
+          message: res?.message || 'Quotation created successfully',
+          data: saved,
+        };
       }
     } catch {
       // Fallback to local storage

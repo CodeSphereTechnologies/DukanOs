@@ -11,8 +11,9 @@ import { FormField } from '../../../components/ui/FormField';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
-import { Plus, SlidersHorizontal, RotateCcw, ChevronRight, Pencil, Trash2 } from 'lucide-react';
-import { formatCurrency } from '../../../lib/formatters';
+import { Dialog } from '../../../components/ui/Dialog';
+import { Plus, SlidersHorizontal, RotateCcw, ChevronRight, Pencil, Trash2, Printer } from 'lucide-react';
+import { formatCurrency, formatDate } from '../../../lib/formatters';
 import type { Product, Category, Brand } from '../../../types/product.types';
 import { productService } from '../../../services/product.service';
 
@@ -26,6 +27,9 @@ export const ProductsPage: React.FC = () => {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+  const [isPrintOpen, setIsPrintOpen] = useState(false);
+  const [printFormat, setPrintFormat] = useState<'a4' | 'slip'>('a4');
+  const [selectedKeys, setSelectedKeys] = useState<(string | number)[]>([]);
 
   // Filter States
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -61,6 +65,144 @@ export const ProductsPage: React.FC = () => {
     setDeleteId(null);
     setIsDeleteOpen(false);
   };
+
+  const selectedProducts = useMemo(
+    () => products.filter((p) => selectedKeys.includes(p.id)),
+    [products, selectedKeys]
+  );
+
+  const printItems = selectedProducts.length > 0 ? selectedProducts : products;
+
+  const catalogTitle = selectedProducts.length > 0 ? 'Selected Products' : 'Product Catalog';
+
+  const a4Print = (
+    <div className="p-6 border border-[#E4E4E7] rounded-xl bg-white space-y-4 text-xs font-sans print:border-0 print:rounded-none">
+      <div className="flex justify-between items-start border-b border-[#E4E4E7] pb-4">
+        <div>
+          <div className="font-extrabold text-xl text-[#18181B] font-display">{catalogTitle}</div>
+          <div className="text-[11px] text-[#71717A]">
+            Generated {formatDate(new Date().toISOString().split('T')[0])}
+          </div>
+        </div>
+        <div className="text-right text-[10px] text-[#71717A]">
+          <div>{catalogTitle}</div>
+          <div className="font-mono font-bold text-lg text-[#18181B]">{printItems.length}</div>
+        </div>
+      </div>
+
+      {printItems.length === 0 ? (
+        <div className="p-8 text-center text-sm text-[#A1A1AA]">No products in the catalog yet.</div>
+      ) : (
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="border-b border-[#E4E4E7]">
+              <th className="p-2 font-semibold text-[#18181B]">#</th>
+              <th className="p-2 font-semibold text-[#18181B]">Product</th>
+              <th className="p-2 font-semibold text-[#18181B]">SKU</th>
+              <th className="p-2 font-semibold text-[#18181B]">Category / Brand</th>
+              <th className="p-2 font-semibold text-[#18181B] text-right">Price</th>
+              <th className="p-2 font-semibold text-[#18181B] text-center">Stock</th>
+              <th className="p-2 font-semibold text-[#18181B] text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {printItems.map((p, idx) => (
+              <tr key={p.id} className="border-b border-[#F4F4F5]">
+                <td className="p-2 text-[#71717A]">{idx + 1}</td>
+                <td className="p-2 font-semibold text-[#18181B]">{p.name}</td>
+                <td className="p-2 font-mono text-[#52525B]">{p.sku}</td>
+                <td className="p-2 text-[#52525B]">
+                  {p.category?.name || 'General'} · {p.brand?.name || 'Generic'}
+                </td>
+                <td className="p-2 text-right font-mono font-bold text-black">{formatCurrency(p.selling_price)}</td>
+                <td className="p-2 text-center font-semibold">
+                  <span
+                    className={
+                      p.current_stock === 0
+                        ? 'text-[#DC2626]'
+                        : (p.current_stock || 0) <= (p.min_quantity_threshold || 5)
+                          ? 'text-[#D97706]'
+                          : 'text-[#065F46]'
+                    }
+                  >
+                    {p.current_stock} {p.unit}
+                  </span>
+                </td>
+                <td className="p-2 text-center text-[#52525B] capitalize">{p.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+
+  const slipPrint = (
+    <div className="mx-auto bg-white text-black max-w-[320px] p-6 font-mono text-[11px] leading-[1.6]">
+      <div className="text-center mb-1">
+        <div className="text-lg font-bold tracking-[0.2em]">DUKANOS</div>
+        <div className="text-[10px]">ELECTRICAL &amp; APPLIANCE STORE</div>
+        <div>Main Bazar Road, City 46000</div>
+        <div>Tel: 0300-1234567</div>
+      </div>
+
+      <div className="text-center my-2">- - - - - - - - - - - - - - - -</div>
+
+      <div className="flex justify-between font-bold">
+        <span>{catalogTitle.toUpperCase()}</span>
+        <span>{printItems.length}</span>
+      </div>
+      <div className="flex justify-between">
+        <span>Date</span>
+        <span>
+          {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+        </span>
+      </div>
+
+      <div className="text-center my-2">- - - - - - - - - - - - - - - -</div>
+
+      <div className="flex justify-between font-bold">
+        <span>ITEM</span>
+        <span>PRICE</span>
+        <span>STOCK</span>
+      </div>
+
+      {printItems.length === 0 ? (
+        <div className="mt-1">No products found.</div>
+      ) : (
+        printItems.map((p, idx) => (
+          <div key={p.id} className="mt-1">
+            <div>
+              {idx + 1}. {p.name}
+            </div>
+            <div className="flex justify-between text-[10px]">
+              <span>
+                {p.sku} · {p.category?.name || 'General'}
+              </span>
+              <span>{formatCurrency(p.selling_price)}</span>
+              <span>
+                {p.current_stock} {p.unit}
+              </span>
+            </div>
+          </div>
+        ))
+      )}
+
+      <div className="text-center my-2">- - - - - - - - - - - - - - - -</div>
+
+      <div className="flex justify-between font-bold text-[13px] border-t border-black pt-1.5 mt-1">
+        <span>TOTAL ITEMS</span>
+        <span>{printItems.length}</span>
+      </div>
+
+      <div className="text-center my-3">***</div>
+
+      <div className="text-center text-[10px]">
+        <div className="font-bold tracking-wider">END OF CATALOG</div>
+        <div className="mt-1">Goods once sold will not be taken back.</div>
+      </div>
+    </div>
+  );
 
   // Dynamic filter lists (all configured categories/brands, not just ones in use)
   const categoriesFilter = useMemo(() => categories.map((c) => c.name), [categories]);
@@ -289,9 +431,11 @@ export const ProductsPage: React.FC = () => {
   ];
 
   return (
+    <>
     <PageContainer
       title="Products & Catalog"
       subtitle="Manage appliance items, dynamic specifications, barcode identifiers, and stock levels."
+      className={isPrintOpen ? 'print:hidden' : ''}
       primaryAction={
         <Button
           variant="primary"
@@ -309,20 +453,40 @@ export const ProductsPage: React.FC = () => {
           onSearchChange={setSearch}
           searchPlaceholder="Search products by name, SKU, or barcode..."
           actions={
-            <Button
-              variant={activeFilters.length > 0 ? 'primary' : 'secondary'}
-              size="md"
-              leftIcon={<SlidersHorizontal className="w-4 h-4" />}
-              onClick={() => setIsFilterDrawerOpen(true)}
-              className="relative"
-            >
-              <span>Filters</span>
-              {activeFilters.length > 0 && (
-                <span className="ml-1.5 px-1.5 py-0.2 text-[10px] bg-white text-black font-extrabold rounded-full">
-                  {activeFilters.length}
-                </span>
+            <>
+              {selectedProducts.length > 0 && (
+                <Button
+                  variant="primary"
+                  size="md"
+                  leftIcon={<Printer className="w-4 h-4" />}
+                  onClick={() => setIsPrintOpen(true)}
+                >
+                  Print Selected ({selectedProducts.length})
+                </Button>
               )}
-            </Button>
+              <Button
+                variant="secondary"
+                size="md"
+                leftIcon={<Printer className="w-4 h-4" />}
+                onClick={() => setIsPrintOpen(true)}
+              >
+                Print All Products
+              </Button>
+              <Button
+                variant={activeFilters.length > 0 ? 'primary' : 'secondary'}
+                size="md"
+                leftIcon={<SlidersHorizontal className="w-4 h-4" />}
+                onClick={() => setIsFilterDrawerOpen(true)}
+                className="relative"
+              >
+                <span>Filters</span>
+                {activeFilters.length > 0 && (
+                  <span className="ml-1.5 px-1.5 py-0.2 text-[10px] bg-white text-black font-extrabold rounded-full">
+                    {activeFilters.length}
+                  </span>
+                )}
+              </Button>
+            </>
           }
         />
 
@@ -355,6 +519,9 @@ export const ProductsPage: React.FC = () => {
           columns={columns}
           data={filtered}
           keyExtractor={(item) => item.id}
+          selectable
+          selectedKeys={selectedKeys}
+          onSelectionChange={setSelectedKeys}
           onRowClick={(item) => navigate(`/products/${item.id}`)}
         />
       </div>
@@ -455,6 +622,66 @@ export const ProductsPage: React.FC = () => {
         variant="destructive"
         isLoading={false}
       />
+
+      {/* Print All Products */}
+      <Dialog
+        isOpen={isPrintOpen}
+        onClose={() => setIsPrintOpen(false)}
+        title={
+          selectedProducts.length > 0
+            ? 'Print Selected Products'
+            : 'Print Product Catalog'
+        }
+        description={
+          printFormat === 'slip'
+            ? 'Thermal slip (80mm) preview. Opens the browser print dialog when you print.'
+            : 'A4 sheet preview. Opens the browser print dialog when you print.'
+        }
+        maxWidth="xl"
+        footer={
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between w-full gap-2">
+            <div className="flex items-center gap-2">
+              <Button
+                variant={printFormat === 'a4' ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => setPrintFormat('a4')}
+              >
+                A4 Sheet
+              </Button>
+              <Button
+                variant={printFormat === 'slip' ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => setPrintFormat('slip')}
+              >
+                Thermal Slip (80mm)
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setIsPrintOpen(false)}>
+                Close
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<Printer className="w-4 h-4" />}
+                onClick={() => window.print()}
+              >
+                Print {printFormat === 'slip' ? 'Thermal Slip' : 'A4 Sheet'}
+              </Button>
+            </div>
+          </div>
+        }
+      >
+        {printFormat === 'slip' ? slipPrint : a4Print}
+      </Dialog>
     </PageContainer>
+
+    {/* Print-only thermal slip / A4 sheet (hidden on screen, visible only when printing) */}
+    {isPrintOpen && (
+      <div className="hidden print:block">
+        {printFormat === 'slip' ? slipPrint : a4Print}
+      </div>
+    )}
+    </>
   );
 };

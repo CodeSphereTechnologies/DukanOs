@@ -19,27 +19,25 @@ import {
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../../lib/formatters';
 import { invoiceService } from '../../../services/invoice.service';
+import { customerService } from '../../../services/customer.service';
+import { productService } from '../../../services/product.service';
 import type { Quotation, InvoiceItem } from '../../../types/invoice.types';
+import type { Customer } from '../../../types/customer.types';
+import type { Product } from '../../../types/product.types';
 
-const CATALOG_ITEMS = [
-  { id: 1, name: 'Royal Deluxe Fan 56"', sku: 'ROY-FAN-56', price: 9500 },
-  { id: 2, name: 'Pakistan Cables 7/29 Single Core Red 90m', sku: 'PAK-CAB-729R', price: 14500 },
-  { id: 3, name: 'Philips LED Bulb 18W Cool Daylight E27', sku: 'PHI-LED-18W', price: 650 },
-  { id: 4, name: 'Schneider MCB 32A Double Pole 6kA', sku: 'SCH-MCB-32DP', price: 2200 },
-  { id: 5, name: 'Pak Fan Bracket Fan 18" Remote Control', sku: 'PAK-FAN-18B', price: 12800 },
-  { id: 6, name: 'Osaka Tube Light LED 36W Complete Set', sku: 'OSK-TUB-36W', price: 1850 },
-];
+interface CatalogProduct extends Product {
+  unit_price: number;
+}
 
-const PRESET_CUSTOMERS = [
-  { id: 1, name: 'Chaudhry Bilal (Contractor)', phone: '+92 300 1234567' },
-  { id: 2, name: 'Tariq Electric Works', phone: '+92 321 9876543' },
-  { id: 3, name: 'Al-Madina Construction', phone: '+92 300 7654321' },
-  { id: 4, name: 'Walk-in Customer', phone: '' },
-];
+function toCatalogProduct(product: Product): CatalogProduct {
+  return { ...product, unit_price: product.selling_price };
+}
 
 export const QuotationsPage: React.FC = () => {
 
   const [quotations, setQuotations] = useState<Quotation[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [catalog, setCatalog] = useState<CatalogProduct[]>([]);
   const [search, setSearch] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedQuote, setSelectedQuote] = useState<Quotation | null>(null);
@@ -48,7 +46,7 @@ export const QuotationsPage: React.FC = () => {
 
   // Create Form State
   const [customerMode, setCustomerMode] = useState<'preset' | 'custom'>('preset');
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('1');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('0');
   const [customCustomerName, setCustomCustomerName] = useState('');
   const [customCustomerPhone, setCustomCustomerPhone] = useState('');
   const [quotationDate, setQuotationDate] = useState(new Date().toISOString().split('T')[0]);
@@ -70,24 +68,27 @@ export const QuotationsPage: React.FC = () => {
       quantity: number;
       discount_amount: number;
     }[]
-  >([
-    {
-      product_id: 1,
-      product_name: 'Royal Deluxe Fan 56"',
-      sku: 'ROY-FAN-56',
-      unit_price: 9500,
-      quantity: 5,
-      discount_amount: 0,
-    },
-  ]);
+  >([]);
 
   const loadQuotations = async () => {
     const res = await invoiceService.getQuotations();
     if (res.data) setQuotations(res.data);
   };
 
+  const loadCustomers = async () => {
+    const res = await customerService.getAll();
+    if (res.data) setCustomers(res.data);
+  };
+
+  const loadProducts = async () => {
+    const res = await productService.getAll();
+    if (res.data) setCatalog(res.data.map(toCatalogProduct));
+  };
+
   useEffect(() => {
     loadQuotations();
+    loadCustomers();
+    loadProducts();
   }, []);
 
   const subtotal = useMemo(() => {
@@ -99,14 +100,16 @@ export const QuotationsPage: React.FC = () => {
   }, [subtotal, discountAmount]);
 
   const handleAddItem = () => {
+    const product = catalog[0];
+    if (!product) return;
     setFormItems((prev) => [
       ...prev,
       {
-        product_id: 3,
-        product_name: 'Philips LED Bulb 18W Cool Daylight E27',
-        sku: 'PHI-LED-18W',
-        unit_price: 650,
-        quantity: 10,
+        product_id: product.id,
+        product_name: product.name,
+        sku: product.sku,
+        unit_price: product.selling_price,
+        quantity: 1,
         discount_amount: 0,
       },
     ]);
@@ -118,7 +121,7 @@ export const QuotationsPage: React.FC = () => {
   };
 
   const handleProductSelect = (index: number, productId: number) => {
-    const found = CATALOG_ITEMS.find((c) => c.id === productId);
+    const found = catalog.find((c) => c.id === productId);
     if (!found) return;
     setFormItems((prev) =>
       prev.map((item, idx) =>
@@ -128,7 +131,7 @@ export const QuotationsPage: React.FC = () => {
               product_id: found.id,
               product_name: found.name,
               sku: found.sku,
-              unit_price: found.price,
+              unit_price: found.selling_price,
             }
           : item
       )
@@ -150,7 +153,7 @@ export const QuotationsPage: React.FC = () => {
   };
 
   const handleResetForm = () => {
-    setSelectedCustomerId('1');
+    setSelectedCustomerId('0');
     setCustomerMode('preset');
     setCustomCustomerName('');
     setCustomCustomerPhone('');
@@ -160,30 +163,40 @@ export const QuotationsPage: React.FC = () => {
     setDiscountAmount(0);
     setNotes('50% advance upon confirmation. Validity: 14 days.');
     setError(null);
-    setFormItems([
-      {
-        product_id: 1,
-        product_name: 'Royal Deluxe Fan 56"',
-        sku: 'ROY-FAN-56',
-        unit_price: 9500,
-        quantity: 5,
-        discount_amount: 0,
-      },
-    ]);
+    setFormItems(
+      catalog[0]
+        ? [
+            {
+              product_id: catalog[0].id,
+              product_name: catalog[0].name,
+              sku: catalog[0].sku,
+              unit_price: catalog[0].selling_price,
+              quantity: 1,
+              discount_amount: 0,
+            },
+          ]
+        : []
+    );
   };
 
   const handleCreateQuotation = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    let customerName = '';
+    let customerName: string;
     let customerId: number | undefined = undefined;
 
     if (customerMode === 'preset') {
-      const found = PRESET_CUSTOMERS.find((c) => c.id === Number(selectedCustomerId));
-      if (found) {
+      const selectedId = Number(selectedCustomerId);
+      const found = customers.find((c) => c.id === selectedId);
+      if (selectedId > 0 && found) {
         customerName = found.name;
         customerId = found.id;
+      } else if (selectedId > 0 && !found) {
+        setError('Please select a valid customer account.');
+        return;
+      } else {
+        customerName = 'Walk-in Customer';
       }
     } else {
       if (!customCustomerName.trim()) {
@@ -191,6 +204,14 @@ export const QuotationsPage: React.FC = () => {
         return;
       }
       customerName = customCustomerName.trim();
+      const saved = await customerService.saveCustomer({
+        name: customerName,
+        phone: customCustomerPhone.trim() || undefined,
+        status: 'active',
+        current_balance: 0,
+      });
+      customerId = saved.id;
+      setCustomers((prev) => [saved, ...prev.filter((c) => c.id !== saved.id)]);
     }
 
     if (formItems.length === 0) {
@@ -212,16 +233,26 @@ export const QuotationsPage: React.FC = () => {
     try {
       const res = await invoiceService.createQuotation({
         customer_id: customerId,
-        customer: {
-          id: customerId || 0,
-          name: customerName,
-          status: 'active',
-          current_balance: 0,
-          phone: customCustomerPhone || undefined,
-        },
+        customer: customerId
+          ? {
+              id: customerId,
+              name: customerName,
+              status: 'active',
+              current_balance: 0,
+              phone: customCustomerPhone || undefined,
+            }
+          : {
+              id: 0,
+              name: customerName,
+              status: 'active',
+              current_balance: 0,
+              phone: customCustomerPhone || undefined,
+            },
         quotation_date: quotationDate,
         valid_until: validUntil,
         status,
+        discount_type: 'fixed',
+        discount_value: Number(discountAmount) || 0,
         subtotal,
         discount_amount: Number(discountAmount) || 0,
         total_amount: estimatedTotal,
@@ -233,7 +264,7 @@ export const QuotationsPage: React.FC = () => {
         setQuotations((prev) => [res.data!, ...prev.filter((q) => q.id !== res.data!.id)]);
         setSuccessBanner(
           `Quotation ${res.data.quotation_number} created for ${customerName} (${formatCurrency(
-            estimatedTotal
+            res.data.total_amount
           )})`
         );
       }
@@ -399,7 +430,16 @@ export const QuotationsPage: React.FC = () => {
           searchPlaceholder="Search quotations by number, customer, or terms..."
         />
 
-        <DataTable columns={columns} data={filtered} keyExtractor={(item) => item.id} />
+        <DataTable
+          columns={columns}
+          data={filtered}
+          keyExtractor={(item) => item.id}
+          emptyMessage={
+            search
+              ? 'No quotations match your search.'
+              : 'No quotations yet. Click "Create Quotation" to draft your first price estimate.'
+          }
+        />
       </div>
 
       {/* Create Quotation Modal */}
@@ -483,10 +523,13 @@ export const QuotationsPage: React.FC = () => {
                 <Select
                   value={selectedCustomerId}
                   onChange={(e) => setSelectedCustomerId(e.target.value)}
-                  options={PRESET_CUSTOMERS.map((c) => ({
-                    label: `${c.name} ${c.phone ? `(${c.phone})` : ''}`,
-                    value: String(c.id),
-                  }))}
+                  options={[
+                    { label: 'Walk-in Customer', value: '0' },
+                    ...customers.map((c) => ({
+                      label: `${c.name} ${c.phone ? `(${c.phone})` : ''}`,
+                      value: String(c.id),
+                    })),
+                  ]}
                 />
               </FormField>
             ) : (
@@ -569,8 +612,8 @@ export const QuotationsPage: React.FC = () => {
                     <Select
                       value={String(item.product_id)}
                       onChange={(e) => handleProductSelect(idx, Number(e.target.value))}
-                      options={CATALOG_ITEMS.map((c) => ({
-                        label: `${c.name} (${formatCurrency(c.price)})`,
+                      options={catalog.map((c) => ({
+                        label: `${c.name} (${formatCurrency(c.selling_price)})`,
                         value: String(c.id),
                       }))}
                     />

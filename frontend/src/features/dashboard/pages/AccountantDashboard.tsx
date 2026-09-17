@@ -20,12 +20,7 @@ interface DailyTx {
   date: string;
 }
 
-const INITIAL_TX: DailyTx[] = [
-  { id: 1, category: 'Customer Payments', type: 'income', amount: 45000, description: 'POS Counter cash and bank payments', date: '2026-09-02' },
-  { id: 2, category: 'Shop Rent', type: 'expense', amount: 85000, description: 'Plaza ground floor advance rent', date: '2026-09-01' },
-  { id: 3, category: 'Customer Payments', type: 'income', amount: 92400, description: 'Al-Madina Construction invoice clearing', date: '2026-08-31' },
-  { id: 4, category: 'Electricity Bill', type: 'expense', amount: 34200, description: 'LESCO Commercial Meter Bill for August', date: '2026-08-31' },
-];
+const INITIAL_TX: DailyTx[] = [];
 
 export const AccountantDashboard: React.FC = () => {
   const [transactions, setTransactions] = useState<DailyTx[]>(INITIAL_TX);

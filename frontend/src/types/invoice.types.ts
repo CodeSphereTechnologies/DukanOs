@@ -23,6 +23,8 @@ export interface Invoice {
   status: 'draft' | 'issued' | 'paid' | 'cancelled';
   payment_status: 'paid' | 'partial' | 'unpaid' | 'ledger';
   subtotal: number;
+  discount_type?: 'fixed' | 'percentage' | null;
+  discount_value?: number;
   discount_amount: number;
   tax_amount?: number;
   total_amount: number;
@@ -43,6 +45,8 @@ export interface Quotation {
   valid_until: string;
   status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'converted';
   subtotal: number;
+  discount_type?: 'fixed' | 'percentage' | null;
+  discount_value?: number;
   discount_amount: number;
   total_amount: number;
   notes?: string;

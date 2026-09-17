@@ -2,119 +2,107 @@ import { apiClient } from './api-client';
 import type { ApiResponse } from '../types/api.types';
 import type { Product, Category, Brand, Specification } from '../types/product.types';
 
-export const STORAGE_KEY_PRODUCTS = 'dukanos_products';
-export const STORAGE_KEY_CATEGORIES = 'dukanos_categories';
-export const STORAGE_KEY_BRANDS = 'dukanos_brands';
+export const STORAGE_KEY_PRODUCTS = 'dukanos_products_v4';
+export const STORAGE_KEY_CATEGORIES = 'dukanos_categories_v4';
+export const STORAGE_KEY_BRANDS = 'dukanos_brands_v4';
 
-export const INITIAL_CATEGORIES: Category[] = [
-  { id: 1, name: 'Ceiling Fans', slug: 'ceiling-fans', status: 'active' },
-  { id: 2, name: 'Bracket Fans', slug: 'bracket-fans', status: 'active' },
-  { id: 3, name: 'Pedestal Fans', slug: 'pedestal-fans', status: 'active' },
-  { id: 4, name: 'Exhaust Fans', slug: 'exhaust-fans', status: 'active' },
-  { id: 5, name: 'Air Conditioners', slug: 'air-conditioners', status: 'active' },
-  { id: 6, name: 'Cables & Wires', slug: 'cables-wires', status: 'active' },
-  { id: 7, name: 'LED Bulbs', slug: 'led-bulbs', status: 'active' },
-  { id: 8, name: 'Tube Lights', slug: 'tube-lights', status: 'active' },
-  { id: 9, name: 'Light Fittings', slug: 'light-fittings', status: 'active' },
-  { id: 10, name: 'Switches & Sockets', slug: 'switches-sockets', status: 'active' },
-  { id: 11, name: 'Circuit Breakers', slug: 'circuit-breakers', status: 'active' },
-  { id: 12, name: 'Distribution Boards', slug: 'distribution-boards', status: 'active' },
-  { id: 13, name: 'Energy Meters', slug: 'energy-meters', status: 'active' },
-  { id: 14, name: 'Motors & Pumps', slug: 'motors-pumps', status: 'active' },
-  { id: 15, name: 'Water Heaters / Geysers', slug: 'water-heaters-geysers', status: 'active' },
-  { id: 16, name: 'Generators', slug: 'generators', status: 'active' },
-  { id: 17, name: 'Solar Equipment', slug: 'solar-equipment', status: 'active' },
-  { id: 18, name: 'Wiring Accessories', slug: 'wiring-accessories', status: 'active' },
-  { id: 19, name: 'General Appliances', slug: 'general-appliances', status: 'active' },
-];
+export const INITIAL_CATEGORIES: Category[] = [];
 
-export const INITIAL_BRANDS: Brand[] = [
-  { id: 1, name: 'Royal Fans', slug: 'royal-fans', status: 'active' },
-  { id: 2, name: 'Pak Fan', slug: 'pak-fan', status: 'active' },
-  { id: 3, name: 'Orient', slug: 'orient', status: 'active' },
-  { id: 4, name: 'GFC', slug: 'gfc', status: 'active' },
-  { id: 5, name: 'Waves', slug: 'waves', status: 'active' },
-  { id: 6, name: 'Pakistan Cables', slug: 'pakistan-cables', status: 'active' },
-  { id: 7, name: 'Philips', slug: 'philips', status: 'active' },
-  { id: 8, name: 'Osaka', slug: 'osaka', status: 'active' },
-  { id: 9, name: 'Schneider', slug: 'schneider', status: 'active' },
-  { id: 10, name: 'Havelis', slug: 'havelis', status: 'active' },
-  { id: 11, name: 'Legrand', slug: 'legrand', status: 'active' },
-  { id: 12, name: 'Siemens', slug: 'siemens', status: 'active' },
-  { id: 13, name: 'Dawlance', slug: 'dawlance', status: 'active' },
-  { id: 14, name: 'Haier', slug: 'haier', status: 'active' },
-  { id: 15, name: 'Pel', slug: 'pel', status: 'active' },
-  { id: 16, name: 'Super Asia', slug: 'super-asia', status: 'active' },
-  { id: 17, name: 'Atomberg', slug: 'atomberg', status: 'active' },
-  { id: 18, name: 'Crompton', slug: 'crompton', status: 'active' },
-  { id: 19, name: 'BC', slug: 'bc', status: 'active' },
-  { id: 20, name: 'Master', slug: 'master', status: 'active' },
-  { id: 21, name: 'Symphony', slug: 'symphony', status: 'active' },
-  { id: 22, name: 'Generic', slug: 'generic', status: 'active' },
-];
+export const INITIAL_BRANDS: Brand[] = [];
 
-export const INITIAL_PRODUCTS: Product[] = [
-  { id: 1, name: 'Royal Deluxe Ceiling Fan 56"', sku: 'ROY-FAN-56', barcode: '8901234567890', unit: 'pc', selling_price: 9500, purchase_cost: 7800, current_stock: 12, min_quantity_threshold: 10, status: 'active', category: { id: 1, name: 'Ceiling Fans', slug: 'ceiling-fans', status: 'active' }, brand: { id: 1, name: 'Royal Fans', slug: 'royal-fans', status: 'active' } },
-  { id: 2, name: 'Pakistan Cables 7/29 Single Core Red 90m', sku: 'PAK-CAB-729R', barcode: '8901234567891', unit: 'coil', selling_price: 14500, purchase_cost: 12200, current_stock: 8, min_quantity_threshold: 15, status: 'active', category: { id: 2, name: 'Cables & Wires', slug: 'cables-wires', status: 'active' }, brand: { id: 2, name: 'Pakistan Cables', slug: 'pak-cables', status: 'active' } },
-  { id: 3, name: 'Philips LED Bulb 18W Cool Daylight E27', sku: 'PHI-LED-18W', barcode: '8901234567892', unit: 'pc', selling_price: 650, purchase_cost: 480, current_stock: 45, min_quantity_threshold: 25, status: 'active', category: { id: 3, name: 'LED Bulbs', slug: 'led-bulbs', status: 'active' }, brand: { id: 3, name: 'Philips', slug: 'philips', status: 'active' } },
-  { id: 4, name: 'Schneider MCB 32A Double Pole 6kA', sku: 'SCH-MCB-32DP', barcode: '8901234567893', unit: 'pc', selling_price: 2200, purchase_cost: 1650, current_stock: 24, min_quantity_threshold: 8, status: 'active', category: { id: 4, name: 'Circuit Breakers', slug: 'breakers', status: 'active' }, brand: { id: 4, name: 'Schneider', slug: 'schneider', status: 'active' } },
-  { id: 5, name: 'Pak Fan Bracket Fan 18" Remote Control', sku: 'PAK-FAN-18B', barcode: '8901234567894', unit: 'pc', selling_price: 12800, purchase_cost: 10500, current_stock: 6, min_quantity_threshold: 5, status: 'active', category: { id: 1, name: 'Ceiling Fans', slug: 'ceiling-fans', status: 'active' }, brand: { id: 3, name: 'Pak Fan', slug: 'pak-fan', status: 'active' } },
-];
+export const INITIAL_PRODUCTS: Product[] = [];
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+}
+
+function asNumber(value: unknown): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function asString(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
+// Backend list endpoints return either a plain array or a paginated { data: [...] } wrapper.
+function unwrapList<T>(payload: unknown): T[] {
+  if (Array.isArray(payload)) return payload as T[];
+  const rec = asRecord(payload);
+  if (Array.isArray(rec.data)) return rec.data as T[];
+  return [];
+}
+
+function mapProduct(raw: unknown): Product {
+  const r = asRecord(raw);
+  const inventory = asRecord(r.inventory);
+  return {
+    id: asNumber(r.id),
+    name: asString(r.name, ''),
+    sku: asString(r.sku),
+    barcode: asString(r.barcode) || undefined,
+    description: asString(r.description) || undefined,
+    unit: asString(r.unit, 'pcs'),
+    purchase_cost: asNumber(r.purchase_cost),
+    selling_price: asNumber(r.selling_price),
+    current_stock: asNumber(inventory.quantity ?? r.current_stock),
+    min_quantity_threshold: asNumber(inventory.min_quantity_threshold ?? r.min_quantity_threshold) || undefined,
+    status: (asString(r.status, 'active') as Product['status']) || 'active',
+    category: r.category ? (r.category as Product['category']) : undefined,
+    brand: r.brand ? (r.brand as Product['brand']) : undefined,
+    specifications: r.specifications ? (r.specifications as Product['specifications']) : undefined,
+  };
+}
 
 function getStoredProducts(): Product[] {
-  if (typeof window === 'undefined') return INITIAL_PRODUCTS;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY_PRODUCTS);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY_PRODUCTS, JSON.stringify(INITIAL_PRODUCTS));
-      return INITIAL_PRODUCTS;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_PRODUCTS;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return INITIAL_PRODUCTS;
+    return [];
   }
 }
 
 function getStoredCategories(): Category[] {
-  if (typeof window === 'undefined') return INITIAL_CATEGORIES;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY_CATEGORIES);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(INITIAL_CATEGORIES));
-      return INITIAL_CATEGORIES;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_CATEGORIES;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return INITIAL_CATEGORIES;
+    return [];
   }
 }
 
 function getStoredBrands(): Brand[] {
-  if (typeof window === 'undefined') return INITIAL_BRANDS;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY_BRANDS);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY_BRANDS, JSON.stringify(INITIAL_BRANDS));
-      return INITIAL_BRANDS;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_BRANDS;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return INITIAL_BRANDS;
+    return [];
   }
 }
 
 export const productService = {
   async getAll(): Promise<ApiResponse<Product[]>> {
     try {
-      const res = await apiClient.get<Product[]>('/products');
-      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-        return res;
-      }
+      const res = await apiClient.get<unknown>('/products');
+      const list = unwrapList<unknown>(res?.data).map(mapProduct);
+      saveStoredProducts(list);
+      return {
+        success: true,
+        message: res?.message || 'Products retrieved',
+        data: list,
+      };
     } catch {
-      // fallback
+      // offline fallback
     }
     return {
       success: true,
@@ -124,12 +112,16 @@ export const productService = {
   },
   async getCategories(): Promise<ApiResponse<Category[]>> {
     try {
-      const res = await apiClient.get<Category[]>('/categories');
-      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-        return res;
-      }
+      const res = await apiClient.get<unknown>('/categories');
+      const list = unwrapList<unknown>(res?.data) as Category[];
+      saveStoredCategories(list);
+      return {
+        success: true,
+        message: res?.message || 'Categories retrieved',
+        data: list,
+      };
     } catch {
-      // fallback
+      // offline fallback
     }
     return {
       success: true,
@@ -140,12 +132,16 @@ export const productService = {
 
   async getBrands(): Promise<ApiResponse<Brand[]>> {
     try {
-      const res = await apiClient.get<Brand[]>('/brands');
-      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-        return res;
-      }
+      const res = await apiClient.get<unknown>('/brands');
+      const list = unwrapList<unknown>(res?.data) as Brand[];
+      saveStoredBrands(list);
+      return {
+        success: true,
+        message: res?.message || 'Brands retrieved',
+        data: list,
+      };
     } catch {
-      // fallback
+      // offline fallback
     }
     return {
       success: true,

@@ -18,79 +18,19 @@ export interface EmployeeSalary {
   payment_method?: 'cash' | 'bank_transfer' | 'cheque';
 }
 
-export const STORAGE_KEY_PAYROLL = 'dukanos_payroll';
+export const STORAGE_KEY_PAYROLL = 'dukanos_payroll_v4';
 
-export const INITIAL_SALARIES: EmployeeSalary[] = [
-  {
-    id: 1,
-    name: 'Usman Ali',
-    designation: 'Senior Sales Representative',
-    phone: '+92 301 2345678',
-    cnic: '35201-1234567-1',
-    salary: 45000,
-    bonus: 3000,
-    deductions: 0,
-    net_payable: 48000,
-    status: 'paid',
-    joining_date: '2025-03-01',
-    disbursed_at: '2026-09-01',
-    payment_method: 'bank_transfer',
-  },
-  {
-    id: 2,
-    name: 'Kashif Mehmood',
-    designation: 'Store Cashier',
-    phone: '+92 321 8765432',
-    cnic: '35202-7654321-3',
-    salary: 35000,
-    bonus: 0,
-    deductions: 1000,
-    net_payable: 34000,
-    status: 'paid',
-    joining_date: '2025-06-15',
-    disbursed_at: '2026-09-01',
-    payment_method: 'cash',
-  },
-  {
-    id: 3,
-    name: 'Imran Khan',
-    designation: 'Inventory & Delivery Staff',
-    phone: '+92 333 4567891',
-    cnic: '35201-9876543-5',
-    salary: 30000,
-    bonus: 1500,
-    deductions: 0,
-    net_payable: 31500,
-    status: 'pending',
-    joining_date: '2026-01-10',
-  },
-  {
-    id: 4,
-    name: 'Muhammad Tariq',
-    designation: 'Store Helper / Packing Staff',
-    phone: '+92 345 6789012',
-    cnic: '35201-4455667-7',
-    salary: 26000,
-    bonus: 1000,
-    deductions: 500,
-    net_payable: 26500,
-    status: 'pending',
-    joining_date: '2026-02-01',
-  },
-];
+export const INITIAL_SALARIES: EmployeeSalary[] = [];
 
 function getStoredEmployees(): EmployeeSalary[] {
-  if (typeof window === 'undefined') return INITIAL_SALARIES;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY_PAYROLL);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY_PAYROLL, JSON.stringify(INITIAL_SALARIES));
-      return INITIAL_SALARIES;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_SALARIES;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return INITIAL_SALARIES;
+    return [];
   }
 }
 
@@ -107,7 +47,7 @@ export const payrollService = {
   async getEmployees(): Promise<ApiResponse<EmployeeSalary[]>> {
     try {
       const res = await apiClient.get<EmployeeSalary[]>('/payroll');
-      if (res && res.data && res.data.length > 0) {
+      if (res && Array.isArray(res.data)) {
         saveStoredEmployees(res.data);
         return res;
       }

@@ -2,28 +2,19 @@ import { apiClient } from './api-client';
 import type { ApiResponse } from '../types/api.types';
 import type { Specification } from '../types/product.types';
 
-const STORAGE_KEY = 'dukanos_specifications';
+const STORAGE_KEY = 'dukanos_specifications_v4';
 
-export const INITIAL_SPECS: Specification[] = [
-  { id: 1, name: 'Wattage', slug: 'wattage', data_type: 'number', unit: 'W', is_required: true, is_filterable: true, sort_order: 1, status: 'active' },
-  { id: 2, name: 'Voltage Rating', slug: 'voltage', data_type: 'select', unit: 'V', is_required: true, is_filterable: true, sort_order: 2, status: 'active', values: ['220V', '240V', '110V'] },
-  { id: 3, name: 'Warranty Period', slug: 'warranty', data_type: 'text', unit: 'Months', is_required: false, is_filterable: true, sort_order: 3, status: 'active' },
-  { id: 4, name: 'Blade Sweep Size', slug: 'blade-sweep', data_type: 'select', unit: 'Inches', is_required: true, is_filterable: true, sort_order: 4, status: 'active', values: ['56"', '48"', '36"'] },
-  { id: 5, name: 'Energy Star Certified', slug: 'energy-star', data_type: 'boolean', is_required: false, is_filterable: true, sort_order: 5, status: 'active' },
-];
+export const INITIAL_SPECS: Specification[] = [];
 
 function getStoredSpecs(): Specification[] {
-  if (typeof window === 'undefined') return INITIAL_SPECS;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SPECS));
-      return INITIAL_SPECS;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_SPECS;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return INITIAL_SPECS;
+    return [];
   }
 }
 
@@ -40,7 +31,7 @@ export const specificationService = {
   async getAll(): Promise<ApiResponse<Specification[]>> {
     try {
       const res = await apiClient.get<Specification[]>('/specifications');
-      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+      if (res && Array.isArray(res.data)) {
         saveStoredSpecs(res.data);
         return res;
       }
