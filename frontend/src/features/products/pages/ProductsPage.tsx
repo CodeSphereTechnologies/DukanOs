@@ -272,14 +272,16 @@ export const ProductsPage: React.FC = () => {
             Edit
           </Button>
           <Button
-            variant="destructive"
+            variant="ghost"
             size="sm"
             leftIcon={<Trash2 className="w-3 h-3" />}
             onClick={() => handleDeleteProduct(p.id)}
-            className="text-[#DC2626] hover:text-[#18181B]"
+            className="group text-[#DC2626] hover:text-[#E11D48]"
             title="Delete"
           >
-            Delete
+            <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+              Delete
+            </span>
           </Button>
         </div>
       ),
