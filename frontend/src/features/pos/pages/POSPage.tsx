@@ -5,6 +5,7 @@ import { SearchInput } from '../../../components/ui/SearchInput';
 import { Dialog } from '../../../components/ui/Dialog';
 import { FormField } from '../../../components/ui/FormField';
 import { Input } from '../../../components/ui/Input';
+import { Textarea } from '../../../components/ui/Textarea';
 import { Select } from '../../../components/ui/Select';
 import { Combobox } from '../../../components/ui/Combobox';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
@@ -62,6 +63,7 @@ export const POSPage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bank_transfer' | 'card' | 'ledger'>('cash');
   const [amountPaid, setAmountPaid] = useState<number>(0);
   const [discountInput, setDiscountInput] = useState<number>(0);
+  const [orderDescription, setOrderDescription] = useState('');
   const [docType, setDocType] = useState<'invoice' | 'quotation'>('invoice');
 
   const [isCompleted, setIsCompleted] = useState(false);
@@ -232,6 +234,7 @@ export const POSPage: React.FC = () => {
     setIsCompleted(false);
     setCompletedDoc({ number: '', type: 'invoice' });
     setDiscountInput(0);
+    setOrderDescription('');
     setCustomer({ id: 0, name: 'Walk-in Customer', current_balance: 0, status: 'active' });
     setCheckoutCustomerName('Walk-in Customer');
     setCheckoutCustomerPhone('');
@@ -345,6 +348,7 @@ export const POSPage: React.FC = () => {
         paid_amount: paymentMethod === 'ledger' ? 0 : amountPaid,
         payment_method: paymentMethod,
         payment_status: paymentMethod === 'ledger' ? 'ledger' : amountPaid >= grandTotal ? 'paid' : 'partial',
+        notes: orderDescription.trim() || undefined,
       });
       docNumber = res.data?.invoice_number || 'INV-000000';
 
@@ -369,6 +373,7 @@ export const POSPage: React.FC = () => {
         discount_amount: discountInput,
         total_amount: grandTotal,
         status: 'sent',
+        notes: orderDescription.trim() || undefined,
       });
       docNumber = res.data?.quotation_number || 'QTN-000000';
     }
@@ -1193,6 +1198,16 @@ export const POSPage: React.FC = () => {
               />
             </FormField>
 
+            {/* Order Description */}
+            <FormField label="Description / Order Notes (Optional)">
+              <Textarea
+                value={orderDescription}
+                onChange={(e) => setOrderDescription(e.target.value)}
+                placeholder="Add a custom description or note for this order..."
+                rows={2}
+              />
+            </FormField>
+
             {/* Document Type Toggle */}
             <FormField label="Document Type">
               <div className="grid grid-cols-2 gap-2">
@@ -1443,6 +1458,13 @@ export const POSPage: React.FC = () => {
                 </div>
               )}
             </>
+          )}
+
+          {orderDescription.trim() && (
+            <div className="mt-2 text-[10px]">
+              <div className="font-bold">Note:</div>
+              <div className="whitespace-pre-wrap">{orderDescription.trim()}</div>
+            </div>
           )}
 
           <div className="text-center my-3">***</div>
