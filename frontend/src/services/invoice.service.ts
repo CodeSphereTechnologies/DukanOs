@@ -268,19 +268,56 @@ export const invoiceService = {
     };
   },
 
-  async convertQuotationToInvoice(quotationId: number): Promise<ApiResponse<{ invoice_number: string }>> {
+  async convertQuotationToInvoice(
+    quotationId: number
+  ): Promise<ApiResponse<{ invoice_number: string; invoice?: Invoice }>> {
     const current = getStoredQuotations();
     const quote = current.find((q) => q.id === quotationId);
-    if (quote) {
-      quote.status = 'converted';
-      saveStoredQuotations([...current]);
+
+    const markConverted = (): void => {
+      if (quote) {
+        quote.status = 'converted';
+        saveStoredQuotations([...current]);
+      }
+    };
+
+    try {
+      const res = await apiClient.post<unknown>(`/quotations/${quotationId}/convert`, {});
+      if (res && res.data) {
+        const invoice = mapInvoice(res.data);
+        saveStoredInvoices([invoice, ...getStoredInvoices().filter((i) => i.id !== invoice.id)]);
+        markConverted();
+        return {
+          success: true,
+          message: res.message || `Quotation converted to Invoice #${invoice.invoice_number}`,
+          data: { invoice_number: invoice.invoice_number, invoice },
+        };
+      }
+    } catch {
+      // offline fallback below
     }
 
-    const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
+    const fallback = await this.createInvoice({
+      customer_id: quote?.customer_id,
+      customer: quote?.customer,
+      invoice_date: new Date().toISOString().split('T')[0],
+      status: 'issued',
+      payment_status: 'paid',
+      subtotal: quote?.subtotal,
+      discount_amount: quote?.discount_amount,
+      total_amount: quote?.total_amount,
+      notes: quote?.notes,
+      items: quote?.items,
+    });
+    markConverted();
+
     return {
       success: true,
-      message: `Quotation converted to Invoice #${invoiceNumber}`,
-      data: { invoice_number: invoiceNumber },
+      message: fallback.message,
+      data: {
+        invoice_number: fallback.data?.invoice_number || '',
+        invoice: fallback.data,
+      },
     };
   },
 
