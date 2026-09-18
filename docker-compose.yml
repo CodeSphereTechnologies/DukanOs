@@ -84,7 +84,13 @@ services:
       FILESYSTEM_DISK: "${FILESYSTEM_DISK:-local}"
 
       # Mail
-      MAIL_MAILER: "${MAIL_MAILER:-log}"
+      MAIL_MAILER: "${MAIL_MAILER:-smtp}"
+      MAIL_HOST: "${MAIL_HOST:-smtp.hostinger.com}"
+      MAIL_PORT: "${MAIL_PORT:-465}"
+      MAIL_USERNAME: "${MAIL_USERNAME:-}"
+      MAIL_PASSWORD: "${MAIL_PASSWORD:-}"
+      MAIL_SCHEME: "${MAIL_SCHEME:-}"
+      MAIL_ENCRYPTION: "${MAIL_ENCRYPTION:-ssl}"
       MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS:-noreply@dukanos.pk}"
       MAIL_FROM_NAME: "${MAIL_FROM_NAME:-DukanOS}"
 

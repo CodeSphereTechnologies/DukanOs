@@ -34,6 +34,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [token]);
 
   useEffect(() => {
+    if (!token || !user) return;
+
+    let cancelled = false;
+
+    const refreshUser = async () => {
+      try {
+        const response = await authService.getMe();
+        if (cancelled) return;
+        const freshUser = response.data;
+        if (!freshUser) return;
+        setUser(freshUser);
+        try {
+          localStorage.setItem(APP_CONFIG.userKey, JSON.stringify(freshUser));
+        } catch {
+          // Storage unavailable
+        }
+      } catch {
+        // Keep cached user when backend is unreachable
+      }
+    };
+
+    refreshUser();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, user]);
+
+  useEffect(() => {
     const handleUnauthorized = () => {
       setUser(null);
       setToken(null);

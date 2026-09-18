@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Repositories\UserRepository;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -54,6 +55,12 @@ class UserService
             ));
         } catch (\Throwable $e) {
             report($e);
+
+            Log::error('Staff invitation email failed to send.', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         return $user->load('role');

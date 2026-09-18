@@ -97,29 +97,47 @@ class ApiClient {
   private getMockFallback<T>(endpoint: string, method: string, data?: unknown): ApiResponse<T> | null {
     if (endpoint.includes('/auth/login') && method === 'POST') {
       const req = data as { email?: string };
-      const email = req?.email || 'owner@punjabelectric.pk';
-      const roleSlug = email.includes('admin')
-        ? 'super_admin'
-        : email.includes('manager')
-        ? 'manager'
-        : email.includes('cashier')
-        ? 'cashier'
-        : email.includes('accountant')
-        ? 'accountant'
-        : 'owner';
+      const email = (req?.email || 'owner@punjabelectric.pk').toLowerCase();
+
+      let storedUser: { name?: string; status?: string; role?: { id: number; name: string; slug: string } } | undefined;
+      try {
+        const raw = typeof window !== 'undefined' ? localStorage.getItem('dukanos_users') : null;
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            storedUser = parsed.find(
+              (u: { email?: string }) => u?.email?.toLowerCase() === email
+            );
+          }
+        }
+      } catch {
+        // ignore
+      }
+
+      const roleSlug = (storedUser?.role?.slug as User['role']['slug']) ||
+        (email.includes('admin')
+          ? 'super_admin'
+          : email.includes('manager')
+          ? 'manager'
+          : email.includes('cashier')
+          ? 'cashier'
+          : email.includes('accountant')
+          ? 'accountant'
+          : 'owner');
 
       const user: User = {
-        id: 1,
-        name: email.includes('admin')
-          ? 'Super Admin'
-          : email.includes('owner')
-          ? 'Muhammad Akram Ch.'
-          : 'Staff Member',
+        id: storedUser?.role?.id || 1,
+        name: storedUser?.name
+          || (email.includes('admin')
+            ? 'Super Admin'
+            : email.includes('owner')
+            ? 'Muhammad Akram Ch.'
+            : 'Staff Member'),
         email: email,
-        status: 'active',
+        status: (storedUser?.status as User['status']) || 'active',
         role: {
-          id: 1,
-          name: roleSlug.replace('_', ' ').toUpperCase(),
+          id: storedUser?.role?.id || 1,
+          name: storedUser?.role?.name || roleSlug.replace('_', ' ').toUpperCase(),
           slug: roleSlug as User['role']['slug'],
         },
         tenant: {

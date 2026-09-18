@@ -90,7 +90,7 @@ export const userService = {
         phone: userPayload.phone?.trim() || undefined,
         role: userPayload.role_slug,
         status: userPayload.status || 'active',
-        password: userPayload.password || 'DukanOS@2026',
+        password: userPayload.password,
       });
       if (res && res.data) {
         const savedUser = res.data;

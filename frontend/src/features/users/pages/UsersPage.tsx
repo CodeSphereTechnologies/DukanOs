@@ -40,7 +40,7 @@ export const UsersPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [roleSlug, setRoleSlug] = useState<RoleSlug>('cashier');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
-  const [tempPassword, setTempPassword] = useState('DukanOS@2026');
+  const [tempPassword, setTempPassword] = useState('');
 
   const loadUsers = async () => {
     setIsLoading(true);
@@ -94,7 +94,7 @@ export const UsersPage: React.FC = () => {
         phone: phone.trim() || undefined,
         role_slug: roleSlug,
         status,
-        password: tempPassword,
+        ...(tempPassword ? { password: tempPassword } : {}),
       });
 
       if (res.data) {
