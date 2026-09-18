@@ -179,12 +179,14 @@ export const invoiceService = {
     try {
       const res = await apiClient.get<unknown>('/invoices');
       const list = unwrapList<unknown>(res?.data).map(mapInvoice);
-      saveStoredInvoices(list);
-      return {
-        success: true,
-        message: res?.message || 'Invoices retrieved successfully',
-        data: list,
-      };
+      if (list.length > 0) {
+        saveStoredInvoices(list);
+        return {
+          success: true,
+          message: res?.message || 'Invoices retrieved successfully',
+          data: list,
+        };
+      }
     } catch {
       // offline fallback
     }
@@ -199,21 +201,22 @@ export const invoiceService = {
     try {
       const res = await apiClient.get<unknown>('/quotations');
       const list = unwrapList<unknown>(res?.data).map(mapQuotation);
-      saveStoredQuotations(list);
-      return {
-        success: true,
-        message: res?.message || 'Quotations retrieved successfully',
-        data: list,
-      };
+      if (list.length > 0) {
+        saveStoredQuotations(list);
+        return {
+          success: true,
+          message: res?.message || 'Quotations retrieved successfully',
+          data: list,
+        };
+      }
     } catch {
-      // Offline fallback
-      const localData = getStoredQuotations();
-      return {
-        success: true,
-        message: 'Quotations retrieved successfully',
-        data: localData,
-      };
+      // offline fallback
     }
+    return {
+      success: true,
+      message: 'Quotations retrieved successfully',
+      data: getStoredQuotations(),
+    };
   },
 
   async createQuotation(data: Partial<Quotation>): Promise<ApiResponse<Quotation>> {
