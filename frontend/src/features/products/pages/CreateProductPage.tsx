@@ -6,7 +6,7 @@ import { FormField } from '../../../components/ui/FormField';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { Button } from '../../../components/ui/Button';
-import { ArrowLeft, Plus, X, ImagePlus, Upload, Tag, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, X, ImagePlus, Upload, Tag, CheckCircle2 } from 'lucide-react';
 import type { Category, Brand, Unit } from '../../../types/product.types';
 import { productService } from '../../../services/product.service';
 import { unitService } from '../../../services/unit.service';
@@ -23,8 +23,6 @@ export const CreateProductPage: React.FC = () => {
   const [barcode, setBarcode] = useState('');
   const [categoryId, setCategoryId] = useState<string>('');
   const [brandId, setBrandId] = useState<string>('');
-  const [showNewCategory, setShowNewCategory] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
   const [price, setPrice] = useState<number>(0);
   const [cost, setCost] = useState<number>(0);
   const [stock, setStock] = useState<number>(0);
@@ -46,16 +44,6 @@ export const CreateProductPage: React.FC = () => {
       if (res.data) setUnits(res.data);
     });
   }, []);
-
-  const handleAddCategoryInline = async () => {
-    const catName = newCategoryName.trim();
-    if (!catName) return;
-    const cat = await productService.addCategory(catName);
-    setCategories((prev) => [...prev.filter((c) => c.id !== cat.id), cat]);
-    setCategoryId(String(cat.id));
-    setShowNewCategory(false);
-    setNewCategoryName('');
-  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -112,8 +100,6 @@ export const CreateProductPage: React.FC = () => {
     setThreshold(0);
     setUnit('');
     setImageUrl('');
-    setShowNewCategory(false);
-    setNewCategoryName('');
     setError(null);
     setSuccess(false);
   };
@@ -221,53 +207,14 @@ export const CreateProductPage: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <FormField label="Category" required>
-                  {!showNewCategory ? (
-                    <Select
-                      value={categoryId}
-                      onChange={(e) => {
-                        if (e.target.value === '__new__') {
-                          setShowNewCategory(true);
-                        } else {
-                          setCategoryId(e.target.value);
-                        }
-                      }}
-                      options={[
-                        { label: 'Select a category...', value: '' },
-                        ...categories.map((c) => ({ label: c.name, value: String(c.id) })),
-                        { label: '+ Add New Category...', value: '__new__' },
-                      ]}
-                    />
-                  ) : (
-                    <div className="flex items-end gap-2">
-                      <Input
-                        value={newCategoryName}
-                        onChange={(e) => setNewCategoryName(e.target.value)}
-                        placeholder="Type new category name"
-                        autoFocus
-                      />
-                      <Button
-                        type="button"
-                        variant="primary"
-                        size="sm"
-                        leftIcon={<Plus className="w-3.5 h-3.5" />}
-                        onClick={handleAddCategoryInline}
-                        disabled={!newCategoryName.trim()}
-                      >
-                        Add
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setShowNewCategory(false);
-                          setNewCategoryName('');
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  )}
+                  <Select
+                    value={categoryId}
+                    onChange={(e) => setCategoryId(e.target.value)}
+                    options={[
+                      { label: 'Select a category...', value: '' },
+                      ...categories.map((c) => ({ label: c.name, value: String(c.id) })),
+                    ]}
+                  />
                 </FormField>
 
                 <FormField label="Brand" required>
@@ -339,7 +286,7 @@ export const CreateProductPage: React.FC = () => {
             {(!categoryId || !brandId) && (
               <div className="flex items-center gap-2 p-2.5 bg-[#FEF3C7] rounded-lg text-xs text-[#92400E]">
                 <Tag className="w-3.5 h-3.5 shrink-0" />
-                Select a category and brand, or add a new one directly (e.g. "Sequential Brand", "Industrial Switches").
+                Select a category and brand for this product.
               </div>
             )}
           </form>
