@@ -28,6 +28,12 @@ function unwrapList<T>(payload: unknown): T[] {
   return [];
 }
 
+function lastPageOf(payload: unknown): number {
+  const rec = asRecord(payload);
+  const meta = asRecord(rec.meta);
+  return Math.max(1, asNumber(meta.last_page) || 1);
+}
+
 function mapQuotation(raw: unknown): Quotation {
   const r = asRecord(raw);
   const rawCustomer = asRecord(r.customer);
@@ -139,7 +145,7 @@ function mapInvoice(raw: unknown): Invoice {
     customer_id: asNumber(r.customer_id) || customer?.id,
     customer,
     invoice_date: asString(r.invoice_date),
-    status: (['draft', 'issued', 'paid', 'cancelled'].includes(statusRaw)
+    status: (['draft', 'issued', 'paid', 'cancelled', 'voided'].includes(statusRaw)
       ? statusRaw
       : 'issued') as Invoice['status'],
     payment_status: (['paid', 'partial', 'unpaid', 'ledger'].includes(paymentRaw)
@@ -177,24 +183,30 @@ function mapInvoice(raw: unknown): Invoice {
 export const invoiceService = {
   async getAll(): Promise<ApiResponse<Invoice[]>> {
     try {
-      const res = await apiClient.get<unknown>('/invoices');
-      const list = unwrapList<unknown>(res?.data).map(mapInvoice);
-      if (list.length > 0) {
-        saveStoredInvoices(list);
-        return {
-          success: true,
-          message: res?.message || 'Invoices retrieved successfully',
-          data: list,
-        };
-      }
+      const all: Invoice[] = [];
+      let page = 1;
+      let lastPage = 1;
+      do {
+        const res = await apiClient.get<unknown>(`/invoices?per_page=100&page=${page}`);
+        all.push(...unwrapList<unknown>(res?.data).map(mapInvoice));
+        lastPage = lastPageOf(res?.data);
+        page += 1;
+      } while (page <= lastPage && page <= 200);
+
+      saveStoredInvoices(all);
+      return {
+        success: true,
+        message: 'Invoices retrieved successfully',
+        data: all,
+      };
     } catch {
-      // offline fallback
+      // offline fallback only when the API is unreachable
+      return {
+        success: true,
+        message: 'Invoices retrieved successfully',
+        data: getStoredInvoices(),
+      };
     }
-    return {
-      success: true,
-      message: 'Invoices retrieved successfully',
-      data: getStoredInvoices(),
-    };
   },
 
   async getQuotations(): Promise<ApiResponse<Quotation[]>> {

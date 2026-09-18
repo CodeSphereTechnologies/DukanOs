@@ -20,7 +20,7 @@ export interface Invoice {
   customer_id?: number;
   customer?: Customer;
   invoice_date: string;
-  status: 'draft' | 'issued' | 'paid' | 'cancelled';
+  status: 'draft' | 'issued' | 'paid' | 'cancelled' | 'voided';
   payment_status: 'paid' | 'partial' | 'unpaid' | 'ledger';
   subtotal: number;
   discount_type?: 'fixed' | 'percentage' | null;

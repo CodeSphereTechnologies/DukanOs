@@ -64,11 +64,15 @@ export const OwnerDashboard: React.FC = () => {
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
 
-        const todaySalesSum = res.data
+        const countable = res.data.filter(
+          (inv) => inv.status !== 'voided' && inv.status !== 'cancelled'
+        );
+
+        const todaySalesSum = countable
           .filter((inv) => (inv.invoice_date || '').slice(0, 10) === today)
           .reduce((sum, inv) => sum + (inv.paid_amount || 0), 0);
 
-        const monthlyRevenueSum = res.data
+        const monthlyRevenueSum = countable
           .filter((inv) => {
             const d = new Date(inv.invoice_date || inv.created_at);
             return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
