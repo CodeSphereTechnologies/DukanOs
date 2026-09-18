@@ -24,7 +24,8 @@ class CustomerRepository extends BaseRepository
                     ->orWhereRaw('LOWER(phone) LIKE ?', [$needle])
                     ->orWhereRaw('LOWER(email) LIKE ?', [$needle]);
             })
-            ->orderBy('name')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->paginate($perPage);
     }
 
