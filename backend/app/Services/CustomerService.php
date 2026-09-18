@@ -38,6 +38,7 @@ class CustomerService
             'email' => $data['email'] ?? $customer->email,
             'address' => $data['address'] ?? $customer->address,
             'notes' => $data['notes'] ?? $customer->notes,
+            'opening_balance' => (float) ($data['opening_balance'] ?? $customer->opening_balance),
             'status' => $data['status'] ?? $customer->status,
         ]);
 

@@ -104,16 +104,14 @@ export const customerService = {
   },
 
   async getById(id: number): Promise<Customer | null> {
-    const list = getStoredCustomers();
-    const found = list.find((c) => c.id === id);
-    if (found) return found;
     try {
       const res = await apiClient.get<unknown>(`/customers/${id}`);
       if (res && res.data) return mapCustomer(res.data);
     } catch {
       // offline fallback
     }
-    return null;
+    const list = getStoredCustomers();
+    return list.find((c) => c.id === id) || null;
   },
 
   async recordRecovery(customerId: number, recoveryAmount: number): Promise<Customer | null> {
@@ -138,8 +136,23 @@ export const customerService = {
       id: customer.id || Math.max(0, ...list.map((c) => c.id)) + 1,
     };
 
-    if (!customer.id) {
-      try {
+    try {
+      if (customer.id) {
+        const res = await apiClient.put<unknown>(`/customers/${customer.id}`, {
+          name: customer.name,
+          phone: customer.phone || null,
+          email: customer.email || null,
+          address: customer.address || null,
+          opening_balance: customer.current_balance ?? 0,
+          status: customer.status || 'active',
+        });
+        if (res && res.data) {
+          const backend = mapCustomer(res.data);
+          const updated = [backend, ...list.filter((c) => c.id !== backend.id)];
+          saveStoredCustomers(updated);
+          return backend;
+        }
+      } else {
         const res = await apiClient.post<unknown>('/customers', {
           name: customer.name,
           phone: customer.phone || null,
@@ -155,9 +168,9 @@ export const customerService = {
           saveStoredCustomers(updated);
           return backend;
         }
-      } catch {
-        // offline fallback to local storage
       }
+    } catch {
+      // offline fallback to local storage
     }
 
     const updated = [newCust, ...list.filter((c) => c.id !== newCust.id)];
@@ -166,6 +179,11 @@ export const customerService = {
   },
 
   async deleteCustomer(id: number): Promise<void> {
+    try {
+      await apiClient.delete(`/customers/${id}`);
+    } catch {
+      // offline fallback to local storage
+    }
     const list = getStoredCustomers();
     saveStoredCustomers(list.filter((c) => c.id !== id));
   },

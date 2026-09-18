@@ -36,20 +36,18 @@ export const CustomersPage: React.FC = () => {
       (c.phone && c.phone.includes(search))
   );
 
-  const handleAddCustomer = (e: React.FormEvent) => {
+  const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name) return;
 
-    const newCust: Customer = {
-      id: customers.length + 1,
+    const newCust = await customerService.saveCustomer({
       name,
       phone: phone || undefined,
       address: address || undefined,
       current_balance: Number(openingBalance) || 0,
       status: 'active',
-    };
+    });
 
-    customerService.saveCustomer(newCust);
     setCustomers([newCust, ...customers]);
     setIsAddOpen(false);
     setName('');
