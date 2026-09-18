@@ -51,7 +51,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   { label: 'Daily Cashflow', path: '/finance', icon: <CreditCard className="w-4 h-4" />, allowedRoles: ['owner', 'accountant'] },
   { label: 'Payroll & Salaries', path: '/payroll', icon: <UserCheck className="w-4 h-4" />, allowedRoles: ['owner', 'accountant'] },
   { label: 'Reports & Analytics', path: '/reports', icon: <TrendingUp className="w-4 h-4" />, allowedRoles: ['owner', 'manager', 'accountant'] },
-  { label: 'Store Users', path: '/users', icon: <Users className="w-4 h-4" />, allowedRoles: ['owner'] },
+  { label: 'Store Users', path: '/users', icon: <Users className="w-4 h-4" />, allowedRoles: ['owner', 'super_admin'] },
   { label: 'Audit Trail', path: '/audit', icon: <History className="w-4 h-4" />, allowedRoles: ['owner', 'super_admin'] },
 ];
 
@@ -76,7 +76,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const location = useLocation();
 
   const visibleNavItems = NAV_ITEMS.filter((item) => {
-    if (isSuperAdmin) return true;
+    if (isSuperAdmin) return item.allowedRoles.includes('super_admin');
     return item.allowedRoles.includes(user.role.slug);
   });
 

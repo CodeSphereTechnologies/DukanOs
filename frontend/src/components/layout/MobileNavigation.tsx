@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, Package, Receipt, Users } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Receipt, Users } from 'lucide-react';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 
 export const MobileNavigation: React.FC = () => {
@@ -34,13 +34,13 @@ export const MobileNavigation: React.FC = () => {
         </NavLink>
 
         <NavLink
-          to="/super-admin/specifications"
+          to="/users"
           className={({ isActive }) =>
             `flex flex-col items-center gap-0.5 text-[10px] font-medium ${isActive ? 'text-black font-bold' : 'text-[#71717A]'}`
           }
         >
-          <Package className="w-5 h-5" />
-          <span>Specs</span>
+          <Users className="w-5 h-5" />
+          <span>Users</span>
         </NavLink>
 
         <NavLink
