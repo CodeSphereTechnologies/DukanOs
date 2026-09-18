@@ -375,7 +375,31 @@ export const invoiceService = {
     };
 
     try {
-      const res = await apiClient.post<Invoice>('/invoices', data);
+      const paidAmount = Number.isFinite(Number(data.paid_amount)) ? Number(data.paid_amount) : 0;
+      const discountAmount = Number(data.discount_amount) || 0;
+
+      const apiPayload: Record<string, unknown> = {
+        customer_id: data.customer_id,
+        invoice_date: data.invoice_date,
+        notes: data.notes,
+        amount_paid: Math.max(0, paidAmount),
+        items: (data.items || []).map((item) => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit_price: Number(item.unit_price) || 0,
+          ...(Number(item.discount_amount) > 0
+            ? { discount_type: 'fixed', discount_value: Number(item.discount_amount) }
+            : {}),
+        })),
+      };
+
+      if (data.payment_method) apiPayload.payment_method = data.payment_method;
+      if (discountAmount > 0) {
+        apiPayload.discount_type = 'fixed';
+        apiPayload.discount_value = discountAmount;
+      }
+
+      const res = await apiClient.post<Invoice>('/invoices', apiPayload);
       if (res && res.data) {
         const saved = res.data;
         saveStoredInvoices([saved, ...current.filter((i) => i.id !== saved.id)]);

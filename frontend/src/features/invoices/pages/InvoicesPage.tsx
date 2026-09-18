@@ -10,6 +10,7 @@ import { ShoppingCart, Eye, Printer } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../../lib/formatters';
 import { invoiceService } from '../../../services/invoice.service';
 import type { Invoice } from '../../../types/invoice.types';
+import { useAuth } from '../../auth/hooks/useAuth';
 
 const STATUS_VARIANT: Record<Invoice['payment_status'], 'mint' | 'warning' | 'destructive'> = {
   paid: 'mint',
@@ -20,6 +21,7 @@ const STATUS_VARIANT: Record<Invoice['payment_status'], 'mint' | 'warning' | 'de
 
 export const InvoicesPage: React.FC = () => {
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -198,14 +200,18 @@ export const InvoicesPage: React.FC = () => {
       title="Sales Invoices"
       subtitle="Complete financial invoice history, payment statuses, and customer ledger balances."
       primaryAction={
-        <Button
-          variant="primary"
-          size="md"
-          leftIcon={<ShoppingCart className="w-4 h-4" />}
-          onClick={() => navigate('/pos')}
-        >
-          Create POS Invoice
-        </Button>
+        hasRole('accountant') ? (
+          undefined
+        ) : (
+          <Button
+            variant="primary"
+            size="md"
+            leftIcon={<ShoppingCart className="w-4 h-4" />}
+            onClick={() => navigate('/pos')}
+          >
+            Create POS Invoice
+          </Button>
+        )
       }
     >
       <div className="space-y-4">

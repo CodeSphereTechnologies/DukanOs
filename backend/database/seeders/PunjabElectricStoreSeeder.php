@@ -46,12 +46,6 @@ class PunjabElectricStoreSeeder extends Seeder
      */
     public function run(): void
     {
-        if (Tenant::where('slug', 'punjab-electric-store')->exists()) {
-            $this->command?->warn('Punjab Electric Store already seeded. Skipping.');
-
-            return;
-        }
-
         Model::unguard();
 
         DB::transaction(function () {
@@ -59,10 +53,26 @@ class PunjabElectricStoreSeeder extends Seeder
             $this->seedSuperAdmin($roles['super_admin']);
 
             $tenant = $this->seedTenant();
-            $this->seedTenantUsers($tenant, $roles);
+            $users = $this->seedTenantUsers($tenant, $roles);
 
-            $this->seedSpecifications();
+            $specs = $this->seedSpecifications();
             $this->seedLedgerCategories($tenant);
+
+            if (Product::where('tenant_id', $tenant->id)->exists()) {
+                $this->command?->warn('Punjab Electric Store business data already seeded. Skipping product/customer/sales fixtures.');
+
+                return;
+            }
+
+            $categories = $this->seedCategories($tenant);
+            $brands = $this->seedBrands($tenant);
+            $products = $this->seedProducts($tenant, $categories, $brands, $specs);
+            $customers = $this->seedCustomers($tenant);
+
+            $this->seedQuotationsAndSales($tenant, $users, $customers, $products);
+            $this->seedDailyTransactions($tenant, $users);
+            $this->seedEmployeesAndSalaries($tenant, $users);
+            $this->seedAuditLogs($tenant, $users, $products);
         });
 
         Model::reguard();
@@ -100,7 +110,7 @@ class PunjabElectricStoreSeeder extends Seeder
 
         $permissions = [];
         foreach ($permissionDefs as $def) {
-            $permissions[$def['slug']] = Permission::create($def);
+            $permissions[$def['slug']] = Permission::firstOrCreate(['slug' => $def['slug']], $def);
         }
 
         $roleDefs = [
@@ -113,7 +123,7 @@ class PunjabElectricStoreSeeder extends Seeder
 
         $roles = [];
         foreach ($roleDefs as $key => $def) {
-            $roles[$key] = Role::create(['slug' => $key] + $def);
+            $roles[$key] = Role::firstOrCreate(['slug' => $key], $def);
         }
 
         // Super-admin-only permissions are excluded from store roles.
@@ -126,31 +136,33 @@ class PunjabElectricStoreSeeder extends Seeder
             'owner' => $storePermissions,
             'manager' => ['products.view', 'products.create', 'products.update', 'customers.view', 'customers.manage', 'invoices.create', 'invoices.view', 'quotations.manage', 'payments.manage', 'returns.manage', 'reports.view'],
             'cashier' => ['products.view', 'customers.view', 'customers.manage', 'invoices.create', 'invoices.view', 'payments.manage'],
-            'accountant' => ['invoices.view', 'payments.manage', 'ledger.view', 'expenses.manage', 'payroll.manage', 'reports.view', 'reports.financial'],
+            'accountant' => ['products.view', 'customers.view', 'customers.manage', 'invoices.view', 'invoices.create', 'payments.manage', 'ledger.view', 'expenses.manage', 'payroll.manage', 'reports.view', 'reports.financial'],
         ];
 
         foreach ($rolePermissions as $roleKey => $perms) {
-            $roles[$roleKey]->permissions()->attach(
+            $roles[$roleKey]->permissions()->syncWithoutDetaching(
                 collect($perms)->map(fn ($slug) => $permissions[$slug]->id)
             );
         }
 
-        $roles['super_admin']->permissions()->attach($permissions);
+        $roles['super_admin']->permissions()->syncWithoutDetaching($permissions);
 
         return $roles;
     }
 
     private function seedSuperAdmin(Role $role): void
     {
-        User::create([
-            'tenant_id' => null,
-            'role_id' => $role->id,
-            'name' => 'DukanOS Super Admin',
-            'email' => 'admin@dukanos.com',
-            'password' => Hash::make(self::PASSWORD),
-            'status' => 'active',
-            'email_verified_at' => now(),
-        ]);
+        User::firstOrCreate(
+            ['email' => 'admin@dukanos.com'],
+            [
+                'tenant_id' => null,
+                'role_id' => $role->id,
+                'name' => 'DukanOS Super Admin',
+                'password' => Hash::make(self::PASSWORD),
+                'status' => 'active',
+                'email_verified_at' => now(),
+            ],
+        );
     }
 
     /* ------------------------------------------------------------------ */
@@ -159,9 +171,8 @@ class PunjabElectricStoreSeeder extends Seeder
 
     private function seedTenant(): Tenant
     {
-        return Tenant::create([
+        return Tenant::firstOrCreate(['slug' => 'punjab-electric-store'], [
             'name' => 'Punjab Electric Store',
-            'slug' => 'punjab-electric-store',
             'email' => 'info@punjabelectric.pk',
             'phone' => '+92 300 4125678',
             'address' => 'Shop No. 14, Main Bazaar, Circular Road',
@@ -194,16 +205,18 @@ class PunjabElectricStoreSeeder extends Seeder
 
         $users = [];
         foreach ($defs as $def) {
-            $users[$def['key']] = User::create([
-                'tenant_id' => $tenant->id,
-                'role_id' => $roles[$def['role']]->id,
-                'name' => $def['name'],
-                'email' => $def['email'],
-                'password' => Hash::make(self::PASSWORD),
-                'phone' => $def['phone'],
-                'status' => 'active',
-                'email_verified_at' => now(),
-            ]);
+            $users[$def['key']] = User::firstOrCreate(
+                ['email' => $def['email']],
+                [
+                    'tenant_id' => $tenant->id,
+                    'role_id' => $roles[$def['role']]->id,
+                    'name' => $def['name'],
+                    'password' => Hash::make(self::PASSWORD),
+                    'phone' => $def['phone'],
+                    'status' => 'active',
+                    'email_verified_at' => now(),
+                ],
+            );
         }
 
         return $users;
@@ -230,10 +243,17 @@ class PunjabElectricStoreSeeder extends Seeder
 
         $specs = [];
         foreach ($defs as $i => $def) {
-            $specs[$def['slug']] = Specification::create([
-                'sort_order' => $i,
-                'status' => 'active',
-            ] + $def);
+            $specs[$def['slug']] = Specification::firstOrCreate(
+                ['slug' => $def['slug']],
+                [
+                    'name' => $def['name'],
+                    'data_type' => $def['data_type'],
+                    'unit' => $def['unit'],
+                    'is_filterable' => $def['is_filterable'],
+                    'sort_order' => $i,
+                    'status' => 'active',
+                ],
+            );
         }
 
         $values = [
@@ -245,11 +265,10 @@ class PunjabElectricStoreSeeder extends Seeder
         $valueMap = [];
         foreach ($values as $slug => $list) {
             foreach ($list as $i => $value) {
-                $sv = SpecificationValue::create([
-                    'specification_id' => $specs[$slug]->id,
-                    'value' => $value,
-                    'sort_order' => $i,
-                ]);
+                $sv = SpecificationValue::firstOrCreate(
+                    ['specification_id' => $specs[$slug]->id, 'value' => $value],
+                    ['sort_order' => $i],
+                );
                 $valueMap[$slug][$value] = $sv->id;
             }
         }
@@ -280,14 +299,15 @@ class PunjabElectricStoreSeeder extends Seeder
         $categories = [];
         $byParent = [];
         foreach ($defs as $i => $def) {
-            $categories[$def['slug']] = Category::create([
-                'tenant_id' => $tenant->id,
-                'parent_id' => null,
-                'name' => $def['name'],
-                'slug' => $def['slug'],
-                'status' => 'active',
-                'sort_order' => $i,
-            ]);
+            $categories[$def['slug']] = Category::firstOrCreate(
+                ['tenant_id' => $tenant->id, 'slug' => $def['slug']],
+                [
+                    'parent_id' => null,
+                    'name' => $def['name'],
+                    'status' => 'active',
+                    'sort_order' => $i,
+                ],
+            );
             if ($def['parent'] !== null) {
                 $byParent[$def['slug']] = $def['parent'];
             }
@@ -317,10 +337,13 @@ class PunjabElectricStoreSeeder extends Seeder
 
         $brands = [];
         foreach ($defs as $def) {
-            $brands[$def['slug']] = Brand::create([
-                'tenant_id' => $tenant->id,
-                'status' => 'active',
-            ] + $def);
+            $brands[$def['slug']] = Brand::firstOrCreate(
+                ['tenant_id' => $tenant->id, 'slug' => $def['slug']],
+                [
+                    'name' => $def['name'],
+                    'status' => 'active',
+                ],
+            );
         }
 
         return $brands;
@@ -559,6 +582,18 @@ class PunjabElectricStoreSeeder extends Seeder
             ['2026-08-25', null, [['geyser_8l', 1], ['socket_13a', 4]], null, 'cash', 'paid', null, null],
             ['2026-08-28', 'tariq', [['battery_175ah', 2], ['inverter_3kva', 1]], ['fixed' => 8000], 'bank_transfer', 'partial', 120000, null],
             ['2026-08-30', null, [['ceiling_fan_48', 1], ['led_bulb_12w', 3]], null, 'cash', 'paid', null, null],
+            ['2026-09-01', 'imtiaz', [['led_bulb_12w', 6], ['led_bulb_18w', 6]], null, 'cash', 'paid', null, null],
+            ['2026-09-02', null, [['ceiling_fan_56', 1], ['tube_20w', 2]], null, 'cash', 'paid', null, null],
+            ['2026-09-03', 'rashid', [['wire_2_5mm', 6], ['cable_3core', 3], ['mcb_16a', 6]], ['pct' => 5], 'bank_transfer', 'ledger', null, null],
+            ['2026-09-05', null, [['microwave_20l', 1], ['kettle_1_8l', 1]], null, 'card', 'paid', null, null],
+            ['2026-09-06', 'bilal', [['steam_iron', 1], ['socket_13a', 4]], null, 'cash', 'paid', null, null],
+            ['2026-09-08', 'nadeem', [['inverter_1kva', 1], ['battery_150ah', 1]], ['fixed' => 3000], 'bank_transfer', 'partial', 70000, null],
+            ['2026-09-10', null, [['led_bulb_9w', 10], ['led_bulb_24w', 8]], null, 'cash', 'paid', null, null],
+            ['2026-09-11', 'zafar', [['ups_650va', 1], ['stabilizer_5kva', 1]], null, 'bank_transfer', 'paid', null, null],
+            ['2026-09-13', null, [['pedestal_fan', 2], ['table_fan', 1]], null, 'cash', 'paid', null, null],
+            ['2026-09-15', 'farhat', [['geyser_8l', 1], ['toaster_2s', 2]], null, 'cash', 'paid', null, null],
+            ['2026-09-16', 'haji', [['ceiling_fan_48', 2], ['exhaust_fan_12', 2]], null, 'cash', 'partial', 10000, null],
+            ['2026-09-17', null, [['dry_iron', 2], ['torch', 3]], null, 'cash', 'paid', null, null],
         ];
 
         $invoiceNumber = 1;
@@ -871,18 +906,16 @@ class PunjabElectricStoreSeeder extends Seeder
 
         $categories = [];
         foreach ($income as $def) {
-            $categories['income'][$def['name']] = LedgerCategory::create([
-                'tenant_id' => $tenant->id,
-                'type' => 'income',
-                'status' => 'active',
-            ] + $def);
+            $categories['income'][$def['name']] = LedgerCategory::firstOrCreate(
+                ['tenant_id' => $tenant->id, 'type' => 'income', 'name' => $def['name']],
+                ['description' => $def['description'], 'is_system' => $def['is_system'], 'status' => 'active'],
+            );
         }
         foreach ($expense as $def) {
-            $categories['expense'][$def['name']] = LedgerCategory::create([
-                'tenant_id' => $tenant->id,
-                'type' => 'expense',
-                'status' => 'active',
-            ] + $def);
+            $categories['expense'][$def['name']] = LedgerCategory::firstOrCreate(
+                ['tenant_id' => $tenant->id, 'type' => 'expense', 'name' => $def['name']],
+                ['description' => $def['description'], 'is_system' => $def['is_system'], 'status' => 'active'],
+            );
         }
 
         return $categories;
@@ -946,6 +979,10 @@ class PunjabElectricStoreSeeder extends Seeder
             ['2026-08-04', 'Electricity Bill', 18300, 'Electricity bill for July'],
             ['2026-08-09', 'Maintenance', 2500, 'Replacement of shop sign light'],
             ['2026-08-19', 'Transport', 3200, 'Delivery of inverter to Imtiaz'],
+            ['2026-09-01', 'Shop Rent', 45000, 'Shop rent for September'],
+            ['2026-09-03', 'Electricity Bill', 17900, 'Electricity bill for August'],
+            ['2026-09-08', 'Transport', 2800, 'Delivery of inverter to Nadeem'],
+            ['2026-09-14', 'Maintenance', 1300, 'Replacement of sign board tube light'],
         ];
 
         foreach ($expenses as [$date, $categoryName, $amount, $desc]) {
@@ -1006,6 +1043,7 @@ class PunjabElectricStoreSeeder extends Seeder
             ['period' => '2026-06', 'bonus' => $key === 'salesman' ? 3000 : 0, 'deductions' => 0, 'status' => 'paid', 'paid_at' => '2026-07-01 12:00:00'],
             ['period' => '2026-07', 'bonus' => $key === 'electrician' ? 2000 : 0, 'deductions' => $key === 'cashier' ? 500 : 0, 'status' => 'paid', 'paid_at' => '2026-08-01 12:00:00'],
             ['period' => '2026-08', 'bonus' => 0, 'deductions' => 0, 'status' => 'pending', 'paid_at' => null],
+            ['period' => '2026-09', 'bonus' => 0, 'deductions' => 0, 'status' => 'paid', 'paid_at' => '2026-09-01 12:00:00'],
         ];
 
         foreach ($periods as $p) {

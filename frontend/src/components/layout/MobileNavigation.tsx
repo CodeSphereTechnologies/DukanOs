@@ -8,6 +8,7 @@ export const MobileNavigation: React.FC = () => {
   if (!user) return null;
 
   const isSuperAdmin = user.role.slug === 'super_admin';
+  const showPos = !isSuperAdmin && user.role.slug !== 'accountant';
 
   if (isSuperAdmin) {
     return (
@@ -67,15 +68,17 @@ export const MobileNavigation: React.FC = () => {
         <span>Home</span>
       </NavLink>
 
-      <NavLink
-        to="/pos"
-        className={({ isActive }) =>
-          `flex flex-col items-center gap-0.5 text-[10px] font-medium ${isActive ? 'text-black font-bold' : 'text-[#71717A]'}`
-        }
-      >
-        <ShoppingCart className="w-5 h-5" />
-        <span>POS</span>
-      </NavLink>
+      {showPos && (
+        <NavLink
+          to="/pos"
+          className={({ isActive }) =>
+            `flex flex-col items-center gap-0.5 text-[10px] font-medium ${isActive ? 'text-black font-bold' : 'text-[#71717A]'}`
+          }
+        >
+          <ShoppingCart className="w-5 h-5" />
+          <span>POS</span>
+        </NavLink>
+      )}
 
       <NavLink
         to="/products"
