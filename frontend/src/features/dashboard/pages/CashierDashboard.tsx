@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageContainer } from '../../../components/ui/PageContainer';
 import { StatCard } from '../../../components/common/StatCard';
@@ -19,6 +19,8 @@ import {
   CreditCard,
 } from 'lucide-react';
 import { formatCurrency } from '../../../lib/formatters';
+import { invoiceService } from '../../../services/invoice.service';
+import type { Invoice } from '../../../types/invoice.types';
 
 interface ReceiptItem {
   name: string;
@@ -31,7 +33,7 @@ interface CashierTransaction {
   invoice_number: string;
   customer_name: string;
   amount: number;
-  method: 'Cash' | 'Bank Transfer' | 'Card' | 'Raast';
+  method: 'Cash' | 'Bank Transfer' | 'Card' | 'Raast' | 'Other';
   time: string;
   items: ReceiptItem[];
 }
@@ -56,57 +58,76 @@ const CATALOG_PRODUCTS: CatalogProduct[] = [
   { id: 6, name: 'Osaka Tube Light LED 36W Complete Set', sku: 'OSK-TUB-36W', barcode: '8901234567895', price: 1850, stock: 30, category: 'LED Tube Lights', unit: 'pc' },
 ];
 
-const INITIAL_RECEIPTS: CashierTransaction[] = [
-  {
-    id: 1,
-    invoice_number: 'INV-2026-0094',
-    customer_name: 'Al-Madina Construction',
-    amount: 145000,
-    method: 'Cash',
-    time: '11:45 AM',
-    items: [
-      { name: 'Pakistan Cables 7/29 Single Core Red 90m', quantity: 10, price: 14500 },
-    ],
-  },
-  {
-    id: 2,
-    invoice_number: 'INV-2026-0093',
-    customer_name: 'Tariq Electric Works',
-    amount: 38500,
-    method: 'Bank Transfer',
-    time: '11:12 AM',
-    items: [
-      { name: 'Royal Deluxe Fan 56"', quantity: 3, price: 9500 },
-      { name: 'Philips LED Bulb 18W Cool Daylight E27', quantity: 10, price: 650 },
-      { name: 'Schneider MCB 32A Double Pole 6kA', quantity: 1, price: 2200 },
-      { name: 'Osaka Tube Light LED 36W Complete Set', quantity: 1, price: 1300 },
-    ],
-  },
-  {
-    id: 3,
-    invoice_number: 'INV-2026-0092',
-    customer_name: 'Walk-in Customer',
-    amount: 6200,
-    method: 'Cash',
-    time: '10:30 AM',
-    items: [
-      { name: 'Osaka Tube Light LED 36W Complete Set', quantity: 2, price: 1850 },
-      { name: 'Schneider MCB 32A Double Pole 6kA', quantity: 1, price: 2200 },
-      { name: 'Philips LED Bulb 18W Cool Daylight E27', quantity: 1, price: 300 },
-    ],
-  },
-];
+function methodLabel(method: Invoice['payment_method']): CashierTransaction['method'] {
+  switch (method) {
+    case 'cash':
+      return 'Cash';
+    case 'card':
+      return 'Card';
+    case 'bank_transfer':
+      return 'Bank Transfer';
+    case 'online':
+      return 'Raast';
+    default:
+      return 'Other';
+  }
+}
+
+function formatTime(value?: string): string {
+  const date = value ? new Date(value) : new Date();
+  if (isNaN(date.getTime())) return '-';
+  let hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const suffix = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  return `${hours}:${minutes} ${suffix}`;
+}
+
+function toReceipt(inv: Invoice): CashierTransaction {
+  return {
+    id: inv.id,
+    invoice_number: inv.invoice_number,
+    customer_name: inv.customer?.name?.trim() || 'Walk-in Customer',
+    amount: inv.paid_amount,
+    method: methodLabel(inv.payment_method),
+    time: formatTime(inv.created_at || inv.invoice_date),
+    items: (inv.items || []).map((item) => ({
+      name: item.product_name || item.sku,
+      quantity: item.quantity,
+      price: item.unit_price,
+    })),
+  };
+}
 
 export const CashierDashboard: React.FC = () => {
   const navigate = useNavigate();
 
-  const [receipts] = useState<CashierTransaction[]>(INITIAL_RECEIPTS);
+  const [receipts, setReceipts] = useState<CashierTransaction[]>([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(true);
   const [quickBarcode, setQuickBarcode] = useState('');
   const [invoiceSearch, setInvoiceSearch] = useState('');
   const [selectedReceipt, setSelectedReceipt] = useState<CashierTransaction | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [shiftClosed, setShiftClosed] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const res = await invoiceService.getAll();
+      if (!active) return;
+      const today = new Date().toISOString().slice(0, 10);
+      const mapped = (res.data || [])
+        .filter((inv) => (inv.invoice_date || inv.created_at || '').slice(0, 10) === today)
+        .map(toReceipt)
+        .sort((a, b) => b.time.localeCompare(a.time));
+      setReceipts(mapped);
+      setLoadingInvoices(false);
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Dynamic calculations from today's receipts
   const totalSales = useMemo(
@@ -166,6 +187,95 @@ export const CashierDashboard: React.FC = () => {
   const handleOpenReceipt = (receipt: CashierTransaction) => {
     setSelectedReceipt(receipt);
     setIsReceiptOpen(true);
+  };
+
+  const printThermal = (title: string, inner: string) => {
+    const w = window.open('', '_blank', 'width=400,height=600');
+    if (!w) return;
+    w.document.write(`<!doctype html><html><head><title>${title}</title>
+<style>
+  body { font-family: monospace; width: 320px; margin: 24px auto; color: #000; font-size: 12px; }
+  .center { text-align: center; }
+  .dash { text-align: center; margin: 8px 0; letter-spacing: 2px; }
+  .row { display: flex; justify-content: space-between; }
+  .num { text-align: right; }
+  table { width: 100%; border-collapse: collapse; }
+  .muted { color: #666; font-size: 10px; }
+  .bold { font-weight: bold; }
+  .big { font-size: 13px; }
+  th { text-align: left; }
+  td { padding: 2px 0; vertical-align: top; }
+</style></head><body>
+<div class="center">
+  <div class="bold big">PUNJAB ELECTRIC STORE</div>
+  <div>MAIN MARKET, HALL ROAD, LAHORE</div>
+  <div class="muted">NTN: 4120938-1 · Tel: +92 42 37210099</div>
+</div>
+<div class="dash">- - - - - - - - - - - - - - - -</div>
+${inner}
+</body></html>`);
+    w.document.close();
+    w.focus();
+    w.print();
+  };
+
+  const printReceipt = () => {
+    if (!selectedReceipt) return;
+    const r = selectedReceipt;
+    const rows = (r.items || [])
+      .map(
+        (item) => `
+          <tr>
+            <td>${item.name}</td>
+            <td class="num">${item.quantity} x ${formatCurrency(item.price)}</td>
+            <td class="num">${formatCurrency(item.quantity * item.price)}</td>
+          </tr>`
+      )
+      .join('');
+    printThermal(
+      `Receipt ${r.invoice_number}`,
+      `
+      <div class="center bold">SALES RECEIPT / COUNTER INVOICE</div>
+      <div class="dash">- - - - - - - - - - - - - - - -</div>
+      <div class="row"><span>Invoice No:</span><span class="bold">${r.invoice_number}</span></div>
+      <div class="row"><span>Date & Time:</span><span>${new Date().toLocaleString('en-PK')}</span></div>
+      <div class="row"><span>Cashier:</span><span>Counter 01 (Kashif Ali)</span></div>
+      <div class="row"><span>Customer:</span><span class="bold">${r.customer_name}</span></div>
+      <div class="dash">- - - - - - - - - - - - - - - -</div>
+      <table><thead><tr><th>ITEM</th><th class="num">QTY x RATE</th><th class="num">AMOUNT</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+      <div class="dash">- - - - - - - - - - - - - - - -</div>
+      <div class="row"><span>Subtotal</span><span class="num">${formatCurrency(r.amount)}</span></div>
+      <div class="row"><span>Discount / Scheme</span><span class="num">Rs. 0</span></div>
+      <div class="row bold big"><span>NET TOTAL</span><span class="num">${formatCurrency(r.amount)}</span></div>
+      <div class="row"><span>PAID VIA (${r.method.toUpperCase()})</span><span class="num">${formatCurrency(r.amount)}</span></div>
+      <div class="dash">* * *</div>
+      <div class="center muted">Thank you for your business!<br/>Electrical appliances warranty subject to warranty card.<br/>Software powered by DukanOS</div>
+      `
+    );
+  };
+
+  const printShift = () => {
+    printThermal(
+      'Register Shift Summary',
+      `
+      <div class="center bold">COUNTER REGISTER SHIFT SUMMARY</div>
+      <div class="muted">Terminal: Counter POS Terminal #01</div>
+      <div class="dash">- - - - - - - - - - - - - - - -</div>
+      <div class="row"><span>Shift Started</span><span>Today at 09:00 AM</span></div>
+      <div class="row"><span>Cashier</span><span>Kashif Ali (Staff #103)</span></div>
+      <div class="row"><span>Shift Status</span><span class="bold">${shiftClosed ? 'RECONCILED' : 'ACTIVE & BALANCED'}</span></div>
+      <div class="dash">- - - - - - - - - - - - - - - -</div>
+      <div class="row"><span>Opening Float in Drawer</span><span class="num">${formatCurrency(10000)}</span></div>
+      <div class="row"><span>+ Cash Collected (Sales)</span><span class="num">${formatCurrency(cashCollected)}</span></div>
+      <div class="row bold big"><span>= Expected Physical Cash in Till</span><span class="num">${formatCurrency(10000 + cashCollected)}</span></div>
+      <div class="dash">- - - - - - - - - - - - - - - -</div>
+      <div class="row"><span>Digital & Bank (Raast)</span><span class="num">${formatCurrency(onlineCollected)}</span></div>
+      <div class="row bold"><span>Total Invoices Processed</span><span class="num">${receipts.length}</span></div>
+      <div class="dash">* * *</div>
+      <div class="center muted">Software powered by DukanOS</div>
+      `
+    );
   };
 
   const filteredReceipts = receipts.filter(
@@ -301,41 +411,6 @@ export const CashierDashboard: React.FC = () => {
           </div>
         </form>
 
-        {/* Quick Demo Scanner Shortcuts */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-[#71717A]">
-          <span className="text-[11px] font-medium">Quick Scan:</span>
-          <button
-            type="button"
-            onClick={() => setQuickBarcode('8901234567890')}
-            className="px-2 py-0.5 bg-[#FAFAF8] hover:bg-[#F4F4F5] border border-[#E4E4E7] rounded text-[#18181B] font-mono cursor-pointer transition-colors"
-          >
-            8901234567890 (Royal Fan)
-          </button>
-          <button
-            type="button"
-            onClick={() => setQuickBarcode('8901234567891')}
-            className="px-2 py-0.5 bg-[#FAFAF8] hover:bg-[#F4F4F5] border border-[#E4E4E7] rounded text-[#18181B] font-mono cursor-pointer transition-colors"
-          >
-            8901234567891 (Pak Cables)
-          </button>
-          <button
-            type="button"
-            onClick={() => setQuickBarcode('8901234567892')}
-            className="px-2 py-0.5 bg-[#FAFAF8] hover:bg-[#F4F4F5] border border-[#E4E4E7] rounded text-[#18181B] font-mono cursor-pointer transition-colors"
-          >
-            8901234567892 (Philips LED)
-          </button>
-          {quickBarcode && (
-            <button
-              type="button"
-              onClick={() => setQuickBarcode('')}
-              className="text-[#DC2626] hover:underline text-xs ml-auto cursor-pointer"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-
         {/* Instant Price & Stock Verification Card */}
         {matchedProduct && (
           <div className="p-4 bg-[#F0FDF4] border border-[#BBF7D0] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in-0 duration-150">
@@ -413,7 +488,13 @@ export const CashierDashboard: React.FC = () => {
           </div>
         </div>
 
-        <DataTable columns={columns} data={filteredReceipts} keyExtractor={(item) => item.id} />
+        <DataTable
+          columns={columns}
+          data={filteredReceipts}
+          keyExtractor={(item) => item.id}
+          isLoading={loadingInvoices}
+          emptyMessage="No counter invoices found for today. Sales issued through the invoice / POS module will appear here."
+        />
       </div>
 
       {/* Professional Thermal Receipt Preview Modal */}
@@ -433,7 +514,7 @@ export const CashierDashboard: React.FC = () => {
                 variant="primary"
                 size="sm"
                 leftIcon={<Printer className="w-4 h-4" />}
-                onClick={() => window.print()}
+                onClick={printReceipt}
               >
                 Print Receipt
               </Button>
@@ -529,14 +610,14 @@ export const CashierDashboard: React.FC = () => {
         description="Daily cash reconciliation and drawer settlement for current terminal."
         footer={
           <div className="flex items-center justify-between w-full">
-            <Button
-              variant="secondary"
-              size="sm"
-              leftIcon={<Printer className="w-3.5 h-3.5" />}
-              onClick={() => window.print()}
-            >
-              Print Shift Report
-            </Button>
+<Button
+                variant="secondary"
+                size="sm"
+                leftIcon={<Printer className="w-3.5 h-3.5" />}
+                onClick={printShift}
+              >
+                Print Shift Report
+              </Button>
             <div className="flex items-center gap-2">
               <Button variant="secondary" size="sm" onClick={() => setIsShiftModalOpen(false)}>
                 Close
