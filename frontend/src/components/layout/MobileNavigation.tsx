@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, Receipt, Users } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Receipt, Users, Package } from 'lucide-react';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 
 export const MobileNavigation: React.FC = () => {
