@@ -10,6 +10,7 @@ import { ArrowLeft, X, ImagePlus, Upload, Tag, CheckCircle2 } from 'lucide-react
 import type { Category, Brand, Unit } from '../../../types/product.types';
 import { productService } from '../../../services/product.service';
 import { unitService } from '../../../services/unit.service';
+import { formatError } from '../../../lib/utils';
 
 export const CreateProductPage: React.FC = () => {
   const navigate = useNavigate();
@@ -67,20 +68,25 @@ export const CreateProductPage: React.FC = () => {
     const selectedCat = categories.find((c) => c.id === Number(categoryId)) || categories[0];
     const selectedBrd = brands.find((b) => b.id === Number(brandId)) || brands[0];
 
-    await productService.saveProduct({
-      name: name.trim(),
-      sku: sku.trim(),
-      barcode: barcode.trim() || undefined,
-      category: selectedCat,
-      brand: selectedBrd,
-      selling_price: Number(price),
-      purchase_cost: Number(cost) || undefined,
-      current_stock: Number(stock) || 0,
-      min_quantity_threshold: Number(threshold) || 0,
-      unit,
-      status: 'active',
-      image_url: imageUrl || undefined,
-    });
+    try {
+      await productService.saveProduct({
+        name: name.trim(),
+        sku: sku.trim(),
+        barcode: barcode.trim() || undefined,
+        category: selectedCat,
+        brand: selectedBrd,
+        selling_price: Number(price),
+        purchase_cost: Number(cost) || undefined,
+        current_stock: Number(stock) || 0,
+        min_quantity_threshold: Number(threshold) || 0,
+        unit,
+        status: 'active',
+        image_url: imageUrl || undefined,
+      });
+    } catch (err) {
+      setError(formatError(err));
+      return;
+    }
 
     setSuccess(true);
     setTimeout(() => {

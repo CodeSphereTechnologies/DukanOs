@@ -12,6 +12,7 @@ import { ArrowLeft, Plus, Upload, X, CheckCircle2, Tag } from 'lucide-react';
 import type { Product, Category, Brand, Unit } from '../../../types/product.types';
 import { productService } from '../../../services/product.service';
 import { unitService } from '../../../services/unit.service';
+import { formatError } from '../../../lib/utils';
 
 export const EditProductPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -88,21 +89,29 @@ export const EditProductPage: React.FC = () => {
   const handleAddCategoryInline = async () => {
     const catName = newCategoryName.trim();
     if (!catName) return;
-    const cat = await productService.addCategory(catName);
-    setCategories((prev) => [...prev.filter((c) => c.id !== cat.id), cat]);
-    setCategoryId(String(cat.id));
-    setShowNewCategory(false);
-    setNewCategoryName('');
+    try {
+      const cat = await productService.addCategory(catName);
+      setCategories((prev) => [...prev.filter((c) => c.id !== cat.id), cat]);
+      setCategoryId(String(cat.id));
+      setShowNewCategory(false);
+      setNewCategoryName('');
+    } catch (err) {
+      setError(formatError(err));
+    }
   };
 
   const handleAddBrandInline = async () => {
     const bName = newBrandName.trim();
     if (!bName) return;
-    const brand = await productService.addBrand(bName);
-    setBrands((prev) => [...prev.filter((b) => b.id !== brand.id), brand]);
-    setBrandId(String(brand.id));
-    setShowNewBrand(false);
-    setNewBrandName('');
+    try {
+      const brand = await productService.addBrand(bName);
+      setBrands((prev) => [...prev.filter((b) => b.id !== brand.id), brand]);
+      setBrandId(String(brand.id));
+      setShowNewBrand(false);
+      setNewBrandName('');
+    } catch (err) {
+      setError(formatError(err));
+    }
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,22 +136,27 @@ export const EditProductPage: React.FC = () => {
     const selectedCat = categories.find((c) => c.id === Number(categoryId)) || categories[0];
     const selectedBrd = brands.find((b) => b.id === Number(brandId)) || brands[0];
 
-    await productService.saveProduct({
-      id: productId,
-      name: name.trim(),
-      sku: sku.trim(),
-      barcode: barcode.trim() || undefined,
-      description: description.trim() || undefined,
-      category: selectedCat,
-      brand: selectedBrd,
-      selling_price: Number(price),
-      purchase_cost: Number(cost) || undefined,
-      current_stock: Number(stock) || 0,
-      min_quantity_threshold: Number(threshold) || 0,
-      unit,
-      status,
-      image_url: imageUrl || undefined,
-    });
+    try {
+      await productService.saveProduct({
+        id: productId,
+        name: name.trim(),
+        sku: sku.trim(),
+        barcode: barcode.trim() || undefined,
+        description: description.trim() || undefined,
+        category: selectedCat,
+        brand: selectedBrd,
+        selling_price: Number(price),
+        purchase_cost: Number(cost) || undefined,
+        current_stock: Number(stock) || 0,
+        min_quantity_threshold: Number(threshold) || 0,
+        unit,
+        status,
+        image_url: imageUrl || undefined,
+      });
+    } catch (err) {
+      setError(formatError(err));
+      return;
+    }
 
     setSuccess(true);
     setTimeout(() => {

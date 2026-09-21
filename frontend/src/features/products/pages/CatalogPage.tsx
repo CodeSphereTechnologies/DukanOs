@@ -15,6 +15,7 @@ import { Plus, Trash2, Pencil, Tags, BadgeCheck, Ruler } from 'lucide-react';
 import type { Category, Brand, Unit, Product } from '../../../types/product.types';
 import { productService } from '../../../services/product.service';
 import { unitService } from '../../../services/unit.service';
+import { formatError } from '../../../lib/utils';
 
 type Tab = 'categories' | 'brands' | 'units';
 
@@ -113,81 +114,108 @@ export const CatalogPage: React.FC = () => {
       return;
     }
 
-    if (tab === 'categories') {
-      if (form.mode === 'edit' && form.id !== null) {
-        await productService.updateCategory(form.id, { name, status: form.status });
+    try {
+      if (tab === 'categories') {
+        if (form.mode === 'edit' && form.id !== null) {
+          const updated = await productService.updateCategory(form.id, { name, status: form.status });
+          if (updated) {
+            setCategories((prev) => prev.map((c) => (c.id === form.id ? updated : c)));
+          }
+        } else {
+          const created = await productService.addCategory(name);
+          setCategories((prev) => [created, ...prev]);
+        }
+        setSuccessMessage(`Category "${name}" ${form.mode === 'edit' ? 'updated' : 'added'} successfully.`);
+      } else if (tab === 'brands') {
+        if (form.mode === 'edit' && form.id !== null) {
+          const updated = await productService.updateBrand(form.id, { name, status: form.status });
+          if (updated) {
+            setBrands((prev) => prev.map((b) => (b.id === form.id ? updated : b)));
+          }
+        } else {
+          const created = await productService.addBrand(name);
+          setBrands((prev) => [created, ...prev]);
+        }
+        setSuccessMessage(`Brand "${name}" ${form.mode === 'edit' ? 'updated' : 'added'} successfully.`);
       } else {
-        await productService.addCategory(name);
+        const code = form.code.trim();
+        if (!code) {
+          setError('Code is required.');
+          return;
+        }
+        if (form.mode === 'edit' && form.id !== null) {
+          const updated = await unitService.update(form.id, { code, name, status: form.status });
+          if (updated) {
+            setUnits((prev) => prev.map((u) => (u.id === form.id ? updated : u)));
+          }
+        } else {
+          const created = await unitService.add({ code, name });
+          setUnits((prev) => [created, ...prev]);
+        }
+        setSuccessMessage(`Unit "${name} (${code})" ${form.mode === 'edit' ? 'updated' : 'added'} successfully.`);
       }
-      setCategories((await productService.getCategories()).data || []);
-      setSuccessMessage(`Category "${name}" ${form.mode === 'edit' ? 'updated' : 'added'} successfully.`);
-    } else if (tab === 'brands') {
-      if (form.mode === 'edit' && form.id !== null) {
-        await productService.updateBrand(form.id, { name, status: form.status });
-      } else {
-        await productService.addBrand(name);
-      }
-      setBrands((await productService.getBrands()).data || []);
-      setSuccessMessage(`Brand "${name}" ${form.mode === 'edit' ? 'updated' : 'added'} successfully.`);
-    } else {
-      const code = form.code.trim();
-      if (!code) {
-        setError('Code is required.');
-        return;
-      }
-      if (form.mode === 'edit' && form.id !== null) {
-        await unitService.update(form.id, { code, name, status: form.status });
-      } else {
-        await unitService.add({ code, name });
-      }
-      setUnits((await unitService.getAll()).data || []);
-      setSuccessMessage(`Unit "${name} (${code})" ${form.mode === 'edit' ? 'updated' : 'added'} successfully.`);
-    }
 
-    setForm(emptyForm);
+      setForm(emptyForm);
+    } catch (err) {
+      setError(formatError(err));
+    }
   };
 
   const handleToggleStatus = async (id: number) => {
-    if (tab === 'categories') {
-      const item = categories.find((c) => c.id === id);
-      if (!item) return;
-      await productService.updateCategory(id, {
-        status: item.status === 'active' ? 'inactive' : 'active',
-      });
-      setCategories((await productService.getCategories()).data || []);
-    } else if (tab === 'brands') {
-      const item = brands.find((b) => b.id === id);
-      if (!item) return;
-      await productService.updateBrand(id, {
-        status: item.status === 'active' ? 'inactive' : 'active',
-      });
-      setBrands((await productService.getBrands()).data || []);
-    } else {
-      const item = units.find((u) => u.id === id);
-      if (!item) return;
-      await unitService.update(id, {
-        status: item.status === 'active' ? 'inactive' : 'active',
-      });
-      setUnits((await unitService.getAll()).data || []);
+    try {
+      if (tab === 'categories') {
+        const item = categories.find((c) => c.id === id);
+        if (!item) return;
+        const updated = await productService.updateCategory(id, {
+          status: item.status === 'active' ? 'inactive' : 'active',
+        });
+        if (updated) {
+          setCategories((prev) => prev.map((c) => (c.id === id ? updated : c)));
+        }
+      } else if (tab === 'brands') {
+        const item = brands.find((b) => b.id === id);
+        if (!item) return;
+        const updated = await productService.updateBrand(id, {
+          status: item.status === 'active' ? 'inactive' : 'active',
+        });
+        if (updated) {
+          setBrands((prev) => prev.map((b) => (b.id === id ? updated : b)));
+        }
+      } else {
+        const item = units.find((u) => u.id === id);
+        if (!item) return;
+        const updated = await unitService.update(id, {
+          status: item.status === 'active' ? 'inactive' : 'active',
+        });
+        if (updated) {
+          setUnits((prev) => prev.map((u) => (u.id === id ? updated : u)));
+        }
+      }
+    } catch (err) {
+      setError(formatError(err));
     }
   };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    if (tab === 'categories') {
-      await productService.deleteCategory(deleteTarget.id);
-      setCategories((await productService.getCategories()).data || []);
-    } else if (tab === 'brands') {
-      await productService.deleteBrand(deleteTarget.id);
-      setBrands((await productService.getBrands()).data || []);
-    } else {
-      await unitService.delete(deleteTarget.id);
-      setUnits((await unitService.getAll()).data || []);
+    try {
+      if (tab === 'categories') {
+        await productService.deleteCategory(deleteTarget.id);
+        setCategories((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+      } else if (tab === 'brands') {
+        await productService.deleteBrand(deleteTarget.id);
+        setBrands((prev) => prev.filter((b) => b.id !== deleteTarget.id));
+      } else {
+        await unitService.delete(deleteTarget.id);
+        setUnits((prev) => prev.filter((u) => u.id !== deleteTarget.id));
+      }
+      const label =
+        tab === 'categories' ? 'Category' : tab === 'brands' ? 'Brand' : 'Unit of Sale';
+      setSuccessMessage(`${label} "${deleteTarget.name}" deleted.`);
+      setDeleteTarget(null);
+    } catch (err) {
+      setError(formatError(err));
     }
-    const label =
-      tab === 'categories' ? 'Category' : tab === 'brands' ? 'Brand' : 'Unit of Sale';
-    setSuccessMessage(`${label} "${deleteTarget.name}" deleted.`);
-    setDeleteTarget(null);
   };
 
   const filteredCategories = useMemo(
@@ -443,6 +471,11 @@ export const CatalogPage: React.FC = () => {
       }
     >
       <div className="space-y-4">
+        {error && (
+          <Alert variant="error" title="Unable to save" onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
         {successMessage && (
           <Alert variant="success" onClose={() => setSuccessMessage(null)}>
             {successMessage}

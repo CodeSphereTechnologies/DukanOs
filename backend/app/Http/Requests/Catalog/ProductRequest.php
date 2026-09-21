@@ -30,6 +30,7 @@ class ProductRequest extends ApiRequest
                 Rule::exists('brands', 'id')->where('tenant_id', $this->tenantId()),
             ],
             'model_number' => ['nullable', 'string', 'max:100'],
+            'image' => ['nullable', 'string'],
             'description' => ['nullable', 'string'],
             'unit' => ['nullable', 'string', 'max:20'],
             'purchase_cost' => ['nullable', 'numeric', 'min:0'],

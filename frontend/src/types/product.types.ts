@@ -44,9 +44,11 @@ export interface Product {
   sku: string;
   barcode?: string;
   description?: string;
+  model_number?: string;
   unit: string;
   purchase_cost?: number;
   selling_price: number;
+  min_selling_price?: number;
   current_stock: number;
   min_quantity_threshold?: number;
   status: 'active' | 'inactive' | 'archived';

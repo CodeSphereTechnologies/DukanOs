@@ -1,5 +1,5 @@
 import { apiClient } from './api-client';
-import type { ApiResponse } from '../types/api.types';
+import { ApiError, type ApiResponse } from '../types/api.types';
 import type { Product, Category, Brand, Specification } from '../types/product.types';
 
 export const STORAGE_KEY_PRODUCTS = 'dukanos_products_v4';
@@ -23,6 +23,14 @@ function asNumber(value: unknown): number {
 
 function asString(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback;
+}
+
+function toSlug(name: string): string {
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
+function isApiError(err: unknown): err is ApiError {
+  return err instanceof ApiError;
 }
 
 // Backend list endpoints return either a plain array or a paginated { data: [...] } wrapper.
@@ -50,6 +58,7 @@ function mapProduct(raw: unknown): Product {
     status: (asString(r.status, 'active') as Product['status']) || 'active',
     category: r.category ? (r.category as Product['category']) : undefined,
     brand: r.brand ? (r.brand as Product['brand']) : undefined,
+    image_url: asString(r.image) || undefined,
     specifications: r.specifications ? (r.specifications as Product['specifications']) : undefined,
   };
 }
@@ -157,51 +166,94 @@ export const productService = {
   },
 
   async addCategory(name: string): Promise<Category> {
+    const payload = {
+      name: name.trim(),
+      slug: toSlug(name),
+      status: 'active' as const,
+    };
+    try {
+      const res = await apiClient.post<Category>('/categories', payload);
+      if (res && res.data) {
+        saveStoredCategories(upsertStored(getStoredCategories(), res.data));
+        return res.data;
+      }
+    } catch (err) {
+      if (isApiError(err)) throw err;
+      // offline fallback to local storage
+    }
     const list = getStoredCategories();
-    const existing = list.find((c) => c.name.toLowerCase() === name.trim().toLowerCase());
+    const existing = list.find((c) => c.name.toLowerCase() === payload.name.toLowerCase());
     if (existing) return existing;
     const newCat: Category = {
       id: list.length > 0 ? Math.max(...list.map((c) => c.id)) + 1 : 1,
-      name: name.trim(),
-      slug: name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-      status: 'active',
+      ...payload,
     };
-    const updated = [...list, newCat];
-    saveStoredCategories(updated);
+    saveStoredCategories([...list, newCat]);
     return newCat;
   },
 
   async addBrand(name: string): Promise<Brand> {
+    const payload = {
+      name: name.trim(),
+      slug: toSlug(name),
+      status: 'active' as const,
+    };
+    try {
+      const res = await apiClient.post<Brand>('/brands', payload);
+      if (res && res.data) {
+        saveStoredBrands(upsertStored(getStoredBrands(), res.data));
+        return res.data;
+      }
+    } catch (err) {
+      if (isApiError(err)) throw err;
+      // offline fallback to local storage
+    }
     const list = getStoredBrands();
-    const existing = list.find((b) => b.name.toLowerCase() === name.trim().toLowerCase());
+    const existing = list.find((b) => b.name.toLowerCase() === payload.name.toLowerCase());
     if (existing) return existing;
     const newBrand: Brand = {
       id: list.length > 0 ? Math.max(...list.map((b) => b.id)) + 1 : 1,
-      name: name.trim(),
-      slug: name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-      status: 'active',
+      ...payload,
     };
-    const updated = [...list, newBrand];
-    saveStoredBrands(updated);
+    saveStoredBrands([...list, newBrand]);
     return newBrand;
   },
 
   async updateCategory(id: number, data: Partial<Pick<Category, 'name' | 'status'>>): Promise<Category | null> {
     const list = getStoredCategories();
-    const idx = list.findIndex((c) => c.id === id);
-    if (idx < 0) return null;
-    list[idx] = {
-      ...list[idx],
-      ...data,
-      ...(data.name !== undefined
-        ? { slug: data.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') }
-        : {}),
+    const current = list.find((c) => c.id === id);
+    const name = (data.name ?? current?.name)?.trim();
+    if (!name) return null;
+    const payload = {
+      name,
+      slug: toSlug(name),
+      status: data.status ?? current?.status ?? 'active',
     };
-    saveStoredCategories(list);
-    return list[idx];
+    try {
+      const res = await apiClient.put<Category>(`/categories/${id}`, payload);
+      if (res && res.data) {
+        saveStoredCategories(upsertStored(getStoredCategories(), res.data));
+        return res.data;
+      }
+    } catch (err) {
+      if (isApiError(err)) throw err;
+      // offline fallback to local storage
+    }
+    if (current) {
+      const updated = { ...current, ...data };
+      saveStoredCategories(upsertStored(list, updated));
+      return updated;
+    }
+    return null;
   },
 
   async deleteCategory(id: number): Promise<boolean> {
+    try {
+      await apiClient.delete(`/categories/${id}`);
+    } catch (err) {
+      if (isApiError(err)) throw err;
+      // offline fallback to local storage
+    }
     const list = getStoredCategories();
     const next = list.filter((c) => c.id !== id);
     if (next.length === list.length) return false;
@@ -211,20 +263,39 @@ export const productService = {
 
   async updateBrand(id: number, data: Partial<Pick<Brand, 'name' | 'status'>>): Promise<Brand | null> {
     const list = getStoredBrands();
-    const idx = list.findIndex((b) => b.id === id);
-    if (idx < 0) return null;
-    list[idx] = {
-      ...list[idx],
-      ...data,
-      ...(data.name !== undefined
-        ? { slug: data.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') }
-        : {}),
+    const current = list.find((b) => b.id === id);
+    const name = (data.name ?? current?.name)?.trim();
+    if (!name) return null;
+    const payload = {
+      name,
+      slug: toSlug(name),
+      status: data.status ?? current?.status ?? 'active',
     };
-    saveStoredBrands(list);
-    return list[idx];
+    try {
+      const res = await apiClient.put<Brand>(`/brands/${id}`, payload);
+      if (res && res.data) {
+        saveStoredBrands(upsertStored(getStoredBrands(), res.data));
+        return res.data;
+      }
+    } catch (err) {
+      if (isApiError(err)) throw err;
+      // offline fallback to local storage
+    }
+    if (current) {
+      const updated = { ...current, ...data };
+      saveStoredBrands(upsertStored(list, updated));
+      return updated;
+    }
+    return null;
   },
 
   async deleteBrand(id: number): Promise<boolean> {
+    try {
+      await apiClient.delete(`/brands/${id}`);
+    } catch (err) {
+      if (isApiError(err)) throw err;
+      // offline fallback to local storage
+    }
     const list = getStoredBrands();
     const next = list.filter((b) => b.id !== id);
     if (next.length === list.length) return false;
@@ -240,8 +311,35 @@ export const productService = {
       ...data,
       id: data.id || (list.length > 0 ? Math.max(...list.map((p) => p.id)) + 1 : 1),
     };
-    const updated = [newProd, ...list.filter((p) => p.id !== newProd.id)];
-    saveStoredProducts(updated);
+
+    const payload = buildProductPayload(data);
+
+    try {
+      const res = data.id
+        ? await apiClient.put<Product>(`/products/${data.id}`, {
+            ...payload,
+            min_quantity_threshold: data.min_quantity_threshold ?? 0,
+          })
+        : await apiClient.post<Product>('/products', {
+            ...payload,
+            opening_quantity: data.current_stock || 0,
+            min_quantity_threshold: data.min_quantity_threshold ?? 0,
+          });
+      if (res && res.data) {
+        const backend = {
+          ...mapProduct(res.data),
+          ...(data.image_url !== undefined ? { image_url: data.image_url } : {}),
+          ...(data.gallery !== undefined ? { gallery: data.gallery } : {}),
+        };
+        saveStoredProducts(upsertStored(list, backend));
+        return backend;
+      }
+    } catch (err) {
+      if (isApiError(err)) throw err;
+      // offline fallback to local storage
+    }
+
+    saveStoredProducts(upsertStored(list, newProd));
     return newProd;
   },
 
@@ -262,11 +360,27 @@ export const productService = {
   },
 
   async getById(id: number): Promise<Product | null> {
+    try {
+      const res = await apiClient.get<unknown>(`/products/${id}`);
+      if (res && res.data) {
+        const backend = mapProduct(res.data);
+        saveStoredProducts(upsertStored(getStoredProducts(), backend));
+        return backend;
+      }
+    } catch {
+      // offline fallback to local storage
+    }
     const list = getStoredProducts();
     return list.find((p) => p.id === id) || null;
   },
 
   async deleteProduct(id: number): Promise<boolean> {
+    try {
+      await apiClient.delete(`/products/${id}`);
+    } catch (err) {
+      if (isApiError(err)) throw err;
+      // offline fallback to local storage
+    }
     const list = getStoredProducts();
     const next = list.filter((p) => p.id !== id);
     if (next.length === list.length) return false;
@@ -278,12 +392,9 @@ export const productService = {
     id: number,
     status: Product['status']
   ): Promise<Product | null> {
-    const list = getStoredProducts();
-    const idx = list.findIndex((p) => p.id === id);
-    if (idx < 0) return null;
-    list[idx] = { ...list[idx], status };
-    saveStoredProducts(list);
-    return list[idx];
+    const current = await this.getById(id);
+    if (!current) return null;
+    return this.saveProduct({ ...current, status });
   },
 };
 
@@ -294,6 +405,30 @@ function saveStoredProducts(products: Product[]): void {
   } catch {
     // ignore
   }
+}
+
+function upsertStored<T extends { id: number }>(list: T[], item: T): T[] {
+  const filtered = list.filter((entry) => entry.id !== item.id);
+  return [item, ...filtered];
+}
+
+function buildProductPayload(data: Omit<Product, 'id'> & { id?: number }): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
+    name: data.name,
+    sku: data.sku,
+    barcode: data.barcode || null,
+    description: data.description || null,
+    category_id: data.category?.id ?? data.category_id ?? null,
+    brand_id: data.brand?.id ?? data.brand_id ?? null,
+    image: data.image_url || data.gallery?.[0] || null,
+    unit: data.unit || 'pc',
+    purchase_cost: data.purchase_cost ?? 0,
+    selling_price: data.selling_price,
+    status: data.status || 'active',
+  };
+  if (data.model_number !== undefined) payload.model_number = data.model_number;
+  if (data.min_selling_price !== undefined) payload.min_selling_price = data.min_selling_price;
+  return payload;
 }
 
 function saveStoredCategories(categories: Category[]): void {

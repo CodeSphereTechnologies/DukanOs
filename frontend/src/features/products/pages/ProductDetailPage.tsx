@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
+import { Alert } from '../../../components/ui/Alert';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { Input } from '../../../components/ui/Input';
 import { LoadingState } from '../../../components/ui/LoadingState';
@@ -29,6 +30,7 @@ import type { Product } from '../../../types/product.types';
 import type { InvoiceItem, Invoice, Quotation } from '../../../types/invoice.types';
 import { productService } from '../../../services/product.service';
 import { invoiceService } from '../../../services/invoice.service';
+import { formatError } from '../../../lib/utils';
 
 interface SaleRecord {
   docType: 'invoice' | 'quotation';
@@ -58,6 +60,7 @@ export const ProductDetailPage: React.FC = () => {
 
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -178,8 +181,15 @@ export const ProductDetailPage: React.FC = () => {
   const handleArchive = async () => {
     if (!product) return;
     setBusy(true);
-    const updated = await productService.updateStatus(product.id, 'archived');
-    if (updated) setProduct(updated);
+    try {
+      const updated = await productService.updateStatus(product.id, 'archived');
+      if (updated) {
+        setProduct(updated);
+        setActionError(null);
+      }
+    } catch (err) {
+      setActionError(formatError(err));
+    }
     setBusy(false);
     setIsArchiveOpen(false);
   };
@@ -187,18 +197,32 @@ export const ProductDetailPage: React.FC = () => {
   const handleRestore = async () => {
     if (!product) return;
     setBusy(true);
-    const updated = await productService.updateStatus(product.id, 'active');
-    if (updated) setProduct(updated);
+    try {
+      const updated = await productService.updateStatus(product.id, 'active');
+      if (updated) {
+        setProduct(updated);
+        setActionError(null);
+      }
+    } catch (err) {
+      setActionError(formatError(err));
+    }
     setBusy(false);
   };
 
   const handleDelete = async () => {
     if (!product) return;
     setBusy(true);
-    await productService.deleteProduct(product.id);
-    setBusy(false);
-    setIsDeleteOpen(false);
-    navigate('/products');
+    try {
+      await productService.deleteProduct(product.id);
+      setActionError(null);
+      setBusy(false);
+      setIsDeleteOpen(false);
+      navigate('/products');
+    } catch (err) {
+      setActionError(formatError(err));
+      setBusy(false);
+      setIsDeleteOpen(false);
+    }
   };
 
   const stockValue = (product?.current_stock || 0) * (product?.purchase_cost || 0);
@@ -251,6 +275,11 @@ export const ProductDetailPage: React.FC = () => {
 
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {actionError && (
+        <Alert variant="error" title="Action failed" onClose={() => setActionError(null)}>
+          {actionError}
+        </Alert>
+      )}
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="flex items-start gap-3 min-w-0">

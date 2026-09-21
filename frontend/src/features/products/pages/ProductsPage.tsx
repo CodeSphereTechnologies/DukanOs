@@ -7,6 +7,7 @@ import { FilterBar } from '../../../components/ui/FilterBar';
 import { Drawer } from '../../../components/ui/Drawer';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
+import { Alert } from '../../../components/ui/Alert';
 import { FormField } from '../../../components/ui/FormField';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
@@ -16,6 +17,7 @@ import { Plus, SlidersHorizontal, RotateCcw, ChevronRight, Pencil, Trash2, Print
 import { formatCurrency, formatDate } from '../../../lib/formatters';
 import type { Product, Category, Brand } from '../../../types/product.types';
 import { productService } from '../../../services/product.service';
+import { formatError } from '../../../lib/utils';
 
 export const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -26,6 +28,7 @@ export const ProductsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
   const [isPrintOpen, setIsPrintOpen] = useState(false);
   const [printFormat, setPrintFormat] = useState<'a4' | 'slip'>('a4');
@@ -60,10 +63,17 @@ export const ProductsPage: React.FC = () => {
 
   const confirmDeleteProduct = async () => {
     if (deleteId === null) return;
-    await productService.deleteProduct(deleteId);
-    setProducts((prev) => prev.filter((p) => p.id !== deleteId));
-    setDeleteId(null);
-    setIsDeleteOpen(false);
+    try {
+      await productService.deleteProduct(deleteId);
+      setProducts((prev) => prev.filter((p) => p.id !== deleteId));
+      setDeleteId(null);
+      setIsDeleteOpen(false);
+      setDeleteError(null);
+    } catch (err) {
+      setDeleteError(formatError(err));
+      setDeleteId(null);
+      setIsDeleteOpen(false);
+    }
   };
 
   const selectedProducts = useMemo(
@@ -448,6 +458,11 @@ export const ProductsPage: React.FC = () => {
       }
     >
       <div className="space-y-4">
+        {deleteError && (
+          <Alert variant="error" title="Unable to delete product" onClose={() => setDeleteError(null)}>
+            {deleteError}
+          </Alert>
+        )}
         <SearchToolbar
           searchValue={search}
           onSearchChange={setSearch}
