@@ -130,7 +130,7 @@ export const ProductsPage: React.FC = () => {
                     className={
                       p.current_stock === 0
                         ? 'text-[#DC2626]'
-                        : (p.current_stock || 0) <= (p.min_quantity_threshold || 5)
+                        : (p.current_stock || 0) <= (p.min_quantity_threshold ?? 5)
                           ? 'text-[#D97706]'
                           : 'text-[#065F46]'
                     }
@@ -288,11 +288,11 @@ export const ProductsPage: React.FC = () => {
         return false;
       }
 
-      const threshold = p.min_quantity_threshold || 5;
+      const threshold = p.min_quantity_threshold ?? 5;
       if (stockStatus === 'in_stock' && p.current_stock <= threshold) {
         return false;
       }
-      if (stockStatus === 'low_stock' && (p.current_stock > threshold || p.current_stock <= 0)) {
+      if (stockStatus === 'low_stock' && p.current_stock > threshold) {
         return false;
       }
       if (stockStatus === 'out_of_stock' && p.current_stock > 0) {
@@ -367,7 +367,7 @@ export const ProductsPage: React.FC = () => {
       align: 'center',
       className: 'w-28',
       render: (p) => {
-        const isLow = (p.current_stock || 0) <= (p.min_quantity_threshold || 5);
+        const isLow = (p.current_stock || 0) <= (p.min_quantity_threshold ?? 5);
         const isOut = (p.current_stock || 0) === 0;
         return (
           <span

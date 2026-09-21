@@ -64,13 +64,13 @@ export const inventoryService = {
 async function buildQueueFromProducts(): Promise<ReorderQueueItem[]> {
   const res = await productService.getAll();
   return (res.data || [])
-    .filter((p) => (p.current_stock || 0) <= (p.min_quantity_threshold || 5))
+    .filter((p) => (p.current_stock || 0) <= (p.min_quantity_threshold ?? 5))
     .sort((a, b) => (a.current_stock || 0) - (b.current_stock || 0))
     .map((p) => ({
       id: p.id,
       name: p.name,
       sku: p.sku,
       current_stock: p.current_stock || 0,
-      threshold: p.min_quantity_threshold || 5,
+      threshold: p.min_quantity_threshold ?? 5,
     }));
 }

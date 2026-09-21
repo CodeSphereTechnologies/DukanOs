@@ -43,8 +43,8 @@ export const OwnerDashboard: React.FC = () => {
       if (res.data) {
         const count = res.data.filter((p) => {
           const stock = p.current_stock || 0;
-          const threshold = p.min_quantity_threshold || 5;
-          return stock > 0 && stock <= threshold;
+          const threshold = p.min_quantity_threshold ?? 5;
+          return stock <= threshold;
         }).length;
         setLowStockCount(count);
       }

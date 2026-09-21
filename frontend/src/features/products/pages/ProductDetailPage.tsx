@@ -229,7 +229,7 @@ export const ProductDetailPage: React.FC = () => {
   const isLowStock =
     product &&
     product.current_stock !== 0 &&
-    product.current_stock <= (product.min_quantity_threshold || 5);
+    product.current_stock <= (product.min_quantity_threshold ?? 5);
   const isOutOfStock = product?.current_stock === 0;
   const margin = product ? product.selling_price - (product.purchase_cost || 0) : 0;
   const marginPct = product?.purchase_cost ? (margin / product.purchase_cost) * 100 : 0;
@@ -430,7 +430,7 @@ export const ProductDetailPage: React.FC = () => {
               <InfoItem label="Status" value={statusLabel[product.status]} />
               <InfoItem
                 label="Low-Stock Threshold"
-                value={new Intl.NumberFormat().format(product.min_quantity_threshold || 5)}
+                value={new Intl.NumberFormat().format(product.min_quantity_threshold ?? 5)}
                 sub="POS alerts when stock falls to or below this"
               />
             </div>
@@ -503,7 +503,7 @@ export const ProductDetailPage: React.FC = () => {
               </div>
               <InfoItem
                 label="Low-Stock Threshold"
-                value={String(product.min_quantity_threshold || 5)}
+                value={String(product.min_quantity_threshold ?? 5)}
                 sub="Alerts when stock falls at or below this level"
               />
               <InfoItem

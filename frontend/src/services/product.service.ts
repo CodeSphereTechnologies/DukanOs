@@ -54,7 +54,12 @@ function mapProduct(raw: unknown): Product {
     purchase_cost: asNumber(r.purchase_cost),
     selling_price: asNumber(r.selling_price),
     current_stock: asNumber(inventory.quantity ?? r.current_stock),
-    min_quantity_threshold: asNumber(inventory.min_quantity_threshold ?? r.min_quantity_threshold) || undefined,
+    min_quantity_threshold:
+      typeof inventory.min_quantity_threshold === 'number'
+        ? asNumber(inventory.min_quantity_threshold)
+        : r.min_quantity_threshold != null
+          ? asNumber(r.min_quantity_threshold)
+          : undefined,
     status: (asString(r.status, 'active') as Product['status']) || 'active',
     category: r.category ? (r.category as Product['category']) : undefined,
     brand: r.brand ? (r.brand as Product['brand']) : undefined,
@@ -326,8 +331,22 @@ export const productService = {
             min_quantity_threshold: data.min_quantity_threshold ?? 0,
           });
       if (res && res.data) {
+        if (data.id) {
+          const inventory = asRecord(asRecord(res.data).inventory);
+          const currentQty = asNumber(inventory.quantity);
+          if (data.current_stock !== undefined && Number(data.current_stock) !== currentQty) {
+            const delta = Number(data.current_stock) - currentQty;
+            await apiClient.post(`/inventory/${data.id}/adjust`, {
+              delta,
+              note: 'Stock updated from product edit',
+            });
+          }
+        }
         const backend = {
           ...mapProduct(res.data),
+          ...(data.id !== undefined && data.current_stock !== undefined
+            ? { current_stock: Number(data.current_stock) }
+            : {}),
           ...(data.image_url !== undefined ? { image_url: data.image_url } : {}),
           ...(data.gallery !== undefined ? { gallery: data.gallery } : {}),
         };
