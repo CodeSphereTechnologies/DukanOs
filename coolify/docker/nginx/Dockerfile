@@ -25,7 +25,7 @@ ENV VITE_APP_VERSION=$VITE_APP_VERSION
 
 # Install dependencies first for layer caching
 ENV NODE_ENV=development
-COPY frontend/package.json frontend/package-lock.json* ./
+COPY frontend/package.json ./
 RUN npm install --no-audit --no-fund
 
 # Copy source and build production bundle
