@@ -13,6 +13,9 @@ interface InventoryReportPayload {
   total_products?: number;
   total_stock_units?: number;
   low_stock_count?: number;
+  verified_products?: number;
+  reconciled_products?: number;
+  stock_accuracy?: number;
   low_stock?: Array<{
     product_id: number;
     name: string | null;
@@ -22,7 +25,32 @@ interface InventoryReportPayload {
   }>;
 }
 
+export interface StockAccuracySummary {
+  accuracy: number;
+  verified_products: number;
+  reconciled_products: number;
+  total_products: number;
+  total_stock_units: number;
+}
+
 export const inventoryService = {
+  async getStockAccuracy(): Promise<StockAccuracySummary | null> {
+    try {
+      const res = await apiClient.get<InventoryReportPayload>('/reports/inventory');
+      const data = res?.data;
+      if (!data) return null;
+      return {
+        accuracy: Number(data.stock_accuracy) || 0,
+        verified_products: Number(data.verified_products) || 0,
+        reconciled_products: Number(data.reconciled_products) || 0,
+        total_products: Number(data.total_products) || 0,
+        total_stock_units: Number(data.total_stock_units) || 0,
+      };
+    } catch {
+      return null;
+    }
+  },
+
   async getReorderQueue(): Promise<ReorderQueueItem[]> {
     try {
       const res = await apiClient.get<InventoryReportPayload>('/reports/inventory');

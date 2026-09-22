@@ -3,7 +3,7 @@ import type { ApiResponse } from '../types/api.types';
 import type { Invoice, Quotation } from '../types/invoice.types';
 import type { Customer } from '../types/customer.types';
 
-const STORAGE_KEY_QUOTATIONS = 'dukanos_quotations_v4';
+const STORAGE_KEY_QUOTATIONS = 'dukanos_quotations_v5';
 
 export const INITIAL_QUOTATIONS: Quotation[] = [];
 
@@ -104,7 +104,7 @@ function saveStoredQuotations(quotations: Quotation[]): void {
   }
 }
 
-const STORAGE_KEY_INVOICES = 'dukanos_invoices_v4';
+const STORAGE_KEY_INVOICES = 'dukanos_invoices_v5';
 
 export const INITIAL_INVOICES: Invoice[] = [];
 
@@ -213,14 +213,12 @@ export const invoiceService = {
     try {
       const res = await apiClient.get<unknown>('/quotations');
       const list = unwrapList<unknown>(res?.data).map(mapQuotation);
-      if (list.length > 0) {
-        saveStoredQuotations(list);
-        return {
-          success: true,
-          message: res?.message || 'Quotations retrieved successfully',
-          data: list,
-        };
-      }
+      saveStoredQuotations(list);
+      return {
+        success: true,
+        message: res?.message || 'Quotations retrieved successfully',
+        data: list,
+      };
     } catch {
       // offline fallback
     }

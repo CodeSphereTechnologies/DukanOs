@@ -127,7 +127,7 @@ class ReportService
     }
 
     /**
-     * Inventory summary: totals + low-stock products.
+     * Inventory summary: totals + low-stock products + ledger reconciliation accuracy.
      */
     public function inventory(int $tenantId): array
     {
@@ -145,11 +145,56 @@ class ReportService
                 'threshold' => (float) $i->min_quantity_threshold,
             ]);
 
+        $reconciliation = $this->stockReconciliation($tenantId);
+
         return [
             'total_products' => Product::where('tenant_id', $tenantId)->count(),
             'total_stock_units' => $this->money((float) Inventory::where('tenant_id', $tenantId)->sum('quantity')),
             'low_stock_count' => $lowStock->count(),
             'low_stock' => $lowStock,
+            'verified_products' => $reconciliation['verified_products'],
+            'reconciled_products' => $reconciliation['reconciled_products'],
+            'stock_accuracy' => $reconciliation['stock_accuracy'],
+        ];
+    }
+
+    /**
+     * Stock accuracy = % of products whose on-record quantity matches the
+     * running balance implied by their inventory transaction ledger.
+     */
+    private function stockReconciliation(int $tenantId): array
+    {
+        $rows = Inventory::query()
+            ->where('tenant_id', $tenantId)
+            ->with(['transactions' => fn ($q) => $q->orderByDesc('id')])
+            ->get();
+
+        $verified = 0;
+        $reconciled = 0;
+
+        foreach ($rows as $inventory) {
+            $ledger = $inventory->transactions->first();
+            $quantity = (float) $inventory->quantity;
+
+            if (! $ledger) {
+                // No movements recorded: a zero balance is internally consistent.
+                if ($quantity === 0.0) {
+                    $verified++;
+                    $reconciled++;
+                }
+                continue;
+            }
+
+            $verified++;
+            if (abs((float) $ledger->after_quantity - $quantity) < 0.005) {
+                $reconciled++;
+            }
+        }
+
+        return [
+            'verified_products' => $verified,
+            'reconciled_products' => $reconciled,
+            'stock_accuracy' => $verified > 0 ? round(($reconciled / $verified) * 100, 1) : 0.0,
         ];
     }
 

@@ -2,9 +2,9 @@ import { apiClient } from './api-client';
 import { ApiError, type ApiResponse } from '../types/api.types';
 import type { Product, Category, Brand, Specification } from '../types/product.types';
 
-export const STORAGE_KEY_PRODUCTS = 'dukanos_products_v4';
-export const STORAGE_KEY_CATEGORIES = 'dukanos_categories_v4';
-export const STORAGE_KEY_BRANDS = 'dukanos_brands_v4';
+export const STORAGE_KEY_PRODUCTS = 'dukanos_products_v5';
+export const STORAGE_KEY_CATEGORIES = 'dukanos_categories_v5';
+export const STORAGE_KEY_BRANDS = 'dukanos_brands_v5';
 
 export const INITIAL_CATEGORIES: Category[] = [];
 
@@ -109,14 +109,12 @@ export const productService = {
     try {
       const res = await apiClient.get<unknown>('/products');
       const list = unwrapList<unknown>(res?.data).map(mapProduct);
-      if (list.length > 0) {
-        saveStoredProducts(list);
-        return {
-          success: true,
-          message: res?.message || 'Products retrieved',
-          data: list,
-        };
-      }
+      saveStoredProducts(list);
+      return {
+        success: true,
+        message: res?.message || 'Products retrieved',
+        data: list,
+      };
     } catch {
       // offline fallback
     }
@@ -130,14 +128,12 @@ export const productService = {
     try {
       const res = await apiClient.get<unknown>('/categories');
       const list = unwrapList<unknown>(res?.data) as Category[];
-      if (list.length > 0) {
-        saveStoredCategories(list);
-        return {
-          success: true,
-          message: res?.message || 'Categories retrieved',
-          data: list,
-        };
-      }
+      saveStoredCategories(list);
+      return {
+        success: true,
+        message: res?.message || 'Categories retrieved',
+        data: list,
+      };
     } catch {
       // offline fallback
     }
@@ -152,14 +148,12 @@ export const productService = {
     try {
       const res = await apiClient.get<unknown>('/brands');
       const list = unwrapList<unknown>(res?.data) as Brand[];
-      if (list.length > 0) {
-        saveStoredBrands(list);
-        return {
-          success: true,
-          message: res?.message || 'Brands retrieved',
-          data: list,
-        };
-      }
+      saveStoredBrands(list);
+      return {
+        success: true,
+        message: res?.message || 'Brands retrieved',
+        data: list,
+      };
     } catch {
       // offline fallback
     }

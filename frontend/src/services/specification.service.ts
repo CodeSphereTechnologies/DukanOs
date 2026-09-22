@@ -2,7 +2,7 @@ import { apiClient } from './api-client';
 import type { ApiResponse } from '../types/api.types';
 import type { Specification } from '../types/product.types';
 
-const STORAGE_KEY = 'dukanos_specifications_v4';
+const STORAGE_KEY = 'dukanos_specifications_v5';
 
 export const INITIAL_SPECS: Specification[] = [];
 

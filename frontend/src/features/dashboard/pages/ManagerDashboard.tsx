@@ -8,7 +8,8 @@ import { Dialog } from '../../../components/ui/Dialog';
 import { FormField } from '../../../components/ui/FormField';
 import { Input } from '../../../components/ui/Input';
 import { Package, FileText, CheckCircle2 } from 'lucide-react';
-import { inventoryService, type ReorderQueueItem } from '../../../services/inventory.service';
+import { inventoryService, type ReorderQueueItem, type StockAccuracySummary } from '../../../services/inventory.service';
+import { invoiceService } from '../../../services/invoice.service';
 
 export const ManagerDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -18,6 +19,9 @@ export const ManagerDashboard: React.FC = () => {
   const [newStock, setNewStock] = useState<number>(0);
   const [adjustError, setAdjustError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [activeQuotations, setActiveQuotations] = useState<number | null>(null);
+  const [readyQuotations, setReadyQuotations] = useState(0);
+  const [stockAccuracy, setStockAccuracy] = useState<StockAccuracySummary | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -32,6 +36,29 @@ export const ManagerDashboard: React.FC = () => {
       .finally(() => {
         if (active) setLoadingQueue(false);
       });
+
+    invoiceService
+      .getQuotations()
+      .then((res) => {
+        if (!active) return;
+        const quotations = res.data || [];
+        const activeList = quotations.filter((q) => ['draft', 'sent', 'accepted'].includes(q.status));
+        setActiveQuotations(activeList.length);
+        setReadyQuotations(activeList.filter((q) => ['sent', 'accepted'].includes(q.status)).length);
+      })
+      .catch(() => {
+        if (active) setActiveQuotations(0);
+      });
+
+    inventoryService
+      .getStockAccuracy()
+      .then((summary) => {
+        if (active) setStockAccuracy(summary);
+      })
+      .catch(() => {
+        if (active) setStockAccuracy(null);
+      });
+
     return () => {
       active = false;
     };
@@ -115,14 +142,22 @@ export const ManagerDashboard: React.FC = () => {
         />
         <StatCard
           title="Active Quotations"
-          value="4"
-          change={{ value: '2 ready to convert to invoice', trend: 'up' }}
+          value={activeQuotations === null ? '—' : activeQuotations}
+          change={{
+            value: activeQuotations === null ? 'Loading quotations' : `${readyQuotations} ready to convert to invoice`,
+            trend: readyQuotations > 0 ? 'up' : 'down',
+          }}
           icon={<FileText className="w-5 h-5" />}
         />
         <StatCard
           title="Stock Accuracy"
-          value="98.2%"
-          change={{ value: 'Cycle count verified', trend: 'up' }}
+          value={stockAccuracy === null ? '—' : `${stockAccuracy.accuracy}%`}
+          change={{
+            value: stockAccuracy === null
+              ? 'Loading stock ledger'
+              : `${stockAccuracy.reconciled_products} of ${stockAccuracy.verified_products} items ledger-reconciled`,
+            trend: stockAccuracy && stockAccuracy.accuracy >= 95 ? 'up' : 'down',
+          }}
           icon={<CheckCircle2 className="w-5 h-5 text-[#065F46]" />}
         />
       </div>

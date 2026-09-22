@@ -2,7 +2,7 @@ import { apiClient } from './api-client';
 import type { ApiResponse } from '../types/api.types';
 import type { Unit } from '../types/product.types';
 
-export const STORAGE_KEY_UNITS = 'dukanos_units_v4';
+export const STORAGE_KEY_UNITS = 'dukanos_units_v5';
 
 export const INITIAL_UNITS: Unit[] = [];
 
@@ -31,7 +31,7 @@ export const unitService = {
   async getAll(): Promise<ApiResponse<Unit[]>> {
     try {
       const res = await apiClient.get<Unit[]>('/units');
-      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+      if (res && Array.isArray(res.data)) {
         return res;
       }
     } catch {

@@ -18,7 +18,7 @@ export interface EmployeeSalary {
   payment_method?: 'cash' | 'bank_transfer' | 'cheque';
 }
 
-export const STORAGE_KEY_PAYROLL = 'dukanos_payroll_v4';
+export const STORAGE_KEY_PAYROLL = 'dukanos_payroll_v5';
 
 export const INITIAL_SALARIES: EmployeeSalary[] = [];
 

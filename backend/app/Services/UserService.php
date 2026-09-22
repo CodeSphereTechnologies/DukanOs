@@ -25,6 +25,10 @@ class UserService
             throw ValidationException::withMessages(['email' => ['This email is already registered.']]);
         }
 
+        if (! $actor->tenant_id) {
+            throw ValidationException::withMessages(['role' => ['Log in with a store account before creating staff.']]);
+        }
+
         $role = Role::where('slug', $data['role'])->first();
 
         if (! $role || $role->slug === Role::SUPER_ADMIN) {

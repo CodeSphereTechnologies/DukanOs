@@ -2,8 +2,8 @@ import { apiClient } from './api-client';
 import type { ApiResponse } from '../types/api.types';
 import type { Customer, CustomerLedgerEntry } from '../types/customer.types';
 
-export const STORAGE_KEY_CUSTOMERS = 'dukanos_customers_v4';
-export const STORAGE_KEY_CUSTOMER_LEDGER = 'dukanos_customer_ledger_v4';
+export const STORAGE_KEY_CUSTOMERS = 'dukanos_customers_v5';
+export const STORAGE_KEY_CUSTOMER_LEDGER = 'dukanos_customer_ledger_v5';
 
 export const INITIAL_CUSTOMERS: Customer[] = [];
 
@@ -89,14 +89,12 @@ export const customerService = {
     try {
       const res = await apiClient.get<unknown>('/customers');
       const list = unwrapList<unknown>(res?.data).map(mapCustomer);
-      if (list.length > 0) {
-        saveStoredCustomers(list);
-        return {
-          success: true,
-          message: res?.message || 'Customers retrieved successfully',
-          data: list,
-        };
-      }
+      saveStoredCustomers(list);
+      return {
+        success: true,
+        message: res?.message || 'Customers retrieved successfully',
+        data: list,
+      };
     } catch {
       // offline fallback
     }

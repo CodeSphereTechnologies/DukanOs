@@ -16,7 +16,7 @@ export interface FinanceLedgerItem {
   created_at?: string;
 }
 
-export const STORAGE_KEY_FINANCE = 'dukanos_finance_ledger_v4';
+export const STORAGE_KEY_FINANCE = 'dukanos_finance_ledger_v5';
 
 export const INITIAL_FINANCE_ENTRIES: FinanceLedgerItem[] = [];
 

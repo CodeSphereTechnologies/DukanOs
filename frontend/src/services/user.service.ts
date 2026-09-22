@@ -3,7 +3,7 @@ import type { ApiResponse } from '../types/api.types';
 import type { StoreUser } from '../types/user.types';
 import type { RoleSlug } from '../types/auth.types';
 
-export const STORAGE_KEY_USERS = 'dukanos_users';
+export const STORAGE_KEY_USERS = 'dukanos_users_v2';
 
 export const ROLES_CONFIG: Record<RoleSlug, { id: number; name: string; slug: RoleSlug; description: string }> = {
   owner: { id: 2, name: 'Store Owner', slug: 'owner', description: 'Full store administrative and financial control' },
@@ -13,12 +13,25 @@ export const ROLES_CONFIG: Record<RoleSlug, { id: number; name: string; slug: Ro
   super_admin: { id: 1, name: 'Super Admin', slug: 'super_admin', description: 'Platform multi-tenant infrastructure admin' },
 };
 
-export const INITIAL_USERS: StoreUser[] = [
-  { id: 1, name: 'Muhammad Akram Ch.', email: 'owner@punjabelectric.pk', phone: '+92 300 4125678', status: 'active', role: { id: 2, name: 'Store Owner', slug: 'owner' }, created_at: '2026-08-01T08:00:00Z' },
-  { id: 2, name: 'Tariq Mehmood', email: 'manager@punjabelectric.pk', phone: '+92 301 5551234', status: 'active', role: { id: 3, name: 'Store Manager', slug: 'manager' }, created_at: '2026-08-05T09:30:00Z' },
-  { id: 3, name: 'Kashif Ali', email: 'cashier@punjabelectric.pk', phone: '+92 302 7778899', status: 'active', role: { id: 4, name: 'POS Cashier', slug: 'cashier' }, created_at: '2026-08-10T10:00:00Z' },
-  { id: 4, name: 'Zahid Hussain', email: 'accountant@punjabelectric.pk', phone: '+92 303 9991122', status: 'active', role: { id: 5, name: 'Store Accountant', slug: 'accountant' }, created_at: '2026-08-12T11:15:00Z' },
-];
+export const INITIAL_USERS: StoreUser[] = [];
+
+function mapStoreUser(raw: unknown): StoreUser {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const role = (r.role ?? {}) as Record<string, unknown>;
+  return {
+    id: Number(r.id ?? 0),
+    name: String(r.name ?? ''),
+    email: String(r.email ?? ''),
+    phone: r.phone != null ? String(r.phone) : undefined,
+    status: (r.status === 'inactive' ? 'inactive' : 'active') as StoreUser['status'],
+    role: {
+      id: Number(role.id ?? 1),
+      name: String(role.name ?? 'Staff'),
+      slug: (role.slug ?? 'cashier') as StoreUser['role']['slug'],
+    },
+    created_at: String(r.created_at ?? new Date().toISOString()),
+  };
+}
 
 function getStoredUsers(): StoreUser[] {
   if (typeof window === 'undefined') return INITIAL_USERS;
@@ -47,11 +60,12 @@ function saveStoredUsers(users: StoreUser[]): void {
 export const userService = {
   async getAll(): Promise<ApiResponse<StoreUser[]>> {
     try {
-      const res = await apiClient.get<StoreUser[]>('/users');
-      if (res && res.data && res.data.length > 0) {
-        saveStoredUsers(res.data);
-        return res;
-      }
+      const res = await apiClient.get<unknown>('/users');
+      const payload = (res?.data ?? {}) as Record<string, unknown>;
+      const list = Array.isArray(payload.data) ? payload.data : [];
+      const users = list.map(mapStoreUser);
+      saveStoredUsers(users);
+      return { success: true, message: 'Users retrieved', data: users };
     } catch {
       // offline fallback
     }
