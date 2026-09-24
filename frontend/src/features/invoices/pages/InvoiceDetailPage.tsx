@@ -9,12 +9,10 @@ import { formatCurrency, formatDate } from '../../../lib/formatters';
 import { invoiceService } from '../../../services/invoice.service';
 import type { Invoice, InvoiceItem, SaleReturn } from '../../../types/invoice.types';
 import { ArrowLeft, Printer, Download, RotateCcw, User, Mail, Receipt, ExternalLink } from 'lucide-react';
-import { useToast } from '../../../hooks/useToast';
 
 export const InvoiceDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { addToast } = useToast();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -189,7 +187,7 @@ export const InvoiceDetailPage: React.FC = () => {
           <Button variant="secondary" leftIcon={<Download className="w-4 h-4" />} onClick={printInvoice}>
             PDF
           </Button>
-          <Button variant="primary" leftIcon={<RotateCcw className="w-4 h-4" />} onClick={() => addToast({ title: 'Notice', message: 'Returns module is currently under development.', type: 'info' })}>
+          <Button variant="primary" leftIcon={<RotateCcw className="w-4 h-4" />} onClick={() => navigate(`/returns/new?invoice_id=${invoice?.id}`)}>
             Create Return
           </Button>
         </div>

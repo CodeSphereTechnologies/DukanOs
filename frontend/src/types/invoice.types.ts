@@ -5,7 +5,7 @@ export interface InvoiceItem {
   id: number;
   invoice_id?: number;
   product_id: number;
-  product_name: string;
+  product_name?: string;
   sku: string;
   unit_price: number;
   quantity: number;
@@ -19,10 +19,10 @@ export interface SaleReturnItem {
   return_id: number;
   invoice_item_id?: number;
   product_id: number;
-  product_name: string;
+  product_name?: string;
   quantity: number;
   unit_price: number;
-  refund_amount: number;
+  amount: number;
   product?: Product;
 }
 
@@ -36,7 +36,7 @@ export interface SaleReturn {
   reason?: string;
   refund_type: 'cash' | 'credit' | 'bank_transfer' | 'exchange';
   total_amount: number;
-  status: 'pending' | 'approved' | 'processed' | 'rejected';
+  status: 'pending' | 'approved' | 'processed' | 'rejected' | 'completed';
   items?: SaleReturnItem[];
   created_at: string;
 }

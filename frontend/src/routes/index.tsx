@@ -24,6 +24,9 @@ import { ProductDetailPage } from '../features/products/pages/ProductDetailPage'
 import { CatalogPage } from '../features/products/pages/CatalogPage';
 import { InvoicesPage } from '../features/invoices/pages/InvoicesPage';
 import { InvoiceDetailPage } from '../features/invoices/pages/InvoiceDetailPage';
+import { ReturnsPage } from '../features/returns/pages/ReturnsPage';
+import { CreateReturnPage } from '../features/returns/pages/CreateReturnPage';
+import { ReturnDetailPage } from '../features/returns/pages/ReturnDetailPage';
 import { QuotationsPage } from '../features/quotations/pages/QuotationsPage';
 import { CustomersPage } from '../features/customers/pages/CustomersPage';
 import { CustomerDetailPage } from '../features/customers/pages/CustomerDetailPage';
@@ -215,6 +218,30 @@ export const AppRoutes: React.FC = () => {
           element={
             <RoleRoute allowedRoles={['owner', 'manager', 'cashier', 'accountant']}>
               <InvoiceDetailPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/returns"
+          element={
+            <RoleRoute allowedRoles={['owner', 'manager', 'cashier', 'accountant']}>
+              <ReturnsPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/returns/new"
+          element={
+            <RoleRoute allowedRoles={['owner', 'manager', 'cashier']}>
+              <CreateReturnPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/returns/:id"
+          element={
+            <RoleRoute allowedRoles={['owner', 'manager', 'cashier', 'accountant']}>
+              <ReturnDetailPage />
             </RoleRoute>
           }
         />

@@ -22,7 +22,7 @@ class SaleReturnResource extends JsonResource
             'invoice' => $this->whenLoaded('invoice', fn () => new InvoiceResource($this->invoice)),
             'items' => $this->whenLoaded('items', fn () => $this->items->map(fn ($i) => [
                 'id' => $i->id,
-                'product_id' => $i->product_id,
+                'product_id' => $i->product_id, 'product_name' => $i->product?->name, 'invoice_item_id' => $i->invoice_item_id,
                 'quantity' => (float) $i->quantity,
                 'unit_price' => (float) $i->unit_price,
                 'amount' => (float) $i->amount,

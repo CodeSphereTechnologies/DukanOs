@@ -87,6 +87,7 @@ class ApiClient {
       const json = await response.json();
       return json as ApiResponse<T>;
     } catch (err) {
+      // Standalone Fallback for Demo
       // Do not use demo fallback for legitimate backend responses
       if (err instanceof ApiError) {
         throw err;

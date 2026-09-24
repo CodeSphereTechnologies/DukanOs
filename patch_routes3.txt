@@ -1,0 +1,24 @@
+        <Route
+          path="/returns"
+          element={
+            <RoleRoute allowedRoles={['owner', 'manager', 'cashier', 'accountant']}>
+              <ReturnsPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/returns/new"
+          element={
+            <RoleRoute allowedRoles={['owner', 'manager', 'cashier']}>
+              <CreateReturnPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/returns/:id"
+          element={
+            <RoleRoute allowedRoles={['owner', 'manager', 'cashier', 'accountant']}>
+              <ReturnDetailPage />
+            </RoleRoute>
+          }
+        />
