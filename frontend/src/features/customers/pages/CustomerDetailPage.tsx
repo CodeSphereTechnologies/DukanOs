@@ -8,6 +8,7 @@ import {
   FileText,
   History,
   ShoppingCart,
+  RotateCcw,
   CornerDownRight,
   Pencil,
 } from 'lucide-react';
@@ -20,6 +21,8 @@ import type { Customer, CustomerLedgerEntry } from '../../../types/customer.type
 import type { Invoice, Quotation } from '../../../types/invoice.types';
 import { customerService } from '../../../services/customer.service';
 import { invoiceService } from '../../../services/invoice.service';
+import { returnService } from '../../../services/return.service';
+import type { SaleReturn } from '../../../types/invoice.types';
 
 export const CustomerDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +33,7 @@ export const CustomerDetailPage: React.FC = () => {
   const [ledger, setLedger] = useState<CustomerLedgerEntry[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [quotations, setQuotations] = useState<Quotation[]>([]);
+  const [returns, setReturns] = useState<SaleReturn[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,11 +43,13 @@ export const CustomerDetailPage: React.FC = () => {
       const ledg = await customerService.getLedger(customerId);
       const inv = await invoiceService.getAll();
       const quo = await invoiceService.getQuotations();
+      const ret = await returnService.getAll();
       if (!active) return;
       setCustomer(cust);
       setLedger(ledg.data || []);
       setInvoices(inv.data || []);
       setQuotations(quo.data || []);
+      setReturns(ret.data || []);
       setLoading(false);
     })();
     return () => {
@@ -53,6 +59,8 @@ export const CustomerDetailPage: React.FC = () => {
 
   const stats = useMemo(() => {
     const customerInvoices = invoices.filter((i) => i.customer_id === customerId);
+    const customerReturns = returns.filter((r) => r.customer?.id === customerId || r.customer_id === customerId);
+    const totalRefunded = customerReturns.reduce((sum, r) => sum + r.total_amount, 0);
     const customerQuotations = quotations.filter((q) => q.customer_id === customerId);
     const totalBilled = customerInvoices.reduce((sum, i) => sum + i.total_amount, 0);
     const totalPaid = customerInvoices.reduce(
@@ -69,6 +77,8 @@ export const CustomerDetailPage: React.FC = () => {
     );
     return {
       invoices: customerInvoices.length,
+      returns: customerReturns.length,
+      totalRefunded,
       quotations: customerQuotations.length,
       totalBilled,
       totalPaid,
@@ -111,6 +121,10 @@ export const CustomerDetailPage: React.FC = () => {
   const customerInvoices = invoices
     .filter((i) => i.customer_id === customerId)
     .sort((a, b) => b.invoice_date > a.invoice_date ? 1 : -1);
+
+  const customerReturns = returns
+    .filter((r) => r.customer?.id === customerId || r.customer_id === customerId)
+    .sort((a, b) => b.return_date > a.return_date ? 1 : -1);
 
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
@@ -197,11 +211,12 @@ export const CustomerDetailPage: React.FC = () => {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <Stat label="Member Since" value={customer.created_at ? formatDate(customer.created_at) : 'N/A'} />
         <Stat label="Invoices" value={String(stats.invoices)} sub={`${stats.quotations} quotation(s)`} />
         <Stat label="Total Billed" value={formatCurrency(stats.totalBilled)} />
         <Stat label="Total Paid" value={formatCurrency(stats.totalPaid)} accent="#065F46" />
+        <Stat label="Total Refunded" value={formatCurrency(stats.totalRefunded)} accent="#DC2626" />
       </div>
 
       {/* Ledger Transactions */}
@@ -250,6 +265,47 @@ export const CustomerDetailPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Recent Returns */}
+      {customerReturns.length > 0 && (
+        <div className="bg-white border border-[#E4E4E7] rounded-2xl p-5 shadow-subtle">
+          <h3 className="text-sm font-semibold text-[#18181B] mb-4 flex items-center gap-1.5">
+            <RotateCcw className="w-4 h-4 text-[#DC2626]" /> Sales Returns
+          </h3>
+          <div className="border border-[#E4E4E7] rounded-xl overflow-x-auto">
+            <table className="w-full text-xs text-left border-collapse min-w-[520px]">
+              <thead>
+                <tr className="bg-[#FAFAF8] text-[#71717A] uppercase font-medium border-b border-[#E4E4E7]">
+                  <th className="px-3 py-2.5">Return #</th>
+                  <th className="px-3 py-2.5">Date</th>
+                  <th className="px-3 py-2.5">Method</th>
+                  <th className="px-3 py-2.5 text-right">Amount</th>
+                  <th className="px-3 py-2.5 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E4E4E7]/60">
+                {customerReturns.slice(0, 8).map((ret) => (
+                  <tr key={ret.id} className="hover:bg-[#FAFAF8] cursor-pointer" onClick={() => navigate(`/returns/${ret.id}`)}>
+                    <td className="px-3 py-2.5 font-mono text-[#2563EB] hover:underline">
+                      {ret.return_number}
+                    </td>
+                    <td className="px-3 py-2.5 text-[#52525B]">{formatDate(ret.return_date)}</td>
+                    <td className="px-3 py-2.5 capitalize text-[#52525B]">{ret.refund_type.replace('_', ' ')}</td>
+                    <td className="px-3 py-2.5 text-right font-medium text-[#DC2626]">
+                      {formatCurrency(ret.total_amount)}
+                    </td>
+                    <td className="px-3 py-2.5 text-center">
+                      <Badge variant={ret.status === 'processed' || ret.status === 'completed' ? 'mint' : 'warning'}>
+                        {ret.status || 'Completed'}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Recent Invoices */}
       <div className="bg-white border border-[#E4E4E7] rounded-2xl p-5 shadow-subtle">
