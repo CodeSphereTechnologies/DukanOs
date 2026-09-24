@@ -16,6 +16,15 @@ export const InvoiceDetailPage: React.FC = () => {
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const getReturnedQuantity = (invoiceItemId: number) => {
+    if (!invoice || !invoice.returns) return 0;
+    return invoice.returns.reduce((acc, ret) => {
+      if (ret.status === 'rejected') return acc;
+      const item = ret.items?.find((i) => i.invoice_item_id === invoiceItemId);
+      return acc + (item?.quantity || 0);
+    }, 0);
+  };
+
   const printInvoice = () => {
     if (!invoice) return;
     const w = window.open('', '_blank');
@@ -104,15 +113,25 @@ export const InvoiceDetailPage: React.FC = () => {
     {
       key: 'product_name',
       header: 'Product',
-      render: (item) => (
-        <div>
-          <Link to={`/products/${item.product_id}`} className="font-medium text-black hover:underline inline-flex items-center gap-1">
-            {item.product_name}
-            <ExternalLink className="w-3 h-3 text-[#A1A1AA]" />
-          </Link>
-          <div className="text-xs text-[#71717A]">{item.sku}</div>
-        </div>
-      ),
+      render: (item) => {
+        const returnedQty = getReturnedQuantity(item.id);
+        return (
+          <div>
+            <div className="flex items-center gap-2">
+              <Link to={`/products/${item.product_id}`} className="font-medium text-black hover:underline inline-flex items-center gap-1">
+                {item.product_name}
+                <ExternalLink className="w-3 h-3 text-[#A1A1AA]" />
+              </Link>
+              {returnedQty > 0 && (
+                <a href="#returns-section" className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA] hover:bg-[#FEE2E2] transition-colors cursor-pointer" title="View Returns">
+                  <RotateCcw className="w-3 h-3" /> Returned ({returnedQty})
+                </a>
+              )}
+            </div>
+            <div className="text-xs text-[#71717A]">{item.sku}</div>
+          </div>
+        );
+      },
     },
     {
       key: 'unit_price',
@@ -325,7 +344,7 @@ export const InvoiceDetailPage: React.FC = () => {
       </Card>
 
       {invoice.returns && invoice.returns.length > 0 && (
-        <Card className="shadow-subtle border-[#E4E4E7] overflow-hidden">
+        <Card id="returns-section" className="shadow-subtle border-[#E4E4E7] overflow-hidden scroll-mt-24">
           <div className="p-5 border-b border-[#F4F4F5] flex justify-between items-center bg-[#FEF2F2]/30">
             <h3 className="font-medium text-[#DC2626] flex items-center gap-2">
               <RotateCcw className="w-4 h-4" />

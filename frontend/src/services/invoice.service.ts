@@ -176,6 +176,33 @@ function mapInvoice(raw: unknown): Invoice {
         total_price: asNumber(i.total_price ?? i.line_total) || unitPrice * quantity,
       };
     }),
+    returns: (Array.isArray(r.returns) ? r.returns : []).map((ret: any) => {
+      const rt = asRecord(ret);
+      return {
+        id: asNumber(rt.id),
+        return_number: asString(rt.return_number),
+        invoice_id: asNumber(rt.invoice_id),
+        return_date: asString(rt.return_date),
+        reason: asString(rt.reason),
+        refund_type: asString(rt.refund_type, 'cash') as 'cash' | 'credit' | 'bank_transfer' | 'exchange',
+        total_amount: asNumber(rt.total_amount),
+        status: asString(rt.status, 'pending') as 'pending' | 'approved' | 'processed' | 'rejected' | 'completed',
+        created_at: asString(rt.created_at, new Date().toISOString()),
+        items: (Array.isArray(rt.items) ? rt.items : []).map((ri: any) => {
+          const rti = asRecord(ri);
+          return {
+            id: asNumber(rti.id),
+            return_id: asNumber(rti.return_id),
+            invoice_item_id: asNumber(rti.invoice_item_id),
+            product_id: asNumber(rti.product_id),
+            product_name: asString(rti.product_name) || asString(rti.name),
+            quantity: asNumber(rti.quantity),
+            unit_price: asNumber(rti.unit_price),
+            amount: asNumber(rti.amount),
+          };
+        }),
+      };
+    }),
     created_at: asString(r.created_at, new Date().toISOString()),
   };
 }
