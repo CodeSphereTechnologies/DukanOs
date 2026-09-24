@@ -4,6 +4,8 @@ import { PageContainer } from '../../../components/ui/PageContainer';
 import { DataTable, type Column } from '../../../components/ui/DataTable';
 import { SearchToolbar } from '../../../components/ui/SearchToolbar';
 import { Badge } from '../../../components/ui/Badge';
+import { Button } from '../../../components/ui/Button';
+import { RotateCcw } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../../lib/formatters';
 import { returnService } from '../../../services/return.service';
 import type { SaleReturn } from '../../../types/invoice.types';
@@ -77,6 +79,11 @@ export const ReturnsPage: React.FC = () => {
     <PageContainer
       title="Sale Returns"
       subtitle="View all processed sales returns, refunds, and restocked items."
+      primaryAction={
+        <Button variant="primary" leftIcon={<RotateCcw className="w-4 h-4" />} onClick={() => navigate('/returns/new')}>
+          Add Return
+        </Button>
+      }
     >
       <div className="space-y-4">
         <SearchToolbar

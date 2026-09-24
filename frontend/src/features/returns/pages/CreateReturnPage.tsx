@@ -4,6 +4,7 @@ import { PageContainer } from '../../../components/ui/PageContainer';
 import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { Combobox } from '../../../components/ui/Combobox';
 import { Select } from '../../../components/ui/Select';
 import { useToast } from '../../../hooks/useToast';
 import { formatCurrency } from '../../../lib/formatters';
@@ -28,6 +29,14 @@ export const CreateReturnPage: React.FC = () => {
   const [reason, setReason] = useState('');
   
   const [searchInvoiceNumber, setSearchInvoiceNumber] = useState('');
+  const [allInvoices, setAllInvoices] = useState<Invoice[]>([]);
+
+  useEffect(() => {
+    if (!invoiceId) {
+      invoiceService.getAll().then(res => setAllInvoices(res.data || []));
+    }
+  }, [invoiceId]);
+
 
   useEffect(() => {
     if (invoiceId) {
@@ -38,16 +47,13 @@ export const CreateReturnPage: React.FC = () => {
     }
   }, [invoiceId]);
 
-  const loadInvoice = async () => {
-    if (!searchInvoiceNumber.trim()) return;
+  const loadInvoice = async (id: number | string) => {
+    if (!id) return;
     setLoading(true);
     try {
-      // Very naive search - realistically you'd have an API endpoint to search by number.
-      // We will just fetch all and find, or just use the ID if they entered an ID.
-      const res = await invoiceService.getAll();
-      const found = res.data?.find(i => i.invoice_number.toLowerCase() === searchInvoiceNumber.toLowerCase() || String(i.id) === searchInvoiceNumber);
-      if (found) {
-        setInvoice(found);
+      const res = await invoiceService.getById(id);
+      if (res.data) {
+        setInvoice(res.data);
       } else {
         addToast({ title: 'Not Found', message: 'Could not find that invoice.', type: 'error' });
       }
@@ -110,14 +116,20 @@ export const CreateReturnPage: React.FC = () => {
         <Card className="max-w-md mx-auto mt-12 p-6 shadow-subtle border-[#E4E4E7]">
           <h3 className="text-lg font-medium text-black mb-4">Find Invoice</h3>
           <p className="text-sm text-[#71717A] mb-4">Enter the invoice number or ID to initiate a return.</p>
-          <div className="flex gap-2">
-            <Input 
-              placeholder="e.g. INV-2026-005" 
-              value={searchInvoiceNumber} 
-              onChange={(e) => setSearchInvoiceNumber(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && loadInvoice()}
+          <div className="flex gap-2 w-full">
+            <Combobox 
+              options={allInvoices.map(inv => ({
+                label: inv.invoice_number,
+                value: inv.id,
+                sublabel: `${inv.customer?.name || 'Walk-in'} ${inv.customer?.phone ? `(${inv.customer.phone})` : ''} - Total: ${formatCurrency(inv.total_amount)}`
+              }))}
+              value={searchInvoiceNumber}
+              onChange={(val) => {
+                setSearchInvoiceNumber(String(val));
+                loadInvoice(val);
+              }}
+              placeholder="Search by invoice number, customer name, or phone..."
             />
-            <Button variant="primary" onClick={loadInvoice}>Search</Button>
           </div>
         </Card>
       </PageContainer>
