@@ -113,7 +113,7 @@ export const CreateReturnPage: React.FC = () => {
   if (!invoice && !loading) {
     return (
       <PageContainer title="Create Return">
-        <Card className="max-w-md mx-auto mt-12 p-6 shadow-subtle border-[#E4E4E7]">
+        <Card className="max-w-md mx-auto mt-12 p-6 shadow-subtle border-[#E4E4E7] overflow-visible">
           <h3 className="text-lg font-medium text-black mb-4">Find Invoice</h3>
           <p className="text-sm text-[#71717A] mb-4">Enter the invoice number or ID to initiate a return.</p>
           <div className="flex gap-2 w-full">
