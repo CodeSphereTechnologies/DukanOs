@@ -181,6 +181,31 @@ function mapInvoice(raw: unknown): Invoice {
 }
 
 export const invoiceService = {
+  async getById(id: number | string): Promise<ApiResponse<Invoice>> {
+    try {
+      const res = await apiClient.get<unknown>(`/invoices/${id}`);
+      if (res && res.data) {
+        const invoice = mapInvoice(res.data);
+        return {
+          success: true,
+          message: 'Invoice retrieved successfully',
+          data: invoice,
+        };
+      }
+    } catch {
+      // offline fallback
+    }
+    const current = getStoredInvoices();
+    const found = current.find((i) => String(i.id) === String(id));
+    if (found) {
+      return {
+        success: true,
+        message: 'Invoice retrieved successfully',
+        data: found,
+      };
+    }
+    throw new Error('Invoice not found');
+  },
   async getAll(): Promise<ApiResponse<Invoice[]>> {
     try {
       const all: Invoice[] = [];

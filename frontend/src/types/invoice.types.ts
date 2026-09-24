@@ -14,6 +14,33 @@ export interface InvoiceItem {
   product?: Product;
 }
 
+export interface SaleReturnItem {
+  id: number;
+  return_id: number;
+  invoice_item_id?: number;
+  product_id: number;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  refund_amount: number;
+  product?: Product;
+}
+
+export interface SaleReturn {
+  id: number;
+  return_number: string;
+  invoice_id: number;
+  customer_id?: number;
+  customer?: Customer;
+  return_date: string;
+  reason?: string;
+  refund_type: 'cash' | 'credit' | 'bank_transfer' | 'exchange';
+  total_amount: number;
+  status: 'pending' | 'approved' | 'processed' | 'rejected';
+  items?: SaleReturnItem[];
+  created_at: string;
+}
+
 export interface Invoice {
   id: number;
   invoice_number: string;
@@ -33,6 +60,7 @@ export interface Invoice {
   payment_method: 'cash' | 'bank_transfer' | 'card' | 'online' | 'other' | 'ledger';
   notes?: string;
   items: InvoiceItem[];
+  returns?: SaleReturn[];
   created_at: string;
 }
 

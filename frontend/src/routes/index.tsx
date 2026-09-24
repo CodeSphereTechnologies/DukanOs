@@ -23,6 +23,7 @@ import { EditProductPage } from '../features/products/pages/EditProductPage';
 import { ProductDetailPage } from '../features/products/pages/ProductDetailPage';
 import { CatalogPage } from '../features/products/pages/CatalogPage';
 import { InvoicesPage } from '../features/invoices/pages/InvoicesPage';
+import { InvoiceDetailPage } from '../features/invoices/pages/InvoiceDetailPage';
 import { QuotationsPage } from '../features/quotations/pages/QuotationsPage';
 import { CustomersPage } from '../features/customers/pages/CustomersPage';
 import { CustomerDetailPage } from '../features/customers/pages/CustomerDetailPage';
@@ -206,6 +207,14 @@ export const AppRoutes: React.FC = () => {
           element={
             <RoleRoute allowedRoles={['owner', 'manager', 'cashier', 'accountant']}>
               <InvoicesPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/invoices/:id"
+          element={
+            <RoleRoute allowedRoles={['owner', 'manager', 'cashier', 'accountant']}>
+              <InvoiceDetailPage />
             </RoleRoute>
           }
         />
