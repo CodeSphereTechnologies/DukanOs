@@ -319,6 +319,7 @@ export const POSPage: React.FC = () => {
       }
     }
 
+    try {
     await Promise.all(
       cart.map(async (item) => {
         await productService.updateStock(item.id, item.quantity);
@@ -346,24 +347,13 @@ export const POSPage: React.FC = () => {
         discount_amount: discountInput,
         total_amount: grandTotal,
         paid_amount: paymentMethod === 'ledger' ? 0 : amountPaid,
-        payment_method: paymentMethod,
+        payment_method: paymentMethod === 'ledger' ? 'other' : paymentMethod,
         payment_status: paymentMethod === 'ledger' ? 'ledger' : amountPaid >= grandTotal ? 'paid' : 'partial',
         notes: orderDescription.trim() || undefined,
       });
       docNumber = res.data?.invoice_number || 'INV-000000';
 
-      if (paymentMethod === 'ledger' && finalCustomer.id > 0) {
-        await customerService.updateBalance(finalCustomer.id, grandTotal);
-        await customerService.recordLedgerEntry({
-          customer_id: finalCustomer.id,
-          invoice_id: null,
-          transaction_type: 'debit',
-          amount: grandTotal,
-          running_balance: (finalCustomer.current_balance || 0) + grandTotal,
-          description: `Invoice ${docNumber} on account`,
-          date: new Date().toISOString().split('T')[0],
-        });
-      }
+
     } else {
       const res = await invoiceService.createQuotation({
         customer_id: finalCustomer.id > 0 ? finalCustomer.id : undefined,
@@ -381,6 +371,9 @@ export const POSPage: React.FC = () => {
     setCustomer(finalCustomer);
     setCompletedDoc({ number: docNumber, type: docType });
     setIsCompleted(true);
+    } catch (err: any) {
+      setCustomerError(err.message || 'Failed to complete transaction. Please check your inputs or try again.');
+    }
   };
 
   const handlePrint = () => {
