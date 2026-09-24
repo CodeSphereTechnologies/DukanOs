@@ -26,6 +26,11 @@ class CustomerController extends Controller
     {
         $customers = $this->customers->paginateForTenant($this->tenantId(), $request->integer('per_page', 25), $request->query('search'));
 
+        $customers->getCollection()->transform(function ($customer) {
+            $customer->setAttribute('balance', $this->ledger->balanceForCustomer($this->tenantId(), $customer->id));
+            return $customer;
+        });
+
         return $this->success(CustomerResource::collection($customers)->response()->getData(true), 'Customers retrieved.');
     }
 

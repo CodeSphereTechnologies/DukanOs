@@ -78,7 +78,7 @@ function mapCustomer(raw: unknown): Customer {
     email: asString(r.email) || undefined,
     address: asString(r.address) || undefined,
     city: asString(r.city) || undefined,
-    current_balance: asNumber(r.current_balance ?? r.opening_balance ?? r.balance),
+    current_balance: asNumber(r.balance ?? r.current_balance ?? r.opening_balance),
     status: (asString(r.status, 'active') as Customer['status']) || 'active',
     created_at: asString(r.created_at) || undefined,
   };

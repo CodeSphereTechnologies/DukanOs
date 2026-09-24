@@ -103,19 +103,6 @@ class InvoiceService
                 );
             }
 
-            if ($amountPaid > 0) {
-                $this->payments->createPayment(
-                    $tenantId,
-                    $invoice,
-                    $invoice->customer_id,
-                    $amountPaid,
-                    $data['payment_method'] ?? 'cash',
-                    $date,
-                    $user->id,
-                    $data['payment_reference'] ?? null,
-                );
-            }
-
             if ($invoice->customer_id) {
                 $this->postCustomerLedger(
                     $tenantId,
@@ -128,6 +115,19 @@ class InvoiceService
                     Invoice::class,
                     $invoice->id,
                     'Invoice '.$invoice->invoice_number,
+                );
+            }
+
+            if ($amountPaid > 0) {
+                $this->payments->createPayment(
+                    $tenantId,
+                    $invoice,
+                    $invoice->customer_id,
+                    $amountPaid,
+                    $data['payment_method'] ?? 'cash',
+                    $date,
+                    $user->id,
+                    $data['payment_reference'] ?? null,
                 );
             }
 
