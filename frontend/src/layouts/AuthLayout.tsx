@@ -33,7 +33,7 @@ export const AuthLayout: React.FC = () => {
       </div>
 
       {/* Right Column (Form) */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 lg:p-16 xl:p-24 bg-white h-full overflow-hidden">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 lg:p-16 xl:p-24 bg-white h-full overflow-hidden relative">
         <div className="w-full max-w-[420px] py-4">
           <Outlet />
         </div>

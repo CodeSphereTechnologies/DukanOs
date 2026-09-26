@@ -197,7 +197,7 @@ class PunjabElectricStoreSeeder extends Seeder
     private function seedTenantUsers(Tenant $tenant, array $roles): array
     {
         $defs = [
-            ['key' => 'owner', 'name' => 'Muhammad Akram Ch.', 'email' => 'owner@punjabelectric.pk', 'role' => 'owner', 'phone' => '+92 300 4125678'],
+            ['key' => 'owner', 'name' => 'Muhammad Akram Ch.', 'email' => '(owner@punjabelectric.pk)', 'role' => 'owner', 'phone' => '+92 300 4125678'],
             ['key' => 'manager', 'name' => 'Ahmed Raza', 'email' => 'manager@punjabelectric.pk', 'role' => 'manager', 'phone' => '+92 321 7788990'],
             ['key' => 'cashier', 'name' => 'Usman Ali', 'email' => 'cashier@punjabelectric.pk', 'role' => 'cashier', 'phone' => '+92 333 4561234'],
             ['key' => 'accountant', 'name' => 'Sana Javed', 'email' => 'accountant@punjabelectric.pk', 'role' => 'accountant', 'phone' => '+92 345 1122334'],
