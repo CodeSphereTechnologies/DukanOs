@@ -23,19 +23,26 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col w-full animate-in fade-in slide-in-from-bottom-4 duration-1000">
       
-      {/* Top Logo */}
+      {/* Top Logo - Bigger and Animated */}
       <div className="flex justify-center mb-16">
-        <img src="/logo-dark-rect-nobg.png" alt="DukanOS" className="h-8 object-contain" />
+        <div className="relative group cursor-pointer">
+          <div className="absolute inset-0 bg-[#059669]/10 blur-xl rounded-full scale-0 group-hover:scale-[1.8] transition-transform duration-700 ease-out"></div>
+          <img 
+            src="/logo-dark-rect-nobg.png" 
+            alt="DukanOS" 
+            className="relative h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-500 ease-out" 
+          />
+        </div>
       </div>
 
       {/* Header Text */}
-      <div className="text-center space-y-3 mb-10">
-        <h1 className="text-[36px] sm:text-[44px] leading-none font-serif text-[#18181B] tracking-tight">
+      <div className="text-center space-y-4 mb-12">
+        <h1 className="text-4xl sm:text-5xl leading-tight font-serif text-[#18181B] tracking-tight">
           Welcome Back
         </h1>
-        <p className="text-[13px] text-neutral-500 font-medium">
+        <p className="text-sm text-neutral-500 font-medium px-4">
           Enter your email and password to access your account
         </p>
       </div>
@@ -48,9 +55,9 @@ export const LoginPage: React.FC = () => {
             <DemoAccountPicker onSelectAccount={handleDemoSelect} isLoading={isLoading} />
         </div>
 
-        <div className="mt-10 text-center">
-            <p className="text-xs text-neutral-500 font-medium">
-                Don't have an account? <span className="font-bold text-[#18181B] cursor-pointer hover:underline transition-all">Sign Up</span>
+        <div className="mt-10 text-center pb-8">
+            <p className="text-sm text-neutral-500 font-medium">
+                Don't have an account? <span className="font-bold text-[#18181B] cursor-pointer hover:text-[#059669] hover:underline transition-all">Sign Up</span>
             </p>
         </div>
       </div>
