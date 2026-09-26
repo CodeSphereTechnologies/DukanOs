@@ -3,31 +3,44 @@ import { Outlet } from 'react-router-dom';
 
 export const AuthLayout: React.FC = () => {
   return (
-    <div className="min-h-screen w-full bg-[#000000] text-white flex flex-col justify-between selection:bg-[#C1FBD4] selection:text-black">
-      {/* Brand Header */}
-      <div className="p-6 sm:p-10 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-white text-black rounded-xl flex items-center justify-center font-bold text-lg font-display">
-            D
+    <div className="min-h-screen w-full bg-[#060608] flex items-center justify-center p-4 sm:p-6 lg:p-8">
+      {/* 2-Column White Card Container */}
+      <div className="w-full max-w-[1200px] h-[calc(100vh-32px)] sm:h-[calc(100vh-64px)] min-h-[600px] max-h-[850px] bg-white rounded-[32px] sm:rounded-[40px] shadow-2xl overflow-hidden flex flex-col lg:flex-row p-2 sm:p-3 gap-3">
+        
+        {/* Left Column (Image & Overlay) */}
+        <div className="relative hidden lg:flex flex-col w-1/2 rounded-[24px] sm:rounded-[32px] overflow-hidden p-10 justify-between items-start group">
+          <img 
+            src="/hero-v2.jpg"
+            alt="DukanOS Background" 
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-out"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-black/90 mix-blend-multiply"></div>
+          <div className="absolute inset-0 bg-gradient-to-tr from-[#059669]/20 to-transparent mix-blend-overlay"></div>
+          
+          {/* Top Line */}
+          <div className="relative z-10 w-full flex items-center gap-4">
+             <span className="text-[11px] font-bold tracking-[0.2em] text-white/90 uppercase">A Wise Choice</span>
+             <div className="h-px bg-white/20 flex-1"></div>
           </div>
-          <span className="font-bold text-xl tracking-tight font-display text-white">
-            Dukan<span className="text-[#C1FBD4]">OS</span>
-          </span>
+
+          {/* Bottom Text */}
+          <div className="relative z-10 text-white w-full">
+            <h1 className="text-4xl xl:text-[56px] font-bold leading-[1.05] font-serif tracking-tight mb-5">
+              Get<br/>Everything<br/>You Want
+            </h1>
+            <p className="text-sm text-white/70 max-w-sm leading-relaxed">
+              You can get everything you want if you work hard, trust the process, and stick to the plan.
+            </p>
+          </div>
         </div>
-        <div className="text-xs text-neutral-400 font-mono">v1.0-release</div>
+
+        {/* Right Column (Form) */}
+        <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-8 lg:p-12 xl:p-16 bg-white overflow-y-auto overflow-x-hidden scrollbar-none">
+          <div className="w-full max-w-[360px]">
+            <Outlet />
+          </div>
+        </div>
       </div>
-
-      {/* Main Form Center */}
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">
-          <Outlet />
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="p-6 text-center text-xs text-neutral-500 border-t border-neutral-900">
-        DukanOS Multi-Tenant Appliance & Electrical Operating System
-      </footer>
     </div>
   );
 };

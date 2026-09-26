@@ -101,7 +101,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {isMobile ? (
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-2.5 min-w-0">
-                <img src="/logo-dark-rect-nobg.png" alt="DukanOS" className="h-7 object-contain" />
+                <img src="/logo-light-rect-nobg.png" alt="DukanOS" className="h-7 object-contain" />
               </div>
               <button
                 type="button"
@@ -114,10 +114,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           ) : !collapsed ? (
             <div className="flex items-center gap-2 min-w-0">
-              <img src="/logo-dark-rect-nobg.png" alt="DukanOS" className="h-6 object-contain" />
-              <span className="text-[9px] font-semibold uppercase tracking-wider bg-[#ECFDF5] text-[#065F46] border border-[#A7F3D0] px-1.5 py-0.5 rounded-full leading-none">
+              <img src="/logo-light-rect-nobg.png" alt="DukanOS" className="h-16 object-contain" />
+              {/* <span className="text-[9px] font-semibold uppercase tracking-wider bg-[#ECFDF5] text-[#065F46] border border-[#A7F3D0] px-1.5 py-0.5 rounded-full leading-none">
                 Pro
-              </span>
+              </span> */}
             </div>
           ) : (
             <img src="/logo_nobg.png" alt="D" className="w-8 h-8 object-contain" />

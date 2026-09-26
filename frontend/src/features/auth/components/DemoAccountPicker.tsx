@@ -9,9 +9,9 @@ export interface DemoAccountPickerProps {
 
 export const DemoAccountPicker: React.FC<DemoAccountPickerProps> = ({ onSelectAccount, isLoading = false }) => {
   return (
-    <div className="space-y-3 pt-4 border-t border-neutral-800">
-      <div className="text-xs font-semibold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
-        <UserCheck className="w-3.5 h-3.5 text-[#C1FBD4]" />
+    <div className="space-y-3 pt-2">
+      <div className="text-xs font-semibold uppercase tracking-wider text-neutral-500 flex items-center gap-1.5">
+        <UserCheck className="w-3.5 h-3.5 text-[#059669]" />
         <span>1-Click Seeded Demo Roles</span>
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -21,10 +21,10 @@ export const DemoAccountPicker: React.FC<DemoAccountPickerProps> = ({ onSelectAc
             type="button"
             disabled={isLoading}
             onClick={() => onSelectAccount(acc.email)}
-            className="p-2.5 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-800/80 text-left transition-all text-xs group disabled:opacity-50"
+            className="p-2.5 rounded-xl bg-[#F4F4F5] border border-transparent hover:border-[#059669]/20 hover:bg-[#F4F4F5] text-left transition-all text-xs group disabled:opacity-50"
           >
-            <div className="font-semibold text-white group-hover:text-[#C1FBD4]">{acc.role}</div>
-            <div className="text-[11px] text-neutral-400 truncate">{acc.desc}</div>
+            <div className="font-semibold text-[#18181B] group-hover:text-[#059669]">{acc.role}</div>
+            <div className="text-[11px] text-neutral-500 truncate">{acc.desc}</div>
           </button>
         ))}
       </div>

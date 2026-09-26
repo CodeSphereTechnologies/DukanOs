@@ -23,20 +23,36 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="text-center space-y-4 flex flex-col items-center">
-        <img src="/logo-light-rect-nobg.png" alt="DukanOS" className="h-10 object-contain mx-auto mb-2" />
-        <h1 className="text-2xl font-bold tracking-tight text-white font-display">
-          Welcome to DukanOS
+    <div className="flex flex-col h-full">
+      
+      {/* Top Logo */}
+      <div className="flex justify-center mb-16">
+        <img src="/logo-dark-rect-nobg.png" alt="DukanOS" className="h-8 object-contain" />
+      </div>
+
+      {/* Header Text */}
+      <div className="text-center space-y-3 mb-10">
+        <h1 className="text-[36px] sm:text-[44px] leading-none font-serif text-[#18181B] tracking-tight">
+          Welcome Back
         </h1>
-        <p className="text-xs text-neutral-400">
-          Enter credentials or choose a seeded role to access your workspace.
+        <p className="text-[13px] text-neutral-500 font-medium">
+          Enter your email and password to access your account
         </p>
       </div>
 
-      <div className="bg-neutral-950 border border-neutral-800 p-6 sm:p-8 rounded-2xl space-y-6">
+      {/* Form Area */}
+      <div className="w-full mx-auto">
         <LoginForm onSubmit={handleLogin} isLoading={isLoading} />
-        <DemoAccountPicker onSelectAccount={handleDemoSelect} isLoading={isLoading} />
+        
+        <div className="mt-8 pt-6 border-t border-neutral-100">
+            <DemoAccountPicker onSelectAccount={handleDemoSelect} isLoading={isLoading} />
+        </div>
+
+        <div className="mt-10 text-center">
+            <p className="text-xs text-neutral-500 font-medium">
+                Don't have an account? <span className="font-bold text-[#18181B] cursor-pointer hover:underline transition-all">Sign Up</span>
+            </p>
+        </div>
       </div>
     </div>
   );
