@@ -83,7 +83,7 @@ export const LandingPage: React.FC = () => {
           }}
         >
           <div className="flex items-center gap-2">
-            <img src="/logo-light-rect-nobg.png" alt="DukanOS" className="h-6 object-contain" />
+            <img src="/logo-dark-rect-nobg.png" alt="DukanOS" className="h-16 object-contain" />
           </div>
 
           <div className="hidden md:flex items-center gap-8">
@@ -293,7 +293,7 @@ export const LandingPage: React.FC = () => {
       <footer className="border-t border-white/5 py-12 bg-black">
         <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-3">
-            <img src="/logo_nobg.png" alt="D" className="w-8 h-8 object-contain" />
+            <img src="/logo-dark-nobg.png" alt="D" className="w-18 h-8 object-contain" />
             <div className="flex flex-col">
               <span className="font-bold text-white text-sm">DukanOS</span>
               <span className="text-xs text-neutral-500">Retail Management Platform</span>

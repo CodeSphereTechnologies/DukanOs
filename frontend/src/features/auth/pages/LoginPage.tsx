@@ -31,14 +31,7 @@ export const LoginPage: React.FC = () => {
       </div>
 
       {/* Header Text */}
-      <div className="text-center space-y-2 mb-10">
-        <h2 className="text-5xl sm:text-6xl text-[#059669] font-urdu leading-none" style={{ fontFamily: "'Noto Nastaliq Urdu', serif" }} dir="rtl">
-          خوش آمدید
-        </h2>
-        <p className="text-[14px] text-neutral-500 font-medium px-4 pt-4">
-          Enter your email and password to access your account
-        </p>
-      </div>
+      
 
       {/* Form Area */}
       <div className="w-full mx-auto max-w-[360px]">

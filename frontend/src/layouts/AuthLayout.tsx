@@ -23,9 +23,10 @@ export const AuthLayout: React.FC = () => {
 
         {/* Bottom Text */}
         <div className="relative z-10 text-white w-full animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500 fill-mode-both">
-          <h1 className="text-5xl xl:text-[72px] font-bold leading-[1.05] font-serif tracking-tight mb-6 drop-shadow-lg">
+          
+          <p className="text-5xl mb-6 text-[#C1FBD4] leading-relaxed drop-shadow-md font-urdu" style={{ fontFamily: "'Noto Nastaliq Urdu', serif" }} dir="rtl">
              خوش آمدید
-          </h1>
+          </p>
           <p className="text-2xl text-[#C1FBD4] leading-relaxed drop-shadow-md font-urdu" style={{ fontFamily: "'Noto Nastaliq Urdu', serif" }} dir="rtl">
             اپنی دکان دماغ کے ساتھ چلاؤ۔
           </p>
