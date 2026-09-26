@@ -3,12 +3,12 @@ import { Outlet } from 'react-router-dom';
 
 export const AuthLayout: React.FC = () => {
   return (
-    <div className="min-h-screen w-full bg-white flex flex-col lg:flex-row overflow-hidden">
+    <div className="h-screen w-full bg-white flex flex-col lg:flex-row overflow-hidden">
       
       {/* Left Column (Image & Overlay) - Full Height */}
-      <div className="relative hidden lg:flex flex-col w-1/2 min-h-screen overflow-hidden p-12 xl:p-16 justify-between items-start group">
+      <div className="relative hidden lg:flex flex-col w-1/2 h-full overflow-hidden p-12 xl:p-16 justify-between items-start group">
         <img 
-          src="/hero-v2.jpg"
+          src="/pattern.jpg"
           alt="DukanOS Background" 
           className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[20s] ease-out"
         />
@@ -33,8 +33,8 @@ export const AuthLayout: React.FC = () => {
       </div>
 
       {/* Right Column (Form) */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 lg:p-16 xl:p-24 bg-white min-h-screen overflow-y-auto">
-        <div className="w-full max-w-[420px] py-10">
+      <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 lg:p-16 xl:p-24 bg-white h-full overflow-hidden">
+        <div className="w-full max-w-[420px] py-4">
           <Outlet />
         </div>
       </div>
