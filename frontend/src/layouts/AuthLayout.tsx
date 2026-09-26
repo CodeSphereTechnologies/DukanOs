@@ -6,7 +6,7 @@ export const AuthLayout: React.FC = () => {
     <div className="h-screen w-full bg-white flex flex-col lg:flex-row overflow-hidden">
       
       {/* Left Column (Image & Overlay) - Full Height */}
-      <div className="relative hidden lg:flex flex-col w-1/2 h-full overflow-hidden p-12 xl:p-16 justify-between items-start group">
+      <div className="relative hidden lg:flex flex-col flex-1 h-[calc(100vh-2rem)] overflow-hidden rounded-[40px] m-4 shadow-2xl p-12 xl:p-16 justify-between items-start group">
         <img 
           src="/pattern.jpg"
           alt="DukanOS Background" 
@@ -24,10 +24,10 @@ export const AuthLayout: React.FC = () => {
         {/* Bottom Text */}
         <div className="relative z-10 text-white w-full animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500 fill-mode-both">
           <h1 className="text-5xl xl:text-[72px] font-bold leading-[1.05] font-serif tracking-tight mb-6 drop-shadow-lg">
-            Get<br/>Everything<br/>You Want
+             خوش آمدید
           </h1>
-          <p className="text-base text-white/80 max-w-sm leading-relaxed drop-shadow-md">
-            You can get everything you want if you work hard, trust the process, and stick to the plan.
+          <p className="text-2xl text-[#C1FBD4] leading-relaxed drop-shadow-md font-urdu" style={{ fontFamily: "'Noto Nastaliq Urdu', serif" }} dir="rtl">
+            اپنی دکان دماغ کے ساتھ چلاؤ۔
           </p>
         </div>
       </div>

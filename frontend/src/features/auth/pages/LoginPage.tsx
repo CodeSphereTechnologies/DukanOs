@@ -19,7 +19,7 @@ export const LoginPage: React.FC = () => {
     <div className="flex flex-col w-full animate-in fade-in slide-in-from-bottom-4 duration-1000 items-center justify-center min-h-full">
       
       {/* Top Logo - Lower and Even Bigger */}
-      <div className="flex justify-center mb-12 sm:mb-16">
+      <div className="flex justify-center mb-6 sm:mb-16">
         <div className="relative group cursor-pointer">
           <div className="absolute inset-0 bg-[#059669]/10 blur-2xl rounded-full scale-0 group-hover:scale-[1.8] transition-transform duration-700 ease-out"></div>
           <img 
@@ -44,11 +44,7 @@ export const LoginPage: React.FC = () => {
       <div className="w-full mx-auto max-w-[360px]">
         <LoginForm onSubmit={handleLogin} isLoading={isLoading} />
         
-        <div className="mt-8 text-center pb-4">
-            <p className="text-[13px] text-neutral-500 font-medium">
-                Don't have an account? <span className="font-bold text-[#18181B] cursor-pointer hover:text-[#059669] hover:underline transition-all">Sign Up</span>
-            </p>
-        </div>
+        
       </div>
     </div>
   );
