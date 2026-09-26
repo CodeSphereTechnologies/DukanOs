@@ -24,7 +24,8 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="text-center space-y-2">
+      <div className="text-center space-y-4 flex flex-col items-center">
+        <img src="/logo-light-rect-nobg.png" alt="DukanOS" className="h-10 object-contain mx-auto mb-2" />
         <h1 className="text-2xl font-bold tracking-tight text-white font-display">
           Welcome to DukanOS
         </h1>

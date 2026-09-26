@@ -1,8 +1,0 @@
-        <Route
-          path="/invoices/:id"
-          element={
-            <RoleRoute allowedRoles={['owner', 'manager', 'cashier', 'accountant']}>
-              <InvoiceDetailPage />
-            </RoleRoute>
-          }
-        />
