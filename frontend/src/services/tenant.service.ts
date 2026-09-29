@@ -1,9 +1,18 @@
 import { apiClient } from './api-client';
-import type { ApiResponse } from '../types/api.types';
+import { ApiError, type ApiResponse } from '../types/api.types';
 import type { Tenant } from '../types/auth.types';
+import { unwrapList } from '../lib/utils';
 
-const STORAGE_KEY = 'dukanos_tenants';
+// Bumped so a cache already poisoned with the demo tenant list is discarded.
+const STORAGE_KEY = 'dukanos_tenants_v2';
 
+/**
+ * Demo stores, kept only for the "no data anywhere" case.
+ *
+ * They must never be presented as real: tenant ids are foreign keys, so
+ * offering a store that is not in the database makes staff creation fail
+ * validation instead of succeeding.
+ */
 export const INITIAL_TENANTS: Tenant[] = [
   {
     id: 1,
@@ -17,44 +26,27 @@ export const INITIAL_TENANTS: Tenant[] = [
     status: 'active',
     created_at: '2026-08-01',
   },
-  {
-    id: 2,
-    name: 'Karachi Appliances Mall',
-    slug: 'karachi-appliances-mall',
-    city: 'Karachi',
-    phone: '+92 321 8899112',
-    email: 'info@karachiappliances.pk',
-    currency: 'PKR',
-    timezone: 'Asia/Karachi',
-    status: 'active',
-    created_at: '2026-08-15',
-  },
-  {
-    id: 3,
-    name: 'Islamabad Power & Light',
-    slug: 'isb-power-light',
-    city: 'Islamabad',
-    phone: '+92 333 5556677',
-    email: 'support@isbpower.pk',
-    currency: 'PKR',
-    timezone: 'Asia/Karachi',
-    status: 'suspended',
-    created_at: '2026-08-20',
-  },
 ];
 
+function isApiError(err: unknown): err is ApiError {
+  return err instanceof ApiError;
+}
+
+/**
+ * The last known list, used only when the backend is unreachable.
+ *
+ * Returns an empty list rather than inventing stores — a dropdown that
+ * silently offers non-existent records is worse than an empty one.
+ */
 function getStoredTenants(): Tenant[] {
-  if (typeof window === 'undefined') return INITIAL_TENANTS;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_TENANTS));
-      return INITIAL_TENANTS;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_TENANTS;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return INITIAL_TENANTS;
+    return [];
   }
 }
 
@@ -70,21 +62,24 @@ function saveStoredTenants(tenants: Tenant[]): void {
 export const tenantService = {
   async getAll(): Promise<ApiResponse<Tenant[]>> {
     try {
-      const res = await apiClient.get<Tenant[]>('/tenants');
-      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-        saveStoredTenants(res.data);
-        return res;
+      // The endpoint is paginated, so the rows arrive inside a { data: [...] }
+      // envelope. Reading res.data as an array silently failed and served the
+      // demo tenant list below, which offered stores that do not exist — picking
+      // one made staff creation fail validation on tenant_id.
+      const res = await apiClient.get<unknown>('/tenants');
+      const list = unwrapList<Tenant>(res?.data);
+
+      if (list.length > 0) {
+        saveStoredTenants(list);
+        return { ...res, data: list };
       }
-    } catch {
-      // Fallback to local storage
+    } catch (err) {
+      if (isApiError(err)) throw err;
     }
 
-    const localData = getStoredTenants();
-    return {
-      success: true,
-      message: 'Tenants retrieved successfully',
-      data: localData,
-    };
+    // Only a genuinely unreachable backend may fall back to storage, and that
+    // cache must not be able to invent stores the platform does not have.
+    return { data: getStoredTenants(), status: 200, message: 'Loaded from storage' };
   },
 
   async create(data: Partial<Tenant>): Promise<ApiResponse<Tenant>> {

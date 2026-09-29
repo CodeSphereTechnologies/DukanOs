@@ -1,6 +1,7 @@
 import { apiClient } from './api-client';
 import type { ApiResponse } from '../types/api.types';
 import { financeService } from './finance.service';
+import { unwrapList } from '../lib/utils';
 
 export interface EmployeeSalary {
   id: number;
@@ -46,10 +47,12 @@ function saveStoredEmployees(employees: EmployeeSalary[]): void {
 export const payrollService = {
   async getEmployees(): Promise<ApiResponse<EmployeeSalary[]>> {
     try {
-      const res = await apiClient.get<EmployeeSalary[]>('/payroll');
-      if (res && Array.isArray(res.data)) {
-        saveStoredEmployees(res.data);
-        return res;
+      // Paginated endpoints nest the rows in { data: [...] }.
+      const res = await apiClient.get<unknown>('/payroll');
+      const list = unwrapList<EmployeeSalary>(res?.data);
+      if (list.length > 0) {
+        saveStoredEmployees(list);
+        return { ...res, data: list };
       }
     } catch {
       // offline fallback

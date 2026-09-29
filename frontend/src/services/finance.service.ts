@@ -1,6 +1,7 @@
 import { apiClient } from './api-client';
 import type { ApiResponse } from '../types/api.types';
 import { customerService } from './customer.service';
+import { unwrapList } from '../lib/utils';
 
 export interface FinanceLedgerItem {
   id: number;
@@ -44,10 +45,12 @@ function saveStoredTransactions(transactions: FinanceLedgerItem[]): void {
 export const financeService = {
   async getTransactions(): Promise<ApiResponse<FinanceLedgerItem[]>> {
     try {
-      const res = await apiClient.get<FinanceLedgerItem[]>('/finance');
-      if (res && Array.isArray(res.data)) {
-        saveStoredTransactions(res.data);
-        return res;
+      // Paginated endpoints nest the rows in { data: [...] }.
+      const res = await apiClient.get<unknown>('/finance');
+      const list = unwrapList<FinanceLedgerItem>(res?.data);
+      if (list.length > 0) {
+        saveStoredTransactions(list);
+        return { ...res, data: list };
       }
     } catch {
       // offline fallback

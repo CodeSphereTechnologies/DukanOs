@@ -1,6 +1,7 @@
 import { apiClient } from './api-client';
 import type { ApiResponse } from '../types/api.types';
 import type { Specification } from '../types/product.types';
+import { unwrapList } from '../lib/utils';
 
 const STORAGE_KEY = 'dukanos_specifications_v5';
 
@@ -30,10 +31,12 @@ function saveStoredSpecs(specs: Specification[]): void {
 export const specificationService = {
   async getAll(): Promise<ApiResponse<Specification[]>> {
     try {
-      const res = await apiClient.get<Specification[]>('/specifications');
-      if (res && Array.isArray(res.data) && res.data.length > 0) {
-        saveStoredSpecs(res.data);
-        return res;
+      // Paginated endpoints nest the rows in { data: [...] }.
+      const res = await apiClient.get<unknown>('/specifications');
+      const list = unwrapList<Specification>(res?.data);
+      if (list.length > 0) {
+        saveStoredSpecs(list);
+        return { ...res, data: list };
       }
     } catch {
       // Fallback to local storage

@@ -1,6 +1,7 @@
 import { apiClient } from './api-client';
 import type { ApiResponse } from '../types/api.types';
 import type { Unit } from '../types/product.types';
+import { unwrapList } from '../lib/utils';
 
 export const STORAGE_KEY_UNITS = 'dukanos_units_v5';
 
@@ -30,9 +31,11 @@ function saveStoredUnits(units: Unit[]): void {
 export const unitService = {
   async getAll(): Promise<ApiResponse<Unit[]>> {
     try {
-      const res = await apiClient.get<Unit[]>('/units');
-      if (res && Array.isArray(res.data)) {
-        return res;
+      // Paginated endpoints nest the rows in { data: [...] }.
+      const res = await apiClient.get<unknown>('/units');
+      const list = unwrapList<Unit>(res?.data);
+      if (list.length > 0) {
+        return { ...res, data: list };
       }
     } catch {
       // fallback

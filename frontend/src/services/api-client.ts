@@ -32,6 +32,10 @@ class ApiClient {
     return this.request<T>('PUT', url, data);
   }
 
+  public async patch<T>(url: string, data?: unknown): Promise<ApiResponse<T>> {
+    return this.request<T>('PATCH', url, data);
+  }
+
   public async delete<T>(url: string): Promise<ApiResponse<T>> {
     return this.request<T>('DELETE', url);
   }

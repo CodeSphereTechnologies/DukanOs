@@ -1,7 +1,7 @@
 import { apiClient } from './api-client';
-import type { ApiResponse } from '../types/api.types';
+import { ApiError, type ApiResponse } from '../types/api.types';
 import type { StoreUser } from '../types/user.types';
-import type { RoleSlug } from '../types/auth.types';
+import type { RoleSlug, Tenant } from '../types/auth.types';
 
 export const STORAGE_KEY_USERS = 'dukanos_users_v2';
 
@@ -29,7 +29,16 @@ function mapStoreUser(raw: unknown): StoreUser {
       name: String(role.name ?? 'Staff'),
       slug: (role.slug ?? 'cashier') as StoreUser['role']['slug'],
     },
+    tenant_id: r.tenant_id != null ? Number(r.tenant_id) : undefined,
+    tenant: r.tenant
+      ? ({ ...(r.tenant as Record<string, unknown>), id: Number((r.tenant as Record<string, unknown>).id) } as unknown as Tenant)
+      : undefined,
     created_at: String(r.created_at ?? new Date().toISOString()),
+    // Only meaningful on the create response; preserved so the caller can
+    // react to a failed invitation send.
+    ...(r.invitation_sent === false
+      ? { invitation_sent: false, temporary_password: String(r.temporary_password ?? '') }
+      : {}),
   };
 }
 
@@ -57,17 +66,30 @@ function saveStoredUsers(users: StoreUser[]): void {
   }
 }
 
+/**
+ * A local-storage fallback may only stand in for a genuinely unreachable
+ * backend. A real API response (401/403/404/422/5xx) must surface as an error,
+ * otherwise the UI reports a staff member was created when nothing was
+ * persisted and no invitation email was ever sent.
+ */
+function isApiError(err: unknown): boolean {
+  return err instanceof ApiError;
+}
+
 export const userService = {
-  async getAll(): Promise<ApiResponse<StoreUser[]>> {
+  async getAll(params?: { tenantId?: number }): Promise<ApiResponse<StoreUser[]>> {
     try {
-      const res = await apiClient.get<unknown>('/users');
+      const res = await apiClient.get<unknown>(
+        '/users',
+        params?.tenantId ? { tenant_id: params.tenantId } : undefined
+      );
       const payload = (res?.data ?? {}) as Record<string, unknown>;
       const list = Array.isArray(payload.data) ? payload.data : [];
       const users = list.map(mapStoreUser);
       saveStoredUsers(users);
       return { success: true, message: 'Users retrieved', data: users };
-    } catch {
-      // offline fallback
+    } catch (err) {
+      if (isApiError(err)) throw err;
     }
     return { data: getStoredUsers(), status: 200, message: 'Loaded from storage' };
   },
@@ -79,86 +101,82 @@ export const userService = {
     role_slug: RoleSlug;
     status?: 'active' | 'inactive';
     password?: string;
+    tenant_id?: number;
   }): Promise<ApiResponse<StoreUser>> {
-    const roleMeta = ROLES_CONFIG[userPayload.role_slug] || ROLES_CONFIG.cashier;
     const users = getStoredUsers();
-    
-    const newUser: StoreUser = {
-      id: Date.now(),
+    const body: Record<string, unknown> = {
       name: userPayload.name.trim(),
       email: userPayload.email.trim().toLowerCase(),
       phone: userPayload.phone?.trim() || undefined,
+      role: userPayload.role_slug,
       status: userPayload.status || 'active',
-      role: {
-        id: roleMeta.id,
-        name: roleMeta.name,
-        slug: roleMeta.slug,
-      },
-      created_at: new Date().toISOString(),
+      password: userPayload.password,
     };
 
+    // Super admins have no tenant of their own, so they must target a store.
+    if (userPayload.tenant_id) {
+      body.tenant_id = userPayload.tenant_id;
+    }
+
     try {
-      const res = await apiClient.post<StoreUser>('/users', {
+      const res = await apiClient.post<unknown>('/users', body);
+      const savedUser = mapStoreUser(res.data);
+      saveStoredUsers([savedUser, ...users.filter((u) => u.id !== savedUser.id)]);
+      return { ...res, data: savedUser };
+    } catch (err) {
+      if (isApiError(err)) throw err;
+
+      // Backend unreachable: keep a local record so the UI stays usable offline.
+      // Nothing was persisted server-side and no invitation went out, so the
+      // record is flagged to keep the caller from claiming onboarding finished.
+      const roleMeta = ROLES_CONFIG[userPayload.role_slug] || ROLES_CONFIG.cashier;
+      const newUser: StoreUser = {
+        id: Date.now(),
         name: userPayload.name.trim(),
         email: userPayload.email.trim().toLowerCase(),
         phone: userPayload.phone?.trim() || undefined,
-        role: userPayload.role_slug,
         status: userPayload.status || 'active',
-        password: userPayload.password,
-      });
-      if (res && res.data) {
-        const savedUser = res.data;
-        const updated = [savedUser, ...users.filter((u) => u.id !== savedUser.id)];
-        saveStoredUsers(updated);
-        return res;
-      }
-    } catch {
-      // offline fallback
+        role: { id: roleMeta.id, name: roleMeta.name, slug: roleMeta.slug },
+        created_at: new Date().toISOString(),
+        invitation_sent: false,
+        temporary_password: userPayload.password,
+      };
+      saveStoredUsers([newUser, ...users]);
+      return {
+        data: newUser,
+        status: 201,
+        message: 'Staff member saved locally (backend unreachable)',
+      };
     }
-
-    const updated = [newUser, ...users];
-    saveStoredUsers(updated);
-    return { data: newUser, status: 201, message: 'Staff member invited successfully' };
   },
 
-  async toggleStatus(id: number): Promise<ApiResponse<StoreUser>> {
-    const users = getStoredUsers();
-    const idx = users.findIndex((u) => u.id === id);
-    if (idx === -1) {
-      throw new Error('Staff member not found');
-    }
-
-    const target = users[idx];
-    const newStatus: 'active' | 'inactive' = target.status === 'active' ? 'inactive' : 'active';
-    const updatedUser: StoreUser = { ...target, status: newStatus };
-
+  async toggleStatus(id: number, status: 'active' | 'inactive'): Promise<ApiResponse<StoreUser>> {
     try {
-      const res = await apiClient.put<StoreUser>(`/users/${id}/status`, { status: newStatus });
-      if (res && res.data) {
-        users[idx] = res.data;
-        saveStoredUsers(users);
-        return res;
-      }
-    } catch {
-      // offline fallback
+      const res = await apiClient.patch<unknown>(`/users/${id}/status`, { status });
+      const saved = mapStoreUser(res.data);
+      saveStoredUsers(getStoredUsers().map((u) => (u.id === id ? saved : u)));
+      return { ...res, data: saved };
+    } catch (err) {
+      if (isApiError(err)) throw err;
     }
-
-    users[idx] = updatedUser;
-    saveStoredUsers(users);
-    return { data: updatedUser, status: 200, message: 'Status updated successfully' };
+    const users = getStoredUsers();
+    const updated = users.map((u) => (u.id === id ? { ...u, status } : u));
+    saveStoredUsers(updated);
+    return {
+      data: updated.find((u) => u.id === id)!,
+      status: 200,
+      message: 'Status updated locally (backend unreachable)',
+    };
   },
 
   async delete(id: number): Promise<ApiResponse<boolean>> {
-    const users = getStoredUsers();
-    const filtered = users.filter((u) => u.id !== id);
-    saveStoredUsers(filtered);
-
     try {
       await apiClient.delete(`/users/${id}`);
-    } catch {
-      // offline fallback
+    } catch (err) {
+      if (isApiError(err)) throw err;
     }
 
+    saveStoredUsers(getStoredUsers().filter((u) => u.id !== id));
     return { data: true, status: 200, message: 'User deleted' };
   },
 };

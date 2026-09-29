@@ -19,3 +19,19 @@ export function formatError(err: unknown): string {
   if (err instanceof Error && err.message) return err.message;
   return 'Something went wrong. Please try again.';
 }
+
+/**
+ * Normalise a list endpoint payload.
+ *
+ * Paginated endpoints wrap the rows in `{ data: [...], meta, links }`, so a
+ * bare `Array.isArray(res.data)` check always fails for them. Failing that
+ * check used to drop callers into a demo-data fallback, which silently served
+ * records that do not exist in the database.
+ */
+export function unwrapList<T>(payload: unknown): T[] {
+  if (Array.isArray(payload)) return payload as T[];
+  if (payload && typeof payload === 'object' && Array.isArray((payload as { data?: unknown }).data)) {
+    return (payload as { data: T[] }).data;
+  }
+  return [];
+}

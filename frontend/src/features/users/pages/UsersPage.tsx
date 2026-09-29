@@ -22,17 +22,30 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { formatDate } from '../../../lib/formatters';
+import { formatError } from '../../../lib/utils';
 import { userService, ROLES_CONFIG } from '../../../services/user.service';
+import { tenantService } from '../../../services/tenant.service';
+import { useAuth } from '../../auth/hooks/useAuth';
 import type { StoreUser } from '../../../types/user.types';
-import type { RoleSlug } from '../../../types/auth.types';
+import type { RoleSlug, Tenant } from '../../../types/auth.types';
 
 export const UsersPage: React.FC = () => {
+  const { user: currentUser } = useAuth();
+  const isSuperAdmin = currentUser?.role.slug === 'super_admin';
+
   const [users, setUsers] = useState<StoreUser[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  // Set when an account was created but its invitation email never went out.
+  const [deliveryAlert, setDeliveryAlert] = useState<{
+    name: string;
+    email: string;
+    password?: string;
+  } | null>(null);
 
   // Invite Form State
   const [name, setName] = useState('');
@@ -41,6 +54,7 @@ export const UsersPage: React.FC = () => {
   const [roleSlug, setRoleSlug] = useState<RoleSlug>('cashier');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
   const [tempPassword, setTempPassword] = useState('');
+  const [tenantId, setTenantId] = useState<number | ''>('');
 
   const loadUsers = async () => {
     setIsLoading(true);
@@ -49,6 +63,7 @@ export const UsersPage: React.FC = () => {
       if (res.data) setUsers(res.data);
     } catch (err) {
       console.error('Failed to load store users', err);
+      setUsers([]);
     } finally {
       setIsLoading(false);
     }
@@ -57,6 +72,19 @@ export const UsersPage: React.FC = () => {
   useEffect(() => {
     loadUsers();
   }, []);
+
+  // Super admins have no store of their own, so they must pick one.
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+    tenantService
+      .getAll()
+      .then((res) => {
+        const list = res.data || [];
+        setTenants(list);
+        setTenantId((prev) => (prev === '' && list.length > 0 ? list[0].id : prev));
+      })
+      .catch(() => setTenants([]));
+  }, [isSuperAdmin]);
 
   const handleResetForm = () => {
     setName('');
@@ -87,6 +115,11 @@ export const UsersPage: React.FC = () => {
       return;
     }
 
+    if (isSuperAdmin && !tenantId) {
+      setFormError('Select the store this staff member belongs to.');
+      return;
+    }
+
     try {
       const res = await userService.create({
         name: name.trim(),
@@ -95,24 +128,41 @@ export const UsersPage: React.FC = () => {
         role_slug: roleSlug,
         status,
         ...(tempPassword ? { password: tempPassword } : {}),
+        ...(isSuperAdmin ? { tenant_id: Number(tenantId) } : {}),
       });
 
       if (res.data) {
         setUsers((prev) => [res.data!, ...prev.filter((u) => u.id !== res.data!.id)]);
-        setSuccessBanner(
-          `Staff member "${name.trim()}" successfully invited as ${ROLES_CONFIG[roleSlug]?.name || roleSlug}. Login credentials dispatched.`
-        );
+
+        if (res.data.invitation_sent === false) {
+          // The account is live, but nobody was told the password. Surface the
+          // credentials instead of claiming they were emailed.
+          setDeliveryAlert({
+            name: res.data.name,
+            email: res.data.email,
+            password: res.data.temporary_password,
+          });
+          setSuccessBanner(null);
+        } else {
+          setDeliveryAlert(null);
+          setSuccessBanner(
+            `Staff member "${name.trim()}" created as ${ROLES_CONFIG[roleSlug]?.name || roleSlug}. Sign-in credentials were emailed to ${email.trim().toLowerCase()}.`
+          );
+        }
       }
       setIsInviteOpen(false);
       handleResetForm();
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : 'Failed to invite staff member');
+      // Surface the offending field. The bare ApiError message is the generic
+      // "The given data was invalid.", which hides the actual cause.
+      setFormError(formatError(err));
     }
   };
 
   const handleToggleStatus = async (user: StoreUser) => {
+    const nextStatus = user.status === 'active' ? 'inactive' : 'active';
     try {
-      const res = await userService.toggleStatus(user.id);
+      const res = await userService.toggleStatus(user.id, nextStatus);
       if (res.data) {
         setUsers((prev) => prev.map((u) => (u.id === user.id ? res.data! : u)));
         setSuccessBanner(
@@ -120,15 +170,19 @@ export const UsersPage: React.FC = () => {
         );
       }
     } catch (err) {
-      console.error('Failed to update status', err);
+      setFormError(formatError(err));
     }
   };
 
   const handleDeleteUser = async (user: StoreUser) => {
     if (confirm(`Are you sure you want to remove staff member "${user.name}"?`)) {
-      await userService.delete(user.id);
-      setUsers((prev) => prev.filter((u) => u.id !== user.id));
-      setSuccessBanner(`Account for ${user.name} was removed.`);
+      try {
+        await userService.delete(user.id);
+        setUsers((prev) => prev.filter((u) => u.id !== user.id));
+        setSuccessBanner(`Account for ${user.name} was removed.`);
+      } catch (err) {
+        setFormError(formatError(err));
+      }
     }
   };
 
@@ -221,6 +275,19 @@ export const UsersPage: React.FC = () => {
         </button>
       ),
     },
+    ...(isSuperAdmin
+      ? ([
+          {
+            key: 'tenant',
+            header: 'Store',
+            render: (u: StoreUser) => (
+              <span className="text-xs text-[#52525B]">
+                {u.tenant?.name || '—'}
+              </span>
+            ),
+          },
+        ] as Column<StoreUser>[])
+      : []),
     {
       key: 'created_at',
       header: 'Joined Date',
@@ -271,6 +338,54 @@ export const UsersPage: React.FC = () => {
         </Button>
       }
     >
+      {/* Failed Invitation Delivery — the credentials never left the server */}
+      {deliveryAlert && (
+        <div className="mb-6">
+          <Alert variant="destructive" title="Invitation email was not sent">
+            <div className="space-y-3">
+              <p className="text-sm">
+                <strong>{deliveryAlert.name}</strong> was created as{' '}
+                <strong>{deliveryAlert.email}</strong>, but the credentials email
+                failed to send. The account can sign in as soon as it has a
+                password — send these manually now, and check the mail settings
+                before inviting anyone else.
+              </p>
+              {deliveryAlert.password ? (
+                <div className="flex flex-wrap items-center gap-3 rounded-lg bg-white/60 px-3 py-2 font-mono text-sm">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-[#71717A]">
+                    Password
+                  </span>
+                  <span className="select-all break-all font-semibold">
+                    {deliveryAlert.password}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigator.clipboard?.writeText(deliveryAlert.password || '')
+                    }
+                    className="text-xs underline hover:text-red-900"
+                  >
+                    Copy
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm">
+                  No password was recorded. Edit the account and set a new one
+                  to complete onboarding.
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => setDeliveryAlert(null)}
+                className="text-xs underline hover:text-red-900"
+              >
+                Dismiss
+              </button>
+            </div>
+          </Alert>
+        </div>
+      )}
+
       {/* Success Notification Banner */}
       {successBanner && (
         <div className="mb-6">
@@ -365,7 +480,7 @@ export const UsersPage: React.FC = () => {
       >
         <form onSubmit={handleInviteUser} className="space-y-4">
           {formError && (
-            <Alert variant="error" title="Required Fields">
+            <Alert variant="error" title="Could not create staff member">
               {formError}
             </Alert>
           )}
@@ -378,6 +493,25 @@ export const UsersPage: React.FC = () => {
               autoFocus
             />
           </FormField>
+
+          {isSuperAdmin && (
+            <FormField
+              label="Store"
+              required
+              description="The staff member signs in to this store."
+            >
+              <Select
+                value={tenantId}
+                onChange={(e) =>
+                  setTenantId(e.target.value === '' ? '' : Number(e.target.value))
+                }
+                options={[
+                  { label: 'Select a store...', value: '' },
+                  ...tenants.map((t) => ({ label: t.name, value: t.id })),
+                ]}
+              />
+            </FormField>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormField label="Official Store Email" required description="Used for login identification.">

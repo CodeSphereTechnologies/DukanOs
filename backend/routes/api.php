@@ -180,6 +180,7 @@ Route::prefix('v1')->name('v1.')->group(function () {
             Route::post('users', [UserController::class, 'store'])->name('users.store');
             Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
             Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
+            Route::patch('users/{user}/status', [UserController::class, 'updateStatus'])->name('users.status');
             Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
         });
 
