@@ -9,7 +9,7 @@ export interface DialogProps {
   description?: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl';
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
 }
 
 export const Dialog: React.FC<DialogProps> = ({
@@ -42,6 +42,8 @@ export const Dialog: React.FC<DialogProps> = ({
     md: 'max-w-md',
     lg: 'max-w-lg',
     xl: 'max-w-2xl',
+    '2xl': 'max-w-4xl',
+    '3xl': 'max-w-5xl',
   };
 
   return (

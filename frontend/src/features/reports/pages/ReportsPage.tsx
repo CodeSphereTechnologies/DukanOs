@@ -26,6 +26,11 @@ import {
   ArrowUpRight,
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../../lib/formatters';
+import {
+  printExecutiveReport,
+  printExecutiveReportThermal,
+  type ExecutiveReportData,
+} from '../../../lib/reportPrint';
 import { invoiceService } from '../../../services/invoice.service';
 import { financeService, type FinanceLedgerItem } from '../../../services/finance.service';
 import { customerService } from '../../../services/customer.service';
@@ -251,6 +256,58 @@ export const ReportsPage: React.FC = () => {
 
     setExportNotice('Financial report successfully downloaded as CSV spreadsheet!');
     setTimeout(() => setExportNotice(null), 5000);
+  };
+
+  // The preview modal is `position: fixed`, so printing the page would lay the
+  // clipped dialog over the reports table behind it. Both print actions build a
+  // standalone document instead.
+  const buildReportData = (): ExecutiveReportData => {
+    const periodLabels: Record<string, string> = {
+      month: 'Current Month (Sep 2026)',
+      last_month: 'Last Month (Aug 2026)',
+      quarter: 'Current Quarter (Q3 2026)',
+      ytd: 'Fiscal Year to Date',
+      all: 'All Historic Records',
+    };
+    const today = new Date().toISOString().split('T')[0];
+
+    return {
+      periodLabel: periodLabels[selectedPeriod] || 'All Historic Records',
+      reportNumber: `REPORT-${formatDate(today).toUpperCase().replace(/\s+/g, '-')}`,
+      reportDate: formatDate(today),
+      grossSales,
+      customerRecoveries,
+      payrollDisbursed,
+      rentExpenses,
+      utilityExpenses,
+      otherExpenses,
+      totalOperatingExpenses,
+      netOperatingProfit,
+      profitMarginPercent,
+      totalReceivables,
+      totalInventoryValuation,
+      customers: customers.map((c) => ({
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        address: c.address,
+        current_balance: c.current_balance,
+      })),
+    };
+  };
+
+  const handlePrintA4 = () => {
+    if (!printExecutiveReport(buildReportData())) {
+      setExportNotice('Print blocked by the browser. Allow pop-ups for this site and try again.');
+      setTimeout(() => setExportNotice(null), 6000);
+    }
+  };
+
+  const handlePrintThermal = () => {
+    if (!printExecutiveReportThermal(buildReportData())) {
+      setExportNotice('Print blocked by the browser. Allow pop-ups for this site and try again.');
+      setTimeout(() => setExportNotice(null), 6000);
+    }
   };
 
   // Columns for Sales Invoices Tab
@@ -755,20 +812,30 @@ export const ReportsPage: React.FC = () => {
         onClose={() => setIsPrintModalOpen(false)}
         title="Executive Financial & Operational Report"
         description="Comprehensive accounting statement formatted for print, audit review, and board presentation."
-        maxWidth="lg"
+        maxWidth="2xl"
         footer={
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between w-full gap-2">
             <Button variant="secondary" size="sm" onClick={() => setIsPrintModalOpen(false)}>
               Close
             </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              leftIcon={<Printer className="w-4 h-4" />}
-              onClick={() => window.print()}
-            >
-              Print Report (A4)
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                leftIcon={<Receipt className="w-3.5 h-3.5" />}
+                onClick={handlePrintThermal}
+              >
+                Thermal Slip
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<Printer className="w-3.5 h-3.5" />}
+                onClick={handlePrintA4}
+              >
+                Print Report (A4)
+              </Button>
+            </div>
           </div>
         }
       >
@@ -792,22 +859,22 @@ export const ReportsPage: React.FC = () => {
           </div>
 
           {/* Executive Summary Cards */}
-          <div className="grid grid-cols-4 gap-3">
-            <div className="p-3 bg-[#FAFAF8] rounded-lg border border-[#E4E4E7]">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="p-3 sm:p-4 bg-[#FAFAF8] rounded-lg border border-[#E4E4E7] min-w-0">
               <span className="text-[10px] text-[#71717A] uppercase block font-semibold">Total Revenue</span>
-              <span className="font-mono font-bold text-sm text-[#18181B]">{formatCurrency(grossSales)}</span>
+              <span className="whitespace-nowrap text-base font-bold sm:text-lg text-[#18181B]">{formatCurrency(grossSales)}</span>
             </div>
-            <div className="p-3 bg-[#FAFAF8] rounded-lg border border-[#E4E4E7]">
+            <div className="p-3 sm:p-4 bg-[#FAFAF8] rounded-lg border border-[#E4E4E7] min-w-0">
               <span className="text-[10px] text-[#71717A] uppercase block font-semibold">Operating Costs</span>
-              <span className="font-mono font-bold text-sm text-[#991B1B]">{formatCurrency(totalOperatingExpenses)}</span>
+              <span className="whitespace-nowrap text-base font-bold sm:text-lg text-[#991B1B]">{formatCurrency(totalOperatingExpenses)}</span>
             </div>
-            <div className="p-3 bg-[#F0FDF4] rounded-lg border border-[#BBF7D0]">
+            <div className="p-3 sm:p-4 bg-[#F0FDF4] rounded-lg border border-[#BBF7D0] min-w-0">
               <span className="text-[10px] text-[#15803D] uppercase block font-semibold">Net Profit</span>
-              <span className="font-mono font-black text-sm text-[#065F46]">{formatCurrency(netOperatingProfit)}</span>
+              <span className="whitespace-nowrap text-base font-black sm:text-lg text-[#065F46]">{formatCurrency(netOperatingProfit)}</span>
             </div>
-            <div className="p-3 bg-[#FEF2F2] rounded-lg border border-[#FECACA]">
+            <div className="p-3 sm:p-4 bg-[#FEF2F2] rounded-lg border border-[#FECACA] min-w-0">
               <span className="text-[10px] text-[#991B1B] uppercase block font-semibold">Customer Debt</span>
-              <span className="font-mono font-bold text-sm text-[#DC2626]">{formatCurrency(totalReceivables)}</span>
+              <span className="whitespace-nowrap text-base font-bold sm:text-lg text-[#DC2626]">{formatCurrency(totalReceivables)}</span>
             </div>
           </div>
 
