@@ -141,7 +141,10 @@ export const customerService = {
           phone: customer.phone || null,
           email: customer.email || null,
           address: customer.address || null,
-          opening_balance: customer.current_balance ?? 0,
+          // The edit form edits the live outstanding balance, which the
+          // backend reconciles through the ledger. Sending it as
+          // opening_balance only rewrote a column the balance ignores.
+          current_balance: customer.current_balance ?? 0,
           status: customer.status || 'active',
         });
         if (res && res.data) {

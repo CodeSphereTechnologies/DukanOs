@@ -420,8 +420,14 @@ Global (platform-level) product specifications. All routes require `role:super_a
 | `email` | string | optional |
 | `address` | string | optional |
 | `notes` | string | optional |
-| `opening_balance` | number | optional |
+| `opening_balance` | number | optional, ≥ 0 (`POST` only — sets the customer's first ledger entry) |
+| `current_balance` | number | optional, ≥ 0 (`PUT` only — the outstanding balance to leave the ledger at; recorded as a correcting entry) |
 | `status` | `active`/`inactive` | required |
+
+The outstanding balance is always derived from the customer's ledger
+(`SUM(debit) - SUM(credit)`) and returned as `balance` on every customer
+response, including `POST` and `PUT`. `opening_balance` records the figure the
+account started with and is never rewritten by later edits.
 
 **Customer ledger** returns paginated ledger entries (`debit`, `credit`, `balance`) plus a `balance` summary field.
 

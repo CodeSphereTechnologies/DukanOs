@@ -7,6 +7,7 @@ use App\Http\Requests\Customers\CustomerRequest;
 use App\Http\Resources\CustomerLedgerResource;
 use App\Http\Resources\CustomerResource;
 use App\Http\Resources\InvoiceResource;
+use App\Models\Customer;
 use App\Models\Invoice;
 use App\Repositories\CustomerLedgerRepository;
 use App\Repositories\CustomerRepository;
@@ -26,8 +27,9 @@ class CustomerController extends Controller
     {
         $customers = $this->customers->paginateForTenant($this->tenantId(), $request->integer('per_page', 25), $request->query('search'));
 
-        $customers->getCollection()->transform(function ($customer) {
-            $customer->setAttribute('balance', $this->ledger->balanceForCustomer($this->tenantId(), $customer->id));
+        $customers->getCollection()->transform(function (Customer $customer) {
+            $this->withBalance($customer);
+
             return $customer;
         });
 
@@ -37,6 +39,7 @@ class CustomerController extends Controller
     public function store(CustomerRequest $request): JsonResponse
     {
         $customer = $this->service->create($request->user(), $request->validated());
+        $this->withBalance($customer);
 
         return $this->created(new CustomerResource($customer), 'Customer created.');
     }
@@ -45,7 +48,7 @@ class CustomerController extends Controller
     {
         $model = $this->findOrFail($this->customers->findForTenant($this->tenantId(), $customer));
 
-        $model->setAttribute('balance', $this->ledger->balanceForCustomer($this->tenantId(), $customer));
+        $this->withBalance($model);
 
         return $this->success(new CustomerResource($model), 'Customer retrieved.');
     }
@@ -54,7 +57,20 @@ class CustomerController extends Controller
     {
         $model = $this->findOrFail($this->customers->findForTenant($this->tenantId(), $customer));
 
-        return $this->success(new CustomerResource($this->service->update($request->user(), $model, $request->validated())), 'Customer updated.');
+        $updated = $this->service->update($request->user(), $model, $request->validated());
+        $this->withBalance($updated);
+
+        return $this->success(new CustomerResource($updated), 'Customer updated.');
+    }
+
+    /**
+     * Attach the ledger-derived outstanding balance so every customer response
+     * carries it. CustomerResource omits `balance` when it is not set, which
+     * left the create/update payloads with no balance at all.
+     */
+    private function withBalance(Customer $customer): void
+    {
+        $customer->setAttribute('balance', $this->ledger->balanceForCustomer($this->tenantId(), $customer->id));
     }
 
     public function destroy($customer): JsonResponse

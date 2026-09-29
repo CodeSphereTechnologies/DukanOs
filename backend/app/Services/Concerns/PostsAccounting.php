@@ -22,6 +22,9 @@ trait PostsAccounting
 
     /**
      * Append an entry to a customer's running ledger.
+     *
+     * The reference is optional: opening balances and manual corrections are
+     * not backed by a source document.
      */
     protected function postCustomerLedger(
         int $tenantId,
@@ -31,9 +34,9 @@ trait PostsAccounting
         float $credit,
         Carbon $date,
         ?int $userId,
-        string $refType,
-        int $refId,
-        string $note,
+        ?string $refType = null,
+        ?int $refId = null,
+        ?string $note = null,
     ): void {
         $lastBalance = (float) CustomerLedger::query()
             ->where('tenant_id', $tenantId)

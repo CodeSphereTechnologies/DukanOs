@@ -21,7 +21,10 @@ class CustomerRequest extends ApiRequest
             'email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
-            'opening_balance' => ['nullable', 'numeric'],
+            'opening_balance' => ['nullable', 'numeric', 'min:0'],
+            // Only meaningful on update: the outstanding balance to leave the
+            // ledger at. Recorded as a correcting entry, not an overwrite.
+            'current_balance' => ['nullable', 'numeric', 'min:0'],
             'status' => ['required', Rule::enum(ActiveStatus::class)],
         ];
     }
