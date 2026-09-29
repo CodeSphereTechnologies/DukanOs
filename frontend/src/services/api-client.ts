@@ -67,10 +67,19 @@ class ApiClient {
     }
 
     try {
+      // FormData carries its own multipart boundary, so it must not be given a
+      // JSON Content-Type or the browser drops the boundary header and the
+      // server cannot parse the file.
+      const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
+
+      if (isFormData) {
+        delete headers['Content-Type'];
+      }
+
       const response = await fetch(url, {
         method,
         headers,
-        body: data ? JSON.stringify(data) : undefined,
+        body: isFormData ? (data as FormData) : data ? JSON.stringify(data) : undefined,
       });
 
       if (response.status === 401) {

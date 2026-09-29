@@ -78,6 +78,7 @@ Route::prefix('v1')->name('v1.')->group(function () {
             Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
             Route::post('brands', [BrandController::class, 'store'])->name('brands.store');
             Route::post('products', [ProductController::class, 'store'])->name('products.store');
+            Route::post('products/upload-image', [ProductController::class, 'uploadImage'])->name('products.image.upload');
         });
 
         Route::middleware('permission:products.update')->group(function () {

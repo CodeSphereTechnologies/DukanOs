@@ -105,6 +105,27 @@ function getStoredBrands(): Brand[] {
 }
 
 export const productService = {
+  /**
+   * Upload an image file and return its public URL.
+   *
+   * The file is stored on disk by the server rather than being inlined as a
+   * base64 data URL: products.image is a short column, and a data URL for a
+   * real photo overflows it.
+   */
+  async uploadImage(file: File): Promise<string> {
+    const form = new FormData();
+    form.append('image', file);
+
+    const res = await apiClient.post<{ url: string }>('/products/upload-image', form);
+    const url = asString(asRecord(res?.data).url);
+
+    if (!url) {
+      throw new Error('The image was uploaded but the server returned no URL.');
+    }
+
+    return url;
+  },
+
   async getAll(): Promise<ApiResponse<Product[]>> {
     try {
       const res = await apiClient.get<unknown>('/products');

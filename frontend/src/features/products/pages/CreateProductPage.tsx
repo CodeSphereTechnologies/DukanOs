@@ -5,8 +5,9 @@ import { Alert } from '../../../components/ui/Alert';
 import { FormField } from '../../../components/ui/FormField';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
+import { Textarea } from '../../../components/ui/Textarea';
 import { Button } from '../../../components/ui/Button';
-import { ArrowLeft, X, ImagePlus, Upload, Tag, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, X, ImagePlus, Upload, Tag, CheckCircle2, Loader2 } from 'lucide-react';
 import type { Category, Brand, Unit } from '../../../types/product.types';
 import { productService } from '../../../services/product.service';
 import { unitService } from '../../../services/unit.service';
@@ -30,6 +31,9 @@ export const CreateProductPage: React.FC = () => {
   const [threshold, setThreshold] = useState<number>(0);
   const [unit, setUnit] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,14 +50,24 @@ export const CreateProductPage: React.FC = () => {
     });
   }, []);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setImageUrl(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+
+    setImageError(null);
+    setIsUploading(true);
+    try {
+      // The file goes to the server as multipart; the preview URL it returns
+      // is what gets saved, because the image column cannot hold file bytes.
+      const url = await productService.uploadImage(file);
+      setImageUrl(url);
+    } catch (err) {
+      setImageError(formatError(err));
+    } finally {
+      setIsUploading(false);
+      // Reset so re-picking the same file still fires a change event.
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const handleAddProduct = async (e: React.FormEvent) => {
@@ -73,6 +87,7 @@ export const CreateProductPage: React.FC = () => {
         name: name.trim(),
         sku: sku.trim(),
         barcode: barcode.trim() || undefined,
+        description: description.trim() || undefined,
         category: selectedCat,
         brand: selectedBrd,
         selling_price: Number(price),
@@ -106,13 +121,15 @@ export const CreateProductPage: React.FC = () => {
     setThreshold(0);
     setUnit('');
     setImageUrl('');
+    setDescription('');
+    setImageError(null);
     setError(null);
     setSuccess(false);
   };
 
   return (
     <PageContainer
-      title="Add Catalog Product"
+      title="Add Product"
       subtitle="Register an appliance item with pricing, barcode, category, brand, and make it available in the POS terminal."
       secondaryActions={
         <Link
@@ -144,11 +161,17 @@ export const CreateProductPage: React.FC = () => {
                 Basic Details
               </div>
 
-              <FormField label="Product Image">
+              <FormField
+                label="Product Image"
+                error={imageError || undefined}
+                helperText="Upload a file from your device, or paste a link to an existing image."
+              >
                 <div className="flex items-start gap-3">
                   <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center shrink-0 border border-[#E4E4E7]">
                     {imageUrl ? (
                       <img src={imageUrl} alt="Product preview" className="w-full h-full object-cover" />
+                    ) : isUploading ? (
+                      <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
                     ) : (
                       <ImagePlus className="w-6 h-6 text-slate-400" />
                     )}
@@ -167,14 +190,15 @@ export const CreateProductPage: React.FC = () => {
                       size="sm"
                       leftIcon={<Upload className="w-3.5 h-3.5" />}
                       onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
                     >
-                      Upload Image
+                      {isUploading ? 'Uploading...' : 'Upload Image'}
                     </Button>
                     <Input
-                      value={imageUrl.startsWith('data:') ? '' : imageUrl}
+                      value={imageUrl}
                       onChange={(e) => setImageUrl(e.target.value)}
                       placeholder="or paste image URL..."
-                      disabled={imageUrl.startsWith('data:')}
+                      disabled={isUploading}
                     />
                     {imageUrl && (
                       <button
@@ -206,6 +230,15 @@ export const CreateProductPage: React.FC = () => {
                   <Input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="e.g. 8901234567890" />
                 </FormField>
               </div>
+
+              <FormField label="Description">
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Optional product description..."
+                  rows={4}
+                />
+              </FormField>
             </div>
 
             <div className="bg-white border border-[#E4E4E7] rounded-xl p-5 space-y-4">

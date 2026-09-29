@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\V1\Catalog;
 
 use App\Http\Controllers\Api\V1\Controller;
+use App\Http\Requests\Catalog\ProductImageUploadRequest;
 use App\Http\Requests\Catalog\ProductRequest;
 use App\Http\Resources\ProductResource;
 use App\Repositories\ProductRepository;
+use App\Services\ProductImageService;
 use App\Services\ProductService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,6 +31,22 @@ class ProductController extends Controller
         );
 
         return $this->success(ProductResource::collection($products)->response()->getData(true), 'Products retrieved.');
+    }
+
+    /**
+     * Accept a multipart image upload and return a public URL for it.
+     *
+     * The product endpoints persist products.image as a varchar(255), so a
+     * data URL for a real photo cannot be stored. Uploading separately keeps
+     * that column holding a short path.
+     */
+    public function uploadImage(ProductImageUploadRequest $request, ProductImageService $images): JsonResponse
+    {
+        $tenant = $this->tenant();
+
+        $url = $images->store($request->file('image'), $tenant);
+
+        return $this->success(['url' => $url], 'Image uploaded.');
     }
 
     public function store(ProductRequest $request): JsonResponse

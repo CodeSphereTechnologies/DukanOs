@@ -443,7 +443,7 @@ export const ProductsPage: React.FC = () => {
   return (
     <>
     <PageContainer
-      title="Products & Catalog"
+      title="Products & Stock"
       subtitle="Manage appliance items, dynamic specifications, barcode identifiers, and stock levels."
       className={isPrintOpen ? 'print:hidden' : ''}
       primaryAction={

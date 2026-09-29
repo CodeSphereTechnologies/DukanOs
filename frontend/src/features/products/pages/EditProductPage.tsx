@@ -4,11 +4,12 @@ import { PageContainer } from '../../../components/ui/PageContainer';
 import { Alert } from '../../../components/ui/Alert';
 import { FormField } from '../../../components/ui/FormField';
 import { Input } from '../../../components/ui/Input';
+import { Textarea } from '../../../components/ui/Textarea';
 import { Select } from '../../../components/ui/Select';
 import { Button } from '../../../components/ui/Button';
 import { LoadingState } from '../../../components/ui/LoadingState';
 import { EmptyState } from '../../../components/ui/EmptyState';
-import { ArrowLeft, Plus, Upload, X, CheckCircle2, Tag } from 'lucide-react';
+import { ArrowLeft, Plus, Upload, X, CheckCircle2, Tag, Loader2 } from 'lucide-react';
 import type { Product, Category, Brand, Unit } from '../../../types/product.types';
 import { productService } from '../../../services/product.service';
 import { unitService } from '../../../services/unit.service';
@@ -43,6 +44,8 @@ export const EditProductPage: React.FC = () => {
   const [unit, setUnit] = useState('pc');
   const [status, setStatus] = useState<Product['status']>('active');
   const [imageUrl, setImageUrl] = useState('');
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -114,14 +117,23 @@ export const EditProductPage: React.FC = () => {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setImageUrl(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+
+    setImageError(null);
+    setIsUploading(true);
+    try {
+      // Upload the bytes rather than inlining them: the image column is short
+      // and cannot hold a data URL for a real photo.
+      const url = await productService.uploadImage(file);
+      setImageUrl(url);
+    } catch (err) {
+      setImageError(formatError(err));
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -229,11 +241,17 @@ export const EditProductPage: React.FC = () => {
                 Basic Details
               </div>
 
-              <FormField label="Product Image">
+              <FormField
+                label="Product Image"
+                error={imageError || undefined}
+                helperText="Upload a file from your device, or paste a link to an existing image."
+              >
                 <div className="flex items-start gap-3">
                   <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center shrink-0 border border-[#E4E4E7]">
                     {imageUrl ? (
                       <img src={imageUrl} alt="Product preview" className="w-full h-full object-cover" />
+                    ) : isUploading ? (
+                      <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
                     ) : (
                       <Tag className="w-6 h-6 text-slate-400" />
                     )}
@@ -252,14 +270,15 @@ export const EditProductPage: React.FC = () => {
                       size="sm"
                       leftIcon={<Upload className="w-3.5 h-3.5" />}
                       onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
                     >
-                      Upload Image
+                      {isUploading ? 'Uploading...' : 'Upload Image'}
                     </Button>
                     <Input
-                      value={imageUrl.startsWith('data:') ? '' : imageUrl}
+                      value={imageUrl}
                       onChange={(e) => setImageUrl(e.target.value)}
                       placeholder="or paste image URL..."
-                      disabled={imageUrl.startsWith('data:')}
+                      disabled={isUploading}
                     />
                     {imageUrl && (
                       <button
@@ -288,12 +307,11 @@ export const EditProductPage: React.FC = () => {
               </div>
 
               <FormField label="Description">
-                <textarea
+                <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Optional product description..."
-                  rows={2}
-                  className="w-full px-3.5 py-2.5 text-sm bg-white text-[#18181B] placeholder:text-[#A1A1AA] rounded-lg border border-[#E4E4E7] transition-all focus:outline-none focus:border-black focus:ring-1 focus:ring-black resize-none"
+                  rows={4}
                 />
               </FormField>
             </div>
