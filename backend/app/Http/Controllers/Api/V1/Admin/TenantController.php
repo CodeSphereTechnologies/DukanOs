@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Api\V1\Controller;
 use App\Http\Requests\Admin\TenantRequest;
+use App\Http\Requests\Admin\TenantStatusRequest;
 use App\Http\Resources\TenantResource;
 use App\Repositories\TenantRepository;
+use App\Services\AuditService;
 use App\Services\TenantService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -43,6 +45,33 @@ class TenantController extends Controller
         $model = $this->findOrFail($this->tenants->find($tenant));
 
         return $this->success(new TenantResource($this->service->update($request->user(), $model, $request->validated())), 'Tenant updated.');
+    }
+
+    /**
+     * Suspend or reactivate a store on its own.
+     *
+     * TenantRequest requires name and slug, so a status-only PUT is rejected.
+     * Lifecycle toggles must not force the caller to resend the whole record.
+     */
+    public function updateStatus(TenantStatusRequest $request, $tenant): JsonResponse
+    {
+        $model = $this->findOrFail($this->tenants->find($tenant));
+
+        $old = ['status' => $model->status];
+
+        $model->update(['status' => $request->validated()['status']]);
+
+        AuditService::log(
+            $request->user(),
+            'updated',
+            'tenants',
+            'tenant',
+            $model->id,
+            $old,
+            ['status' => $model->status],
+        );
+
+        return $this->success(new TenantResource($model->fresh()), 'Tenant status updated.');
     }
 
     public function destroy($tenant): JsonResponse

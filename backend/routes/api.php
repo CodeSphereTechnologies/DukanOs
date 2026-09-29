@@ -45,6 +45,8 @@ Route::prefix('v1')->name('v1.')->group(function () {
     */
     Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
         Route::apiResource('tenants', TenantController::class);
+        // Status-only lifecycle toggle; apiResource's PUT requires name and slug.
+        Route::patch('tenants/{tenant}/status', [TenantController::class, 'updateStatus'])->name('tenants.status');
 
         Route::get('specifications', [SpecificationController::class, 'index'])->name('specifications.index');
         Route::post('specifications', [SpecificationController::class, 'store'])->name('specifications.store');

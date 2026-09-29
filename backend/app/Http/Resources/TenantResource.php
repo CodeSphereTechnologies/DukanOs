@@ -25,6 +25,7 @@ class TenantResource extends JsonResource
             'status' => $this->status,
             'settings' => $this->settings,
             'users_count' => $this->whenCounted('users'),
+            'created_at' => $this->created_at?->toIso8601String(),
         ];
     }
 }

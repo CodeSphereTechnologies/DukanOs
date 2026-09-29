@@ -12,6 +12,7 @@ import { Select } from '../../../components/ui/Select';
 import { Alert } from '../../../components/ui/Alert';
 import { Plus, ExternalLink, Globe, Sparkles } from 'lucide-react';
 import { formatDate } from '../../../lib/formatters';
+import { formatError } from '../../../lib/utils';
 import { tenantService } from '../../../services/tenant.service';
 import type { Tenant } from '../../../types/auth.types';
 
@@ -33,11 +34,17 @@ export const TenantsPage: React.FC = () => {
   const [quickCurrency, setQuickCurrency] = useState('PKR');
   const [quickStatus, setQuickStatus] = useState<'active' | 'suspended'>('active');
   const [quickError, setQuickError] = useState<string | null>(null);
+  const [pageError, setPageError] = useState<string | null>(null);
 
   const loadTenants = async () => {
-    const res = await tenantService.getAll();
-    if (res.data) {
-      setTenants(res.data);
+    try {
+      const res = await tenantService.getAll();
+      setTenants(res.data || []);
+    } catch (err) {
+      // getAll rethrows real API errors; without this the rejection is unhandled
+      // and the page silently shows an empty list.
+      setPageError(formatError(err));
+      setTenants([]);
     }
   };
 
@@ -61,6 +68,13 @@ export const TenantsPage: React.FC = () => {
         status: quickStatus,
       });
 
+      // The backend was unreachable; nothing was persisted, so do not claim
+      // the store was provisioned.
+      if (res.success === false) {
+        setQuickError(res.message || 'The backend is unreachable, so the store was not created.');
+        return;
+      }
+
       if (res.data) {
         setTenants((prev) => [res.data!, ...prev.filter((t) => t.id !== res.data!.id)]);
       }
@@ -71,14 +85,25 @@ export const TenantsPage: React.FC = () => {
       setQuickCity('Lahore');
       setQuickError(null);
     } catch (err: unknown) {
-      setQuickError(err instanceof Error ? err.message : 'Failed to provision tenant');
+      // Surfaces field errors such as "slug: This slug is already in use."
+      setQuickError(formatError(err));
     }
   };
 
   const handleToggleStatus = async (id: number) => {
-    const res = await tenantService.toggleStatus(id);
-    if (res.data) {
-      setTenants((prev) => prev.map((t) => (t.id === id ? res.data! : t)));
+    const current = tenants.find((t) => t.id === id);
+    if (!current) return;
+
+    const nextStatus = current.status === 'active' ? 'suspended' : 'active';
+
+    try {
+      const res = await tenantService.toggleStatus(id, nextStatus);
+      if (res.data) {
+        setTenants((prev) => prev.map((t) => (t.id === id ? res.data! : t)));
+        setPageError(null);
+      }
+    } catch (err) {
+      setPageError(formatError(err));
     }
   };
 
@@ -128,7 +153,7 @@ export const TenantsPage: React.FC = () => {
       key: 'created_at',
       header: 'Provisioned',
       align: 'right',
-      render: (t) => (t.created_at ? formatDate(t.created_at) : 'Active'),
+      render: (t) => (t.created_at ? formatDate(t.created_at) : '—'),
     },
   ];
 
@@ -158,6 +183,12 @@ export const TenantsPage: React.FC = () => {
       }
     >
       <div className="space-y-4">
+        {pageError && (
+          <Alert variant="error" title="Something went wrong" onClose={() => setPageError(null)}>
+            {pageError}
+          </Alert>
+        )}
+
         {successBanner && (
           <Alert variant="success" onClose={() => setSuccessBanner(null)}>
             {successBanner}

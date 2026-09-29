@@ -9,6 +9,7 @@ import { Button } from '../../../components/ui/Button';
 import { Alert } from '../../../components/ui/Alert';
 import { ArrowLeft, Building2, Check, Globe, Shield, Sparkles } from 'lucide-react';
 import { tenantService } from '../../../services/tenant.service';
+import { formatError } from '../../../lib/utils';
 
 export const CreateTenantPage: React.FC = () => {
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ export const CreateTenantPage: React.FC = () => {
   // Initial Admin User Info
   const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
+  const [ownerPassword, setOwnerPassword] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,10 +75,29 @@ export const CreateTenantPage: React.FC = () => {
       return;
     }
 
+    // The owner account is what makes the new store usable, so a half-filled
+    // pair is caught here instead of creating a store nobody can sign into.
+    if (ownerName.trim() && !ownerEmail.trim()) {
+      setError('Owner Login Email is required when an owner name is provided.');
+      return;
+    }
+
+    if (ownerEmail.trim() && !ownerName.trim()) {
+      setError('Owner Full Name is required when an owner email is provided.');
+      return;
+    }
+
+    if (ownerEmail.trim() && ownerPassword.length < 8) {
+      setError('Owner password must be at least 8 characters.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      await tenantService.create({
+      // Owner credentials must travel with the store: login matches on
+      // users.email, so a tenant without an account cannot be signed into.
+      const res = await tenantService.create({
         name: name.trim(),
         slug: slug.trim(),
         email: email.trim() || undefined,
@@ -86,15 +107,27 @@ export const CreateTenantPage: React.FC = () => {
         currency,
         timezone,
         status,
+        owner_name: ownerName.trim() || undefined,
+        owner_email: ownerEmail.trim() || undefined,
+        owner_password: ownerPassword || undefined,
+        owner_password_confirmation: ownerPassword || undefined,
       });
+
+      // Nothing was persisted when the backend is unreachable, so do not
+      // navigate away reporting a store that does not exist.
+      if (res.success === false) {
+        setError(res.message || 'The backend is unreachable, so the store was not created.');
+        setIsSubmitting(false);
+        return;
+      }
 
       // Navigate back to tenants list with success flag
       navigate('/super-admin/tenants', {
         state: { message: `Store "${name}" provisioned successfully!` },
       });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to provision tenant store';
-      setError(msg);
+      // Surfaces field errors such as "slug: This slug is already in use."
+      setError(formatError(err));
       setIsSubmitting(false);
     }
   };
@@ -313,7 +346,10 @@ export const CreateTenantPage: React.FC = () => {
             <Building2 className="w-5 h-5 text-[#065F46]" />
             <div>
               <h2 className="text-base font-semibold text-[#18181B] font-display">Primary Store Owner Account (Optional)</h2>
-              <p className="text-xs text-[#71717A]">Initial administrator credentials provisioned for the store owner.</p>
+              <p className="text-xs text-[#71717A]">
+                Without this account the new store has no one who can sign in — login matches on the
+                user email, so leave all three fields empty only if you intend to add staff later.
+              </p>
             </div>
           </div>
 
@@ -332,6 +368,20 @@ export const CreateTenantPage: React.FC = () => {
                 value={ownerEmail}
                 onChange={(e) => setOwnerEmail(e.target.value)}
                 placeholder="e.g. owner@faisalabadelectric.pk"
+              />
+            </FormField>
+
+            <FormField
+              label="Owner Login Password"
+              helperText="Minimum 8 characters. Share it with the store owner."
+              className="md:col-span-2"
+            >
+              <Input
+                type="password"
+                value={ownerPassword}
+                onChange={(e) => setOwnerPassword(e.target.value)}
+                placeholder="e.g. Sport@2026"
+                autoComplete="new-password"
               />
             </FormField>
           </div>

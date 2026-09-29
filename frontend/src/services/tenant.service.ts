@@ -33,6 +33,19 @@ function isApiError(err: unknown): err is ApiError {
 }
 
 /**
+ * Fields the provisioning form adds on top of the tenant record itself.
+ *
+ * The owner account is what makes a new store usable: login matches on
+ * users.email, so a tenant created without one rejects every credential.
+ */
+export interface CreateTenantInput {
+  owner_name?: string;
+  owner_email?: string;
+  owner_password?: string;
+  owner_password_confirmation?: string;
+}
+
+/**
  * The last known list, used only when the backend is unreachable.
  *
  * Returns an empty list rather than inventing stores — a dropdown that
@@ -82,7 +95,7 @@ export const tenantService = {
     return { data: getStoredTenants(), status: 200, message: 'Loaded from storage' };
   },
 
-  async create(data: Partial<Tenant>): Promise<ApiResponse<Tenant>> {
+  async create(data: Partial<Tenant> & CreateTenantInput): Promise<ApiResponse<Tenant>> {
     const currentTenants = getStoredTenants();
     const newId = currentTenants.length > 0 ? Math.max(...currentTenants.map((t) => t.id)) + 1 : 1;
 
@@ -108,16 +121,20 @@ export const tenantService = {
         saveStoredTenants(updated);
         return res;
       }
-    } catch {
-      // Fallback to local storage
+    } catch (err) {
+      // A 422 means the store was rejected (duplicate slug, invalid payload).
+      // Reporting success here would fake a tenant that does not exist.
+      if (isApiError(err)) throw err;
     }
 
+    // Only a genuinely unreachable backend gets an offline record, and it is
+    // flagged so the caller does not claim the store was provisioned.
     const updated = [newTenant, ...currentTenants];
     saveStoredTenants(updated);
 
     return {
-      success: true,
-      message: 'Tenant provisioned successfully',
+      success: false,
+      message: 'Backend unreachable — store not provisioned.',
       data: newTenant,
     };
   },
@@ -125,8 +142,9 @@ export const tenantService = {
   async delete(id: number): Promise<ApiResponse<void>> {
     try {
       await apiClient.delete<void>(`/tenants/${id}`);
-    } catch {
-      // Fallback to local storage
+    } catch (err) {
+      // A refused delete (403/404/422) must not be reported as a removal.
+      if (isApiError(err)) throw err;
     }
 
     const currentTenants = getStoredTenants();
@@ -139,31 +157,24 @@ export const tenantService = {
     };
   },
 
-  async toggleStatus(id: number): Promise<ApiResponse<Tenant>> {
-    const currentTenants = getStoredTenants();
-    const tenant = currentTenants.find((t) => t.id === id);
-    if (!tenant) {
-      throw new Error('Tenant not found');
+  /**
+   * Suspend or reactivate a store.
+   *
+   * Uses the dedicated status endpoint: apiResource's PUT validates the whole
+   * record and rejects a status-only body because name and slug are required.
+   * The server response is returned as-is so the UI never reports a status the
+   * platform did not actually persist.
+   */
+  async toggleStatus(id: number, status: 'active' | 'suspended'): Promise<ApiResponse<Tenant>> {
+    const res = await apiClient.patch<Tenant>(`/tenants/${id}/status`, { status });
+    const saved = res.data;
+
+    if (saved) {
+      saveStoredTenants(
+        getStoredTenants().map((t) => (t.id === id ? { ...t, ...saved } : t))
+      );
     }
 
-    const updatedTenant: Tenant = {
-      ...tenant,
-      status: tenant.status === 'active' ? 'suspended' : 'active',
-    };
-
-    const updated = currentTenants.map((t) => (t.id === id ? updatedTenant : t));
-    saveStoredTenants(updated);
-
-    try {
-      await apiClient.put<Tenant>(`/tenants/${id}`, { status: updatedTenant.status });
-    } catch {
-      // ignore
-    }
-
-    return {
-      success: true,
-      message: `Tenant status updated to ${updatedTenant.status}`,
-      data: updatedTenant,
-    };
+    return res;
   },
 };

@@ -23,6 +23,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { formatDate } from '../../../lib/formatters';
+import { formatError } from '../../../lib/utils';
 import { tenantService } from '../../../services/tenant.service';
 import type { Tenant } from '../../../types/auth.types';
 
@@ -100,6 +101,13 @@ export const SuperAdminDashboard: React.FC = () => {
         status: status || 'active',
       });
 
+      // Nothing was persisted when the backend is unreachable; do not report
+      // the store as provisioned.
+      if (res.success === false) {
+        setFormError(res.message || 'The backend is unreachable, so the store was not created.');
+        return;
+      }
+
       if (res.data) {
         setTenants((prev) => [res.data!, ...prev.filter((t) => t.id !== res.data!.id)]);
         setFeedback(`Store tenant "${name.trim()}" provisioned successfully with isolated database schema!`);
@@ -107,20 +115,25 @@ export const SuperAdminDashboard: React.FC = () => {
       }
       setIsProvisionOpen(false);
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : 'Failed to provision tenant');
+      setFormError(formatError(err));
     }
   };
 
   const handleToggleStatus = async (id: number) => {
+    const current = tenants.find((t) => t.id === id);
+    if (!current) return;
+
+    const nextStatus = current.status === 'active' ? 'suspended' : 'active';
+
     try {
-      const res = await tenantService.toggleStatus(id);
+      const res = await tenantService.toggleStatus(id, nextStatus);
       if (res.data) {
         setTenants((prev) => prev.map((t) => (t.id === id ? res.data! : t)));
         setFeedback(`Tenant status updated to ${res.data.status.toUpperCase()}!`);
         setTimeout(() => setFeedback(null), 5000);
       }
     } catch (err) {
-      console.error('Failed to toggle status', err);
+      setFormError(formatError(err));
     }
   };
 
@@ -128,7 +141,14 @@ export const SuperAdminDashboard: React.FC = () => {
     if (!confirm(`Are you sure you want to de-provision and remove "${tenantName}"? This action cannot be undone.`)) {
       return;
     }
-    await tenantService.delete(id);
+
+    try {
+      await tenantService.delete(id);
+    } catch (err) {
+      setFormError(formatError(err));
+      return;
+    }
+
     setTenants((prev) => prev.filter((t) => t.id !== id));
     setFeedback(`Store tenant "${tenantName}" de-provisioned.`);
     setTimeout(() => setFeedback(null), 5000);

@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Repositories\TenantRepository;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class TenantService
@@ -17,6 +19,13 @@ class TenantService
             throw ValidationException::withMessages(['slug' => ['This slug is already in use.']]);
         }
 
+        return DB::transaction(function () use ($user, $data) {
+            return $this->createTenant($user, $data);
+        });
+    }
+
+    private function createTenant(User $user, array $data): Tenant
+    {
         $tenant = $this->tenants->create([
             'name' => $data['name'],
             'slug' => $data['slug'],
@@ -32,9 +41,59 @@ class TenantService
             'settings' => $data['settings'] ?? [],
         ]);
 
+        $owner = $this->createOwnerAccount($tenant, $data);
+
         AuditService::log($user, 'created', 'tenants', 'tenant', $tenant->id, null, $tenant->only(['name', 'slug']));
 
+        if ($owner) {
+            AuditService::log($user, 'created', 'users', 'user', $owner->id, null, [
+                'email' => $owner->email,
+                'role' => 'owner',
+            ]);
+        }
+
         return $tenant;
+    }
+
+    /**
+     * Create the store's first owner account.
+     *
+     * Without this a provisioned store has no one who can sign in: the tenant
+     * row exists but login matches on users.email, so every credential is
+     * rejected until an account is created.
+     *
+     * @return User|null null when no owner credentials were supplied
+     */
+    private function createOwnerAccount(Tenant $tenant, array $data): ?User
+    {
+        if (empty($data['owner_email'])) {
+            return null;
+        }
+
+        $role = Role::query()->where('slug', 'owner')->first();
+
+        if (! $role) {
+            throw ValidationException::withMessages([
+                'owner_email' => ['The owner role is missing. Seed the platform roles first.'],
+            ]);
+        }
+
+        if (User::withTrashed()->where('email', $data['owner_email'])->exists()) {
+            throw ValidationException::withMessages([
+                'owner_email' => ['A user with this email already exists.'],
+            ]);
+        }
+
+        return User::create([
+            'tenant_id' => $tenant->id,
+            'role_id' => $role->id,
+            'name' => $data['owner_name'] ?? $data['owner_email'],
+            'email' => $data['owner_email'],
+            'password' => $data['owner_password'],
+            'phone' => $data['phone'] ?? null,
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
     }
 
     public function update(User $user, Tenant $tenant, array $data): Tenant
