@@ -72,7 +72,10 @@ export const Dialog: React.FC<DialogProps> = ({
         </div>
 
         {/* Body Content */}
-        <div className="px-4 sm:px-6 py-3.5 sm:py-5 overflow-y-auto flex-1">{children}</div>
+        {/* @container so that multi-column layouts inside a dialog can key off
+            the dialog's own width. Plain `sm:`/`md:` variants resolve against
+            the viewport, which laid a 2-column form out inside a 460px modal. */}
+        <div className="@container px-4 sm:px-6 py-3.5 sm:py-5 overflow-y-auto flex-1">{children}</div>
 
         {/* Footer */}
         {footer && (

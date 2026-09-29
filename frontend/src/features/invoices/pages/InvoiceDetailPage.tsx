@@ -6,6 +6,7 @@ import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { DataTable, type Column } from '../../../components/ui/DataTable';
 import { formatCurrency, formatDate } from '../../../lib/formatters';
+import { printSalesDocument } from '../../../lib/printDocument';
 import { invoiceService } from '../../../services/invoice.service';
 import type { Invoice, InvoiceItem, SaleReturn } from '../../../types/invoice.types';
 import { ArrowLeft, Printer, Download, RotateCcw, User, Mail, Receipt, ExternalLink } from 'lucide-react';
@@ -27,53 +28,31 @@ export const InvoiceDetailPage: React.FC = () => {
 
   const printInvoice = () => {
     if (!invoice) return;
-    const w = window.open('', '_blank');
-    if (!w) return;
-    const t = { subtotal: invoice.subtotal, discount: invoice.discount_amount, total: invoice.total_amount };
-    const rows = (invoice.items || []).map(item => `
-          <tr>
-            <td>${item.product_name}${item.discount_amount > 0 ? `<br/><span class="muted">- ${formatCurrency(item.discount_amount)} line discount</span>` : ''}</td>
-            <td class="num">${item.quantity} x ${formatCurrency(item.unit_price)}</td>
-            <td class="num">${formatCurrency(item.total_price)}</td>
-          </tr>
-    `).join('');
-
-    w.document.write(`<!doctype html><html><head><title>${invoice.invoice_number}</title>
-<style>
-  body { font-family: monospace; width: 320px; margin: 24px auto; color: #000; font-size: 12px; }
-  .center { text-align: center; }
-  .dash { text-align: center; margin: 8px 0; letter-spacing: 2px; }
-  .row { display: flex; justify-content: space-between; }
-  .num { text-align: right; }
-  table { width: 100%; border-collapse: collapse; }
-  .muted { color: #666; font-size: 10px; }
-  .bold { font-weight: bold; }
-  th { text-align: left; }
-</style></head><body>
-  <div class="center">
-    <div class="bold" style="font-size:16px;letter-spacing:2px">DUKANOS</div>
-    <div>ELECTRICAL &amp; APPLIANCE STORE</div>
-    <div>Main Bazar Road, City 46000 &middot; Tel: 0300-1234567</div>
-  </div>
-  <div class="dash">- - - - - - - - - - - - - - - -</div>
-  <div class="row"><span>INVOICE</span><span class="bold">#${invoice.invoice_number}</span></div>
-  <div class="row"><span>Date</span><span>${formatDate(invoice.invoice_date)}</span></div>
-  <div class="row"><span>Customer</span><span class="bold">${invoice.customer?.name || 'Walk-in Customer'}</span></div>
-  <div class="dash">- - - - - - - - - - - - - - - -</div>
-  <table><thead><tr><th>ITEM</th><th class="num">QTY x RATE</th><th class="num">AMOUNT</th></tr></thead>
-  <tbody>${rows}</tbody></table>
-  <div class="dash">- - - - - - - - - - - - - - - -</div>
-  <div class="row"><span>Subtotal</span><span class="num">${formatCurrency(t.subtotal)}</span></div>
-  ${t.discount > 0 ? `<div class="row"><span>Discount</span><span class="num">- ${formatCurrency(t.discount)}</span></div>` : ''}
-  <div class="row bold" style="font-size:13px"><span>TOTAL</span><span class="num">${formatCurrency(t.total)}</span></div>
-  <div class="row"><span>Paid</span><span class="num">${formatCurrency(invoice.paid_amount)}</span></div>
-  ${invoice.balance_amount > 0 ? `<div class="row"><span>Balance</span><span class="num">${formatCurrency(invoice.balance_amount)}</span></div>` : ''}
-  <div class="dash">* * *</div>
-  <div class="center muted">THANK YOU FOR YOUR PURCHASE!<br/>Goods once sold will not be taken back.</div>
-</body></html>`);
-    w.document.close();
-    w.focus();
-    setTimeout(() => { w.print(); }, 250);
+    printSalesDocument({
+      title: 'INVOICE',
+      number: invoice.invoice_number,
+      date: invoice.invoice_date,
+      customerName: invoice.customer?.name || 'Walk-in Customer',
+      customerPhone: invoice.customer?.phone,
+      items: (invoice.items || []).map((item) => ({
+        name: item.product_name,
+        sku: item.sku,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        discount_amount: item.discount_amount,
+        total_price: item.total_price,
+      })),
+      subtotal: invoice.subtotal,
+      discountAmount: invoice.discount_amount,
+      totalAmount: invoice.total_amount,
+      paymentRows: [
+        { label: 'Paid', value: formatCurrency(invoice.paid_amount) },
+        ...(invoice.balance_amount > 0
+          ? [{ label: 'Balance', value: formatCurrency(invoice.balance_amount) }]
+          : []),
+      ],
+      notes: invoice.notes,
+    });
   };
 
 

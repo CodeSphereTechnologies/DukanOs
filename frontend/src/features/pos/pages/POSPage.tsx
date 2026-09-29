@@ -84,6 +84,7 @@ export const POSPage: React.FC = () => {
   const [newCustomerType, setNewCustomerType] = useState<'temporary' | 'permanent'>('temporary');
   const [newCustomerAddress, setNewCustomerAddress] = useState('');
   const [customerError, setCustomerError] = useState('');
+  const [paymentError, setPaymentError] = useState('');
 
   useEffect(() => {
     productService.getAll().then((res) => {
@@ -243,6 +244,7 @@ export const POSPage: React.FC = () => {
     setNewCustomerType('temporary');
     setNewCustomerAddress('');
     setCustomerError('');
+    setPaymentError('');
     setPaymentMethod('cash');
     setAmountPaid(0);
     setDocType('invoice');
@@ -255,6 +257,7 @@ export const POSPage: React.FC = () => {
     setNewCustomerType('temporary');
     setNewCustomerAddress('');
     setCustomerError('');
+    setPaymentError('');
     setCheckoutCustomerName(customer.id === 0 ? 'Walk-in Customer' : customer.name);
     setCheckoutCustomerPhone(customer.phone || '');
     setSelectedCustomerId(customer.id || 0);
@@ -263,6 +266,19 @@ export const POSPage: React.FC = () => {
 
   const handleCompleteSale = async () => {
     setCustomerError('');
+
+    // The Amount Received field is required for every non-ledger payment, but
+    // an empty input parses to 0, so the sale used to be recorded with
+    // paid_amount 0 and status "partial". Check before any side effects so a
+    // rejected checkout never touches stock.
+    if (paymentMethod !== 'ledger' && grandTotal > 0 && amountPaid <= 0) {
+      setPaymentError(
+        `Enter the amount received (${formatCurrency(grandTotal)}) before confirming the sale.`
+      );
+      return;
+    }
+    setPaymentError('');
+
     let finalCustomer: Customer;
 
     if (customerMode === 'new') {
@@ -915,7 +931,7 @@ export const POSPage: React.FC = () => {
           else setIsCheckoutOpen(false);
         }}
         title={isCompleted ? 'Order Complete' : 'Checkout'}
-        maxWidth="lg"
+        maxWidth="xl"
         footer={
           isCompleted ? (
             <>
@@ -1032,7 +1048,7 @@ export const POSPage: React.FC = () => {
               )}
 
               {customerMode === 'existing' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 @lg:grid-cols-2 gap-3">
                   <FormField label="Customer Name" required>
                     <Combobox
                       options={customerOptions}
@@ -1072,7 +1088,7 @@ export const POSPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 @lg:grid-cols-2 gap-3">
                     <FormField label="Customer Name" required>
                       <Input
                         type="text"
@@ -1114,7 +1130,7 @@ export const POSPage: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 @lg:grid-cols-2 gap-2">
                       <button
                         type="button"
                         onClick={() => setNewCustomerType('temporary')}
@@ -1269,11 +1285,16 @@ export const POSPage: React.FC = () => {
             )}
 
             {paymentMethod !== 'ledger' && (
-              <FormField label="Amount Received (PKR)" required>
+              <FormField label="Amount Received (PKR)" required error={paymentError}>
                 <Input
                   type="number"
+                  min={0}
                   value={amountPaid || ''}
-                  onChange={(e) => setAmountPaid(Number(e.target.value))}
+                  onChange={(e) => {
+                    setAmountPaid(Number(e.target.value));
+                    if (paymentError) setPaymentError('');
+                  }}
+                  error={paymentError || undefined}
                   autoFocus
                 />
               </FormField>

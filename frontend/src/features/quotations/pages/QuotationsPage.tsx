@@ -18,6 +18,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../../lib/formatters';
+import { printSalesDocument } from '../../../lib/printDocument';
 import { invoiceService } from '../../../services/invoice.service';
 import { customerService } from '../../../services/customer.service';
 import { productService } from '../../../services/product.service';
@@ -293,6 +294,34 @@ export const QuotationsPage: React.FC = () => {
   const handleOpenPreview = (q: Quotation) => {
     setSelectedQuote(q);
     setIsPreviewOpen(true);
+  };
+
+  const handlePrintQuotation = () => {
+    if (!selectedQuote) return;
+    printSalesDocument({
+      title: 'QUOTATION',
+      number: selectedQuote.quotation_number,
+      date: selectedQuote.quotation_date,
+      customerName: selectedQuote.customer?.name || 'Walk-in Customer',
+      customerPhone: selectedQuote.customer?.phone,
+      extraRows: [{ label: 'Valid Until', value: formatDate(selectedQuote.valid_until) }],
+      items: (selectedQuote.items || []).map((item) => ({
+        name: item.product_name,
+        sku: item.sku,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        discount_amount: item.discount_amount,
+        total_price: item.total_price,
+      })),
+      subtotal: selectedQuote.subtotal,
+      discountAmount: selectedQuote.discount_amount,
+      totalAmount: selectedQuote.total_amount,
+      notes: selectedQuote.notes,
+      header: {
+        name: 'PUNJAB ELECTRIC STORE',
+        lines: ['Main Market, Hall Road, Lahore', 'Tel: +92 42 37210099'],
+      },
+    });
   };
 
   const filtered = quotations.filter(
@@ -695,7 +724,7 @@ export const QuotationsPage: React.FC = () => {
               variant="secondary"
               size="sm"
               leftIcon={<Printer className="w-4 h-4" />}
-              onClick={() => window.print()}
+              onClick={handlePrintQuotation}
               className="w-full sm:w-auto"
             >
               Print Quotation
