@@ -34,14 +34,14 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
-class PunjabElectricStoreSeeder extends Seeder
+class DemoTenantSeeder extends Seeder
 {
     private const PASSWORD = 'password';
 
     /**
      * Run the database seeds.
      *
-     * Seeds a single tenant (Punjab Electric Store) with a fully connected,
+     * Seeds a single tenant (Demo Retail Store) with a fully connected,
      * realistic set of master data and transactional history.
      */
     public function run(): void
@@ -59,7 +59,7 @@ class PunjabElectricStoreSeeder extends Seeder
             $this->seedLedgerCategories($tenant);
 
             if (Product::where('tenant_id', $tenant->id)->exists()) {
-                $this->command?->warn('Punjab Electric Store business data already seeded. Skipping product/customer/sales fixtures.');
+                $this->command?->warn('Demo Retail Store business data already seeded. Skipping product/customer/sales fixtures.');
 
                 return;
             }
@@ -171,9 +171,9 @@ class PunjabElectricStoreSeeder extends Seeder
 
     private function seedTenant(): Tenant
     {
-        return Tenant::firstOrCreate(['slug' => 'punjab-electric-store'], [
-            'name' => 'Punjab Electric Store',
-            'email' => 'info@punjabelectric.pk',
+        return Tenant::firstOrCreate(['slug' => 'demo-retail-store'], [
+            'name' => 'Demo Retail Store',
+            'email' => 'info@demo-retail.pk',
             'phone' => '+92 300 4125678',
             'address' => 'Shop No. 14, Main Bazaar, Circular Road',
             'city' => 'Faisalabad',
@@ -183,7 +183,7 @@ class PunjabElectricStoreSeeder extends Seeder
             'timezone' => 'Asia/Karachi',
             'status' => 'active',
             'settings' => [
-                'receipt_footer' => 'Thank you for shopping with Punjab Electric Store.',
+                'receipt_footer' => 'Thank you for shopping with Demo Retail Store.',
                 'low_stock_alert' => true,
                 'tax_enabled' => false,
                 'invoice_prefix' => 'INV',
@@ -197,10 +197,10 @@ class PunjabElectricStoreSeeder extends Seeder
     private function seedTenantUsers(Tenant $tenant, array $roles): array
     {
         $defs = [
-            ['key' => 'owner', 'name' => 'Muhammad Akram Ch.', 'email' => 'owner@punjabelectric.pk', 'role' => 'owner', 'phone' => '+92 300 4125678'],
-            ['key' => 'manager', 'name' => 'Ahmed Raza', 'email' => 'manager@punjabelectric.pk', 'role' => 'manager', 'phone' => '+92 321 7788990'],
-            ['key' => 'cashier', 'name' => 'Usman Ali', 'email' => 'cashier@punjabelectric.pk', 'role' => 'cashier', 'phone' => '+92 333 4561234'],
-            ['key' => 'accountant', 'name' => 'Sana Javed', 'email' => 'accountant@punjabelectric.pk', 'role' => 'accountant', 'phone' => '+92 345 1122334'],
+            ['key' => 'owner', 'name' => 'Muhammad Akram Ch.', 'email' => 'owner@demo-retail.pk', 'role' => 'owner', 'phone' => '+92 300 4125678'],
+            ['key' => 'manager', 'name' => 'Ahmed Raza', 'email' => 'manager@demo-retail.pk', 'role' => 'manager', 'phone' => '+92 321 7788990'],
+            ['key' => 'cashier', 'name' => 'Usman Ali', 'email' => 'cashier@demo-retail.pk', 'role' => 'cashier', 'phone' => '+92 333 4561234'],
+            ['key' => 'accountant', 'name' => 'Sana Javed', 'email' => 'accountant@demo-retail.pk', 'role' => 'accountant', 'phone' => '+92 345 1122334'],
         ];
 
         $users = [];
@@ -406,7 +406,7 @@ class PunjabElectricStoreSeeder extends Seeder
                 'sku' => $row['sku'],
                 'barcode' => $row['barcode'],
                 'model_number' => $row['model'],
-                'description' => $row['name'].' — available at Punjab Electric Store.',
+                'description' => $row['name'].' — available at Demo Retail Store.',
                 'unit' => $row['unit'] ?? 'pc',
                 'purchase_cost' => $row['cost'],
                 'selling_price' => $row['price'],
@@ -1007,9 +1007,9 @@ class PunjabElectricStoreSeeder extends Seeder
     private function seedEmployeesAndSalaries(Tenant $tenant, array $users): void
     {
         $defs = [
-            ['key' => 'manager', 'user' => 'manager', 'name' => 'Ahmed Raza', 'phone' => '+92 321 7788990', 'email' => 'manager@punjabelectric.pk', 'designation' => 'Store Manager', 'salary' => 45000, 'joining' => '2023-03-15'],
-            ['key' => 'cashier', 'user' => 'cashier', 'name' => 'Usman Ali', 'phone' => '+92 333 4561234', 'email' => 'cashier@punjabelectric.pk', 'designation' => 'Cashier', 'salary' => 28000, 'joining' => '2024-01-10'],
-            ['key' => 'accountant', 'user' => 'accountant', 'name' => 'Sana Javed', 'phone' => '+92 345 1122334', 'email' => 'accountant@punjabelectric.pk', 'designation' => 'Accountant', 'salary' => 40000, 'joining' => '2023-08-01'],
+            ['key' => 'manager', 'user' => 'manager', 'name' => 'Ahmed Raza', 'phone' => '+92 321 7788990', 'email' => 'manager@demo-retail.pk', 'designation' => 'Store Manager', 'salary' => 45000, 'joining' => '2023-03-15'],
+            ['key' => 'cashier', 'user' => 'cashier', 'name' => 'Usman Ali', 'phone' => '+92 333 4561234', 'email' => 'cashier@demo-retail.pk', 'designation' => 'Cashier', 'salary' => 28000, 'joining' => '2024-01-10'],
+            ['key' => 'accountant', 'user' => 'accountant', 'name' => 'Sana Javed', 'phone' => '+92 345 1122334', 'email' => 'accountant@demo-retail.pk', 'designation' => 'Accountant', 'salary' => 40000, 'joining' => '2023-08-01'],
             ['key' => 'salesman', 'user' => null, 'name' => 'Kamran Khan', 'phone' => '+92 302 9988776', 'email' => null, 'designation' => 'Salesman', 'salary' => 24000, 'joining' => '2024-06-20'],
             ['key' => 'electrician', 'user' => null, 'name' => 'Naveed Akhtar', 'phone' => '+92 344 5566778', 'email' => null, 'designation' => 'Electrician', 'salary' => 32000, 'joining' => '2023-11-05'],
             ['key' => 'helper', 'user' => null, 'name' => 'Shahid Mehmood', 'phone' => '+92 305 3344556', 'email' => null, 'designation' => 'Helper', 'salary' => 18000, 'joining' => '2025-02-01'],
@@ -1097,7 +1097,7 @@ class PunjabElectricStoreSeeder extends Seeder
             ['user' => 'manager', 'action' => 'created', 'module' => 'quotations', 'entity_type' => 'quotation', 'entity_id' => 2, 'old' => null, 'new' => ['quotation_number' => 'QUO-0002'], 'at' => '2026-06-10 11:00:00'],
             ['user' => 'manager', 'action' => 'created', 'module' => 'returns', 'entity_type' => 'return', 'entity_id' => 1, 'old' => null, 'new' => ['return_number' => 'RET-0001'], 'at' => '2026-06-14 16:35:00'],
             ['user' => 'accountant', 'action' => 'created', 'module' => 'payments', 'entity_type' => 'payment', 'entity_id' => 1, 'old' => null, 'new' => ['payment_number' => 'PAY-0001'], 'at' => '2026-06-20 12:10:00'],
-            ['user' => 'owner', 'action' => 'created', 'module' => 'users', 'entity_type' => 'user', 'entity_id' => $users['cashier']->id, 'old' => null, 'new' => ['email' => 'cashier@punjabelectric.pk'], 'at' => '2026-07-01 09:00:00'],
+            ['user' => 'owner', 'action' => 'created', 'module' => 'users', 'entity_type' => 'user', 'entity_id' => $users['cashier']->id, 'old' => null, 'new' => ['email' => 'cashier@demo-retail.pk'], 'at' => '2026-07-01 09:00:00'],
             ['user' => 'owner', 'action' => 'permission_change', 'module' => 'users', 'entity_type' => 'user', 'entity_id' => $users['cashier']->id, 'old' => ['role' => 'manager'], 'new' => ['role' => 'cashier'], 'at' => '2026-07-01 09:05:00'],
             ['user' => 'accountant', 'action' => 'created', 'module' => 'expenses', 'entity_type' => 'daily_transaction', 'entity_id' => 5, 'old' => null, 'new' => ['description' => 'Shop rent for July'], 'at' => '2026-07-01 10:00:00'],
             ['user' => 'owner', 'action' => 'payroll_paid', 'module' => 'payroll', 'entity_type' => 'salary_record', 'entity_id' => 1, 'old' => null, 'new' => ['period' => '2026-06'], 'at' => '2026-07-01 12:05:00'],
