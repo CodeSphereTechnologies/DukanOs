@@ -5,6 +5,9 @@ import { PageContainer } from '../../../components/ui/PageContainer';
 import { DataTable, type Column } from '../../../components/ui/DataTable';
 import { SearchToolbar } from '../../../components/ui/SearchToolbar';
 import { Button } from '../../../components/ui/Button';
+import { Select } from '../../../components/ui/Select';
+import { Alert } from '../../../components/ui/Alert';
+import { formatError } from '../../../lib/utils';
 import { Badge } from '../../../components/ui/Badge';
 import { Dialog } from '../../../components/ui/Dialog';
 import { FormField } from '../../../components/ui/FormField';
@@ -31,6 +34,10 @@ export const CustomersPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [openingBalance, setOpeningBalance] = useState<number>(0);
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState<Customer['status']>('active');
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const filtered = useMemo(() => {
     return customers.filter((c) => {
@@ -63,24 +70,45 @@ export const CustomersPage: React.FC = () => {
     return { totalReceivable, totalPayable, oweUsCount, total: customers.length };
   }, [customers]);
 
-  const handleAddCustomer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name) return;
-
-    const newCust = await customerService.saveCustomer({
-      name,
-      phone: phone || undefined,
-      address: address || undefined,
-      current_balance: Number(openingBalance) || 0,
-      status: 'active',
-    });
-
-    setCustomers([newCust, ...customers]);
-    setIsAddOpen(false);
+  const resetAddForm = () => {
     setName('');
     setPhone('');
+    setEmail('');
     setAddress('');
     setOpeningBalance(0);
+    setStatus('active');
+    setFormError(null);
+  };
+
+  const handleAddCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!name.trim()) {
+      setFormError('Customer name is required.');
+      return;
+    }
+
+    setFormError(null);
+    setIsSaving(true);
+
+    try {
+      const newCust = await customerService.saveCustomer({
+        name: name.trim(),
+        phone: phone.trim() || undefined,
+        email: email.trim() || undefined,
+        address: address.trim() || undefined,
+        current_balance: Number(openingBalance) || 0,
+        status,
+      });
+
+      setCustomers((prev) => [newCust, ...prev]);
+      setIsAddOpen(false);
+      resetAddForm();
+    } catch (err: any) {
+      setFormError(formatError(err));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleDeleteCustomer = (c: Customer) => {
@@ -99,7 +127,9 @@ export const CustomersPage: React.FC = () => {
           <Avatar name={c.name} className="w-8 h-8 shrink-0" />
           <div>
             <div className="font-semibold text-[#18181B]">{c.name}</div>
-            <div className="text-xs text-[#71717A]">{c.phone || 'No phone'}</div>
+            <div className="text-xs text-[#71717A]">
+              {[c.phone || 'No phone', c.email].filter(Boolean).join(' · ')}
+            </div>
           </div>
         </div>
       ),
@@ -263,58 +293,96 @@ export const CustomersPage: React.FC = () => {
         <SearchToolbar
           searchValue={search}
           onSearchChange={setSearch}
-          searchPlaceholder="Search customers by name or phone..."
+          searchPlaceholder="Search customers by name, phone, or email..."
         />
         <DataTable columns={columns} data={filtered} keyExtractor={(item) => item.id} />
       </div>
 
       <Dialog
         isOpen={isAddOpen}
-        onClose={() => setIsAddOpen(false)}
+        onClose={() => {
+          setIsAddOpen(false);
+          resetAddForm();
+        }}
         title="Add Customer Profile"
         description="Create an account to track on-account credit sales and payment histories."
         footer={
           <>
-            <Button variant="secondary" size="sm" onClick={() => setIsAddOpen(false)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setIsAddOpen(false);
+                resetAddForm();
+              }}
+              disabled={isSaving}
+            >
               Cancel
             </Button>
-            <Button variant="primary" size="sm" onClick={handleAddCustomer}>
-              Create Customer
+            <Button variant="primary" size="sm" onClick={handleAddCustomer} disabled={isSaving}>
+              {isSaving ? 'Creating...' : 'Create Customer'}
             </Button>
           </>
         }
       >
         <form onSubmit={handleAddCustomer} className="space-y-4">
-          <FormField label="Full Name / Business Name" required>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Chaudhry Bilal (Contractor)"
-              autoFocus
-            />
-          </FormField>
-          <FormField label="Mobile Phone Number">
-            <Input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="e.g. +92 300 1234567"
-            />
-          </FormField>
-          <FormField label="Shop / Site Address">
-            <Input
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="e.g. Shop #4, Model Town Market"
-            />
-          </FormField>
-          <FormField label="Opening Outstanding Balance (PKR)">
-            <Input
-              type="number"
-              value={openingBalance || ''}
-              onChange={(e) => setOpeningBalance(Number(e.target.value))}
-              placeholder="Enter positive if they owe you, negative if you owe them"
-            />
-          </FormField>
+          {formError && (
+            <Alert variant="error" title="Validation Error" onClose={() => setFormError(null)}>
+              {formError}
+            </Alert>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormField label="Full Name / Business Name" required>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Chaudhry Bilal (Contractor)"
+                autoFocus
+              />
+            </FormField>
+            <FormField label="Mobile Phone Number">
+              <Input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="e.g. +92 300 1234567"
+              />
+            </FormField>
+            <FormField label="Email Address">
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="e.g. bilal@contractors.pk"
+              />
+            </FormField>
+            <FormField label="Shop / Site Address">
+              <Input
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="e.g. Shop #4, Model Town Market"
+              />
+            </FormField>
+            <FormField label="Opening Outstanding Balance (PKR)">
+              <Input
+                type="number"
+                min={0}
+                value={openingBalance || ''}
+                onChange={(e) => setOpeningBalance(Number(e.target.value))}
+                placeholder="0"
+              />
+            </FormField>
+            <FormField label="Account Status">
+              <Select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as Customer['status'])}
+                options={[
+                  { label: 'Active - can purchase on account', value: 'active' },
+                  { label: 'Inactive - ledger kept for records', value: 'inactive' },
+                ]}
+              />
+            </FormField>
+          </div>
         </form>
       </Dialog>
     </PageContainer>
