@@ -24,6 +24,7 @@ class InvoiceResource extends JsonResource
             'balance_due' => (float) $this->balance_due,
             'payment_status' => $this->payment_status,
             'status' => $this->status,
+            'payment_method' => $this->payments->first()?->method ?? ($this->balance_due > 0 && $this->amount_paid <= 0.001 ? 'ledger' : 'cash'),
             'notes' => $this->notes,
             'customer' => $this->whenLoaded('customer', fn () => new CustomerResource($this->customer)),
             'items' => $this->whenLoaded('items', fn () => $this->items->map(fn ($i) => [
