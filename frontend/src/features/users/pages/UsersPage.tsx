@@ -1,3 +1,4 @@
+import { Avatar } from "../../../components/ui/Avatar";
 import React, { useState, useEffect, useMemo } from 'react';
 import { PageContainer } from '../../../components/ui/PageContainer';
 import { DataTable, type Column } from '../../../components/ui/DataTable';
@@ -212,9 +213,7 @@ export const UsersPage: React.FC = () => {
       header: 'Staff Member',
       render: (u) => (
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#18181B] text-white flex items-center justify-center font-bold text-xs shrink-0 font-display">
-            {u.name.charAt(0)}
-          </div>
+          <Avatar name={u.name} className="w-8 h-8 shrink-0" />
           <div className="min-w-0">
             <div className="font-semibold text-[#18181B] truncate">{u.name}</div>
             <div className="text-xs text-[#71717A] truncate flex items-center gap-1">

@@ -1,3 +1,4 @@
+import { Avatar } from "../ui/Avatar";
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 import { LogOut, ChevronDown } from 'lucide-react';
@@ -27,9 +28,7 @@ export const UserMenu: React.FC = () => {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2.5 p-1.5 rounded-full hover:bg-[#F4F4F5] transition-colors"
       >
-        <div className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center font-bold text-xs">
-          {user.name.charAt(0)}
-        </div>
+        <Avatar name={user.name} className="w-8 h-8" />
         <div className="text-left hidden md:block">
           <div className="text-xs font-semibold text-[#18181B] leading-tight">{user.name}</div>
           <div className="text-[11px] text-[#71717A] capitalize">{user.role.name}</div>

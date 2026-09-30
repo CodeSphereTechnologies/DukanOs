@@ -18,6 +18,8 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { printLedgerReceipt } from '../../../lib/printDocument';
 import { Dialog } from '../../../components/ui/Dialog';
+import { Avatar } from '../../../components/ui/Avatar';
+
 import { Printer, Receipt } from 'lucide-react';
 import { printCustomerLedgerA4, printCustomerLedgerThermal } from '../../../lib/customerPrint';
 import { Button } from '../../../components/ui/Button';
@@ -158,14 +160,7 @@ export const CustomerDetailPage: React.FC = () => {
     );
   }
 
-  const initials = customer.name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase();
-
+  
   const ledgerRows = [...ledger].sort((a, b) =>
     b.date > a.date ? 1 : b.date < a.date ? -1 : b.id - a.id
   );
@@ -242,9 +237,7 @@ export const CustomerDetailPage: React.FC = () => {
       {/* Header card */}
       <div className="w-full">
         <div className="p-4 bg-[#FAFAF8] rounded-2xl border border-[#E4E4E7] flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-[#000000] text-white flex items-center justify-center font-semibold text-lg shrink-0">
-            {initials}
-          </div>
+          <Avatar name={customer.name} className="w-14 h-14 shrink-0" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h4 className="text-base font-semibold text-[#18181B] truncate">{customer.name}</h4>
