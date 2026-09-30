@@ -18,6 +18,8 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { printLedgerReceipt } from '../../../lib/printDocument';
 import { Dialog } from '../../../components/ui/Dialog';
+import { Printer, Receipt } from 'lucide-react';
+import { printCustomerLedgerA4, printCustomerLedgerThermal } from '../../../lib/customerPrint';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -203,6 +205,22 @@ export const CustomerDetailPage: React.FC = () => {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<Printer className="w-3.5 h-3.5" />}
+            onClick={() => customer && printCustomerLedgerA4({ customer, entries: ledger })}
+          >
+            A4 Statement
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<Receipt className="w-3.5 h-3.5" />}
+            onClick={() => customer && printCustomerLedgerThermal({ customer, entries: ledger })}
+          >
+            Thermal
+          </Button>
           <Button
             variant="secondary"
             size="sm"
