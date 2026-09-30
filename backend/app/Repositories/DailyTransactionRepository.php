@@ -29,7 +29,7 @@ class DailyTransactionRepository extends BaseRepository
             ->when($categoryId, fn ($q) => $q->where('category_id', $categoryId))
             ->when($from, fn ($q) => $q->whereDate('transaction_date', '>=', $from))
             ->when($to, fn ($q) => $q->whereDate('transaction_date', '<=', $to))
-            ->orderByDesc('transaction_date')
+            ->orderByDesc('transaction_date')->orderByDesc('id')
             ->paginate($perPage);
     }
 

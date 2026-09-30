@@ -21,7 +21,7 @@ class QuotationRepository extends BaseRepository
             ->with(['customer', 'items', 'creator'])
             ->when($search, fn ($q) => $q->where('quotation_number', 'like', "%{$search}%"))
             ->when($status, fn ($q) => $q->where('status', $status))
-            ->orderByDesc('quotation_date')
+            ->orderByDesc('quotation_date')->orderByDesc('id')
             ->paginate($perPage);
     }
 

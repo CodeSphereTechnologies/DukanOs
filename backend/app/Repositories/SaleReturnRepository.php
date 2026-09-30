@@ -20,7 +20,7 @@ class SaleReturnRepository extends BaseRepository
         return $this->tenantQuery($tenantId)
             ->with(['customer', 'invoice', 'items', 'creator'])
             ->when($invoiceId, fn ($q) => $q->where('invoice_id', $invoiceId))
-            ->orderByDesc('return_date')
+            ->orderByDesc('return_date')->orderByDesc('id')
             ->paginate($perPage);
     }
 

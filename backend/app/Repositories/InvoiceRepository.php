@@ -31,7 +31,7 @@ class InvoiceRepository extends BaseRepository
             ->when($paymentStatus, fn ($q) => $q->where('payment_status', $paymentStatus))
             ->when($from, fn ($q) => $q->whereDate('invoice_date', '>=', $from))
             ->when($to, fn ($q) => $q->whereDate('invoice_date', '<=', $to))
-            ->orderByDesc('invoice_date')
+            ->orderByDesc('invoice_date')->orderByDesc('id')
             ->paginate($perPage);
     }
 

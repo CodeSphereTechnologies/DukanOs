@@ -21,7 +21,7 @@ class PaymentRepository extends BaseRepository
             ->with(['customer', 'invoice', 'creator'])
             ->when($customerId, fn ($q) => $q->where('customer_id', $customerId))
             ->when($invoiceId, fn ($q) => $q->where('invoice_id', $invoiceId))
-            ->orderByDesc('payment_date')
+            ->orderByDesc('payment_date')->orderByDesc('id')
             ->paginate($perPage);
     }
 
