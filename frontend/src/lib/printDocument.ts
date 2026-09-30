@@ -172,3 +172,75 @@ export function printSalesDocument(options: PrintSalesDocumentOptions): boolean 
   setTimeout(() => win.print(), 250);
   return true;
 }
+
+export interface PrintLedgerReceiptOptions {
+  receiptNumber: string;
+  date: string;
+  customerName: string;
+  type: 'add' | 'subtract';
+  amount: number;
+  newBalance: number;
+  description: string;
+  header?: { name: string; lines?: string[] };
+}
+
+export function buildLedgerReceiptHtml(options: PrintLedgerReceiptOptions): string {
+  const {
+    receiptNumber,
+    date,
+    customerName,
+    type,
+    amount,
+    newBalance,
+    description,
+    header = DEFAULT_HEADER,
+  } = options;
+
+  const storeHeader = [header.name, ...(header.lines || [])]
+    .map((line, index) =>
+      index === 0
+        ? `<div class="bold" style="font-size:16px;letter-spacing:2px">${escapeHtml(line)}</div>`
+        : `<div>${escapeHtml(line)}</div>`
+    )
+    .join('');
+
+  const dash = '<div class="dash">- - - - - - - - - - - - - - - -</div>';
+
+  return `<!doctype html><html><head><title>Receipt ${escapeHtml(receiptNumber)}</title>
+<style>
+  body { font-family: monospace; width: 320px; margin: 24px auto; color: #000; font-size: 12px; }
+  .center { text-align: center; }
+  .dash { text-align: center; margin: 8px 0; letter-spacing: 2px; }
+  .row { display: flex; justify-content: space-between; gap: 8px; }
+  .num { text-align: right; }
+  .bold { font-weight: bold; }
+  .note { white-space: pre-wrap; word-break: break-word; }
+</style></head><body>
+  <div class="center">${storeHeader}</div>
+  ${dash}
+  <div class="center bold" style="font-size:14px">LEDGER VOUCHER</div>
+  ${dash}
+  ${row('Receipt No', receiptNumber)}
+  ${row('Date', formatDate(date))}
+  ${row('Customer', customerName)}
+  ${dash}
+  <div class="bold mb-2">Description:</div>
+  <div class="note" style="margin-bottom:8px">${escapeHtml(description)}</div>
+  ${row(type === 'subtract' ? 'Amount Received' : 'Amount Added', formatCurrency(amount), true)}
+  ${dash}
+  ${row('New Ledger Balance', formatCurrency(Math.abs(newBalance)), true)}
+  <div class="num" style="font-size:10px">${newBalance === 0 ? 'Settled' : newBalance > 0 ? 'Customer Owes Us' : 'We Owe Customer'}</div>
+  ${dash}
+  <div class="center muted">THANK YOU!</div>
+</body></html>`;
+}
+
+export function printLedgerReceipt(options: PrintLedgerReceiptOptions): boolean {
+  const win = window.open('', '_blank');
+  if (!win) return false;
+  win.document.write(buildLedgerReceiptHtml(options));
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 250);
+  return true;
+}

@@ -106,6 +106,7 @@ Route::prefix('v1')->name('v1.')->group(function () {
             Route::post('customers', [CustomerController::class, 'store'])->name('customers.store');
             Route::put('customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
             Route::delete('customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
+            Route::post('customers/{customer}/ledger-entries', [\App\Http\Controllers\Api\V1\Customers\CustomerLedgerAdjustmentController::class, 'store'])->name('customers.ledger-entries.store');
         });
 
         // Invoices
