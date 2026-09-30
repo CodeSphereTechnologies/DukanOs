@@ -204,6 +204,13 @@ export const CustomerDetailPage: React.FC = () => {
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setIsAdjustOpen(true)}
+          >
+            Adjust Balance
+          </Button>
+          <Button
             variant="primary"
             size="sm"
             leftIcon={<Pencil className="w-3.5 h-3.5" />}
