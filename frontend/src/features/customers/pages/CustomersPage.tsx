@@ -1,3 +1,4 @@
+import { Avatar } from "../../../components/ui/Avatar";
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageContainer } from '../../../components/ui/PageContainer';
@@ -94,9 +95,12 @@ export const CustomersPage: React.FC = () => {
       key: 'name',
       header: 'Customer Name',
       render: (c) => (
-        <div>
-          <div className="font-semibold text-[#18181B]">{c.name}</div>
-          <div className="text-xs text-[#71717A]">{c.phone || 'No phone'}</div>
+        <div className="flex items-center gap-3">
+          <Avatar name={c.name} className="w-8 h-8 shrink-0" />
+          <div>
+            <div className="font-semibold text-[#18181B]">{c.name}</div>
+            <div className="text-xs text-[#71717A]">{c.phone || 'No phone'}</div>
+          </div>
         </div>
       ),
     },
