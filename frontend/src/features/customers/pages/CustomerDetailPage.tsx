@@ -1,3 +1,4 @@
+import { ArrowUpRight, ArrowDownLeft, CheckCircle2 } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
@@ -196,16 +197,31 @@ export const CustomerDetailPage: React.FC = () => {
             </div>
           </div>
           <div className="text-left sm:text-right shrink-0">
-            <div className="text-[11px] uppercase tracking-wide text-[#71717A]">
+            <div className="text-[11px] uppercase tracking-wide text-[#71717A] mb-1">
               Outstanding Balance
             </div>
-            <div
-              className={`text-xl font-bold ${
-                (customer.current_balance || 0) > 0 ? 'text-[#DC2626]' : 'text-[#065F46]'
-              }`}
-            >
-              {formatCurrency(customer.current_balance || 0)}
-            </div>
+            {(customer.current_balance || 0) === 0 ? (
+              <div className="inline-flex items-center gap-1.5 text-[#71717A]">
+                <CheckCircle2 className="w-5 h-5" />
+                <span className="text-xl font-bold">Settled (0)</span>
+              </div>
+            ) : (customer.current_balance || 0) > 0 ? (
+              <div className="flex flex-col items-start sm:items-end">
+                <div className="inline-flex items-center gap-1.5 text-[#DC2626]" title="Customer Owes Us">
+                  <ArrowUpRight className="w-5 h-5" />
+                  <span className="text-xl font-bold">{formatCurrency(Math.abs(customer.current_balance || 0))}</span>
+                </div>
+                <div className="text-[10px] text-[#DC2626] font-medium uppercase tracking-wider mt-0.5">Customer Owes Us</div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-start sm:items-end">
+                <div className="inline-flex items-center gap-1.5 text-[#059669]" title="We Owe Customer (Advance)">
+                  <ArrowDownLeft className="w-5 h-5" />
+                  <span className="text-xl font-bold">{formatCurrency(Math.abs(customer.current_balance || 0))}</span>
+                </div>
+                <div className="text-[10px] text-[#059669] font-medium uppercase tracking-wider mt-0.5">We Owe Customer</div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -247,16 +263,27 @@ export const CustomerDetailPage: React.FC = () => {
                       {formatDate(entry.date)}
                     </td>
                     <td className="px-3 py-2.5 text-[#18181B]">{entry.description}</td>
-                    <td
-                      className={`px-3 py-2.5 text-right font-semibold whitespace-nowrap ${
-                        entry.transaction_type === 'debit' ? 'text-[#DC2626]' : 'text-[#065F46]'
-                      }`}
-                    >
-                      {entry.transaction_type === 'debit' ? '+' : '-'}
-                      {formatCurrency(entry.amount)}
+                    <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                      {entry.transaction_type === 'debit' ? (
+                        <div className="inline-flex items-center gap-1 text-[#DC2626] font-semibold" title="Added to what customer owes (Debit)">
+                           <ArrowUpRight className="w-3.5 h-3.5" />
+                           {formatCurrency(Math.abs(entry.amount))}
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center gap-1 text-[#059669] font-semibold" title="Paid by customer (Credit)">
+                           <ArrowDownLeft className="w-3.5 h-3.5" />
+                           {formatCurrency(Math.abs(entry.amount))}
+                        </div>
+                      )}
                     </td>
-                    <td className="px-3 py-2.5 text-right font-bold whitespace-nowrap">
-                      {formatCurrency(entry.running_balance)}
+                    <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                      {entry.running_balance === 0 ? (
+                        <span className="font-bold text-[#71717A]">PKR 0.00</span>
+                      ) : entry.running_balance > 0 ? (
+                        <span className="font-bold text-[#DC2626]" title="Customer Owes Us">{formatCurrency(Math.abs(entry.running_balance))} <span className="text-[9px] uppercase ml-1">Dr</span></span>
+                      ) : (
+                        <span className="font-bold text-[#059669]" title="We Owe Customer">{formatCurrency(Math.abs(entry.running_balance))} <span className="text-[9px] uppercase ml-1">Cr</span></span>
+                      )}
                     </td>
                   </tr>
                 ))}
