@@ -27,10 +27,6 @@ class SaleReturnService
         private readonly NumberGenerator $numbers,
     ) {}
 
-    /**
-     * Create a return against an invoice, restoring stock and adjusting the
-     * customer's ledger balance.
-     */
     public function create(User $user, array $data): SaleReturn
     {
         $tenantId = $user->tenant_id;
@@ -43,8 +39,8 @@ class SaleReturnService
             }
 
             $date = Carbon::parse($data['return_date'] ?? now()->toDateString());
-
             $resolved = $this->resolveItems($invoice, $data['items']);
+            $refundType = $data['refund_type'] ?? 'credit';
 
             $total = 0.0;
             foreach ($resolved as $item) {
@@ -58,7 +54,7 @@ class SaleReturnService
                 'return_number' => $this->numbers->next(SaleReturn::class, $tenantId, 'return_number', 'RET'),
                 'return_date' => $date->toDateString(),
                 'reason' => $data['reason'] ?? null,
-                'refund_type' => $data['refund_type'] ?? 'ledger',
+                'refund_type' => $refundType,
                 'total_amount' => $total,
                 'status' => ReturnStatus::Completed->value,
                 'notes' => $data['notes'] ?? null,
@@ -91,6 +87,7 @@ class SaleReturnService
             }
 
             if ($invoice->customer_id) {
+                // 1. Credit the customer ledger for the returned goods (we owe them)
                 $this->postCustomerLedger(
                     $tenantId,
                     $invoice->customer_id,
@@ -101,23 +98,34 @@ class SaleReturnService
                     $user->id,
                     SaleReturn::class,
                     $saleReturn->id,
-                    'Return '.$saleReturn->return_number,
+                    'Goods Returned '.$saleReturn->return_number,
                 );
+
+                // 2. If paid out instantly via cash or bank, debit the ledger to net it to zero!
+                if (in_array($refundType, ['cash', 'bank_transfer'])) {
+                    $this->postCustomerLedger(
+                        $tenantId,
+                        $invoice->customer_id,
+                        'payment', // A payout/refund payment
+                        $total,
+                        0.0,
+                        $date,
+                        $user->id,
+                        SaleReturn::class,
+                        $saleReturn->id,
+                        ucfirst(str_replace('_', ' ', $refundType)).' Refund for '.$saleReturn->return_number,
+                    );
+                }
             }
 
-            if (($data['refund_type'] ?? null) === 'cash') {
-                $this->postCashRefund($tenantId, $total, $date, $user->id, $saleReturn);
+            if (in_array($refundType, ['cash', 'bank_transfer'])) {
+                $this->postCashRefund($tenantId, $total, $date, $user->id, $saleReturn, $refundType);
             }
 
             return $this->returns->findForTenant($tenantId, $saleReturn->id);
         });
     }
 
-    /**
-     * Resolve and validate return items against the original invoice.
-     *
-     * @return array<int, array<string, mixed>>
-     */
     private function resolveItems(Invoice $invoice, array $items): array
     {
         if (empty($items)) {
@@ -159,19 +167,21 @@ class SaleReturnService
         return $resolved;
     }
 
-    private function postCashRefund(int $tenantId, float $amount, Carbon $date, ?int $userId, SaleReturn $saleReturn): void
+    private function postCashRefund(int $tenantId, float $amount, Carbon $date, ?int $userId, SaleReturn $saleReturn, string $refundType): void
     {
+        $categoryName = $refundType === 'bank_transfer' ? 'Bank Refunds' : 'Cash Refunds';
+        
         $category = LedgerCategory::query()
             ->where('tenant_id', $tenantId)
             ->where('type', 'expense')
-            ->where('name', 'Refunds')
+            ->where('name', $categoryName)
             ->first();
 
         if (! $category) {
             $category = LedgerCategory::create([
                 'tenant_id' => $tenantId,
                 'type' => 'expense',
-                'name' => 'Refunds',
+                'name' => $categoryName,
                 'is_system' => false,
                 'status' => 'active',
             ]);
@@ -183,7 +193,7 @@ class SaleReturnService
             'type' => 'expense',
             'amount' => $this->money($amount),
             'transaction_date' => $date->toDateString(),
-            'description' => 'Cash refund on return '.$saleReturn->return_number,
+            'description' => $categoryName.' on return '.$saleReturn->return_number,
             'reference_type' => SaleReturn::class,
             'reference_id' => $saleReturn->id,
             'created_by' => $userId,
