@@ -330,8 +330,35 @@ export const invoiceService = {
     };
   },
 
+  async getQuotationById(id: number): Promise<ApiResponse<Quotation>> {
+    try {
+      const res = await apiClient.get<unknown>(`/quotations/${id}`);
+      if (res && res.data) {
+        const quote = mapQuotation(res.data);
+        const current = getStoredQuotations();
+        saveStoredQuotations([quote, ...current.filter((q) => q.id !== quote.id)]);
+        return {
+          success: true,
+          message: 'Quotation retrieved successfully',
+          data: quote,
+        };
+      }
+    } catch {
+      // offline fallback below
+    }
+    const current = getStoredQuotations();
+    const found = current.find((q) => q.id === id);
+    if (!found) throw new Error('Quotation not found');
+    return {
+      success: true,
+      message: 'Quotation retrieved successfully',
+      data: found,
+    };
+  },
+
   async convertQuotationToInvoice(
-    quotationId: number
+    quotationId: number,
+    convertData?: { amount_paid: number; payment_method: string; payment_reference?: string }
   ): Promise<ApiResponse<{ invoice_number: string; invoice?: Invoice }>> {
     const current = getStoredQuotations();
     const quote = current.find((q) => q.id === quotationId);
@@ -344,7 +371,7 @@ export const invoiceService = {
     };
 
     try {
-      const res = await apiClient.post<unknown>(`/quotations/${quotationId}/convert`, {});
+      const res = await apiClient.post<unknown>(`/quotations/${quotationId}/convert`, convertData || {});
       if (res && res.data) {
         const invoice = mapInvoice(res.data);
         saveStoredInvoices([invoice, ...getStoredInvoices().filter((i) => i.id !== invoice.id)]);

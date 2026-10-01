@@ -28,6 +28,7 @@ import { ReturnsPage } from '../features/returns/pages/ReturnsPage';
 import { CreateReturnPage } from '../features/returns/pages/CreateReturnPage';
 import { ReturnDetailPage } from '../features/returns/pages/ReturnDetailPage';
 import { QuotationsPage } from '../features/quotations/pages/QuotationsPage';
+import { QuotationDetailPage } from '../features/quotations/pages/QuotationDetailPage';
 import { CustomersPage } from '../features/customers/pages/CustomersPage';
 import { CustomerDetailPage } from '../features/customers/pages/CustomerDetailPage';
 import { EditCustomerPage } from '../features/customers/pages/EditCustomerPage';
@@ -249,6 +250,14 @@ export const AppRoutes: React.FC = () => {
           element={
             <RoleRoute allowedRoles={['owner', 'manager']}>
               <QuotationsPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/quotations/:id"
+          element={
+            <RoleRoute allowedRoles={['owner', 'manager']}>
+              <QuotationDetailPage />
             </RoleRoute>
           }
         />

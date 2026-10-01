@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PageContainer } from '../../../components/ui/PageContainer';
 import { DataTable, type Column } from '../../../components/ui/DataTable';
 import { SearchToolbar } from '../../../components/ui/SearchToolbar';
@@ -12,13 +13,11 @@ import { Alert } from '../../../components/ui/Alert';
 import {
   Plus,
   ArrowRight,
-  Printer,
   Trash2,
   User,
   Eye,
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../../lib/formatters';
-import { printSalesDocument } from '../../../lib/printDocument';
 import { invoiceService } from '../../../services/invoice.service';
 import { customerService } from '../../../services/customer.service';
 import { productService } from '../../../services/product.service';
@@ -36,14 +35,13 @@ function toCatalogProduct(product: Product): CatalogProduct {
 
 export const QuotationsPage: React.FC = () => {
 
+  const navigate = useNavigate();
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [catalog, setCatalog] = useState<CatalogProduct[]>([]);
   const [search, setSearch] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [selectedQuote, setSelectedQuote] = useState<Quotation | null>(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [successBanner, setSuccessBanner] = useState<string | null>(null);
+      const [successBanner, setSuccessBanner] = useState<string | null>(null);
 
   // Create Form State
   const [customerMode, setCustomerMode] = useState<'preset' | 'custom'>('preset');
@@ -277,53 +275,9 @@ export const QuotationsPage: React.FC = () => {
     }
   };
 
-  const handleConvertToInvoice = async (q: Quotation) => {
-    try {
-      const res = await invoiceService.convertQuotationToInvoice(q.id);
-      setQuotations((prev) =>
-        prev.map((item) => (item.id === q.id ? { ...item, status: 'converted' } : item))
-      );
-      setSuccessBanner(
-        `Quotation ${q.quotation_number} converted to Invoice #${res.data?.invoice_number}! Ledger & stock reservation updated.`
-      );
-    } catch {
-      alert('Failed to convert quotation.');
-    }
-  };
-
-  const handleOpenPreview = (q: Quotation) => {
-    setSelectedQuote(q);
-    setIsPreviewOpen(true);
-  };
-
-  const handlePrintQuotation = () => {
-    if (!selectedQuote) return;
-    printSalesDocument({
-      title: 'QUOTATION',
-      number: selectedQuote.quotation_number,
-      date: selectedQuote.quotation_date,
-      customerName: selectedQuote.customer?.name || 'Walk-in Customer',
-      customerPhone: selectedQuote.customer?.phone,
-      extraRows: [{ label: 'Valid Until', value: formatDate(selectedQuote.valid_until) }],
-      items: (selectedQuote.items || []).map((item) => ({
-        name: item.product_name,
-        sku: item.sku,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        discount_amount: item.discount_amount,
-        total_price: item.total_price,
-      })),
-      subtotal: selectedQuote.subtotal,
-      discountAmount: selectedQuote.discount_amount,
-      totalAmount: selectedQuote.total_amount,
-      notes: selectedQuote.notes,
-      header: {
-        name: 'PUNJAB ELECTRIC STORE',
-        lines: ['Main Market, Hall Road, Lahore', 'Tel: +92 42 37210099'],
-      },
-    });
-  };
-
+  
+  
+  
   const filtered = quotations.filter(
     (q) =>
       q.quotation_number.toLowerCase().includes(search.toLowerCase()) ||
@@ -407,7 +361,7 @@ export const QuotationsPage: React.FC = () => {
             size="sm"
             className="h-8 w-8 p-0"
             title="Preview & print quotation"
-            onClick={() => handleOpenPreview(q)}
+            onClick={() => navigate(`/quotations/${q.id}`)}
           >
             <Eye className="w-4 h-4 text-[#52525B]" />
           </Button>
@@ -417,7 +371,7 @@ export const QuotationsPage: React.FC = () => {
               variant="secondary"
               size="sm"
               rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
-              onClick={() => handleConvertToInvoice(q)}
+              onClick={() => navigate(`/quotations/${q.id}`)}
             >
               Convert
             </Button>
@@ -712,143 +666,7 @@ export const QuotationsPage: React.FC = () => {
         </form>
       </Dialog>
 
-      {/* Preview / Print Quotation Dialog */}
-      <Dialog
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
-        title="Quotation Document Preview"
-        description="Formal pricing document ready for customer submission or PDF print."
-        footer={
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between w-full gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              leftIcon={<Printer className="w-4 h-4" />}
-              onClick={handlePrintQuotation}
-              className="w-full sm:w-auto"
-            >
-              Print Quotation
-            </Button>
-            <div className="flex items-center gap-2 justify-end">
-              <Button variant="secondary" size="sm" onClick={() => setIsPreviewOpen(false)}>
-                Close
-              </Button>
-              {selectedQuote && selectedQuote.status !== 'converted' && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  rightIcon={<ArrowRight className="w-4 h-4" />}
-                  onClick={() => {
-                    setIsPreviewOpen(false);
-                    handleConvertToInvoice(selectedQuote);
-                  }}
-                >
-                  Convert to Invoice
-                </Button>
-              )}
-            </div>
-          </div>
-        }
-      >
-        {selectedQuote && (
-          <div className="space-y-4 p-4 bg-white border border-[#E4E4E7] rounded-xl text-xs">
-            <div className="flex justify-between items-start pb-3 border-b border-[#E4E4E7]">
-              <div>
-                <h4 className="text-base font-bold text-black font-display">
-                  PUNJAB ELECTRIC STORE
-                </h4>
-                <div className="text-[11px] text-[#71717A]">
-                  Main Market, Hall Road, Lahore · Tel: +92 42 37210099
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="font-bold text-sm text-black">{selectedQuote.quotation_number}</div>
-                <Badge variant="default" className="mt-1">
-                  ESTIMATE ({selectedQuote.status.toUpperCase()})
-                </Badge>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 p-3 bg-[#FAFAF8] rounded-lg">
-              <div>
-                <span className="text-[#71717A] block">Customer:</span>
-                <span className="font-semibold text-black text-sm">
-                  {selectedQuote.customer?.name || 'Walk-in'}
-                </span>
-                {selectedQuote.customer?.phone && (
-                  <div className="text-[11px] text-[#52525B]">{selectedQuote.customer.phone}</div>
-                )}
-              </div>
-              <div className="text-right">
-                <div>
-                  <span className="text-[#71717A]">Issue Date: </span>
-                  <span className="font-medium">{formatDate(selectedQuote.quotation_date)}</span>
-                </div>
-                <div>
-                  <span className="text-[#71717A]">Valid Until: </span>
-                  <span className="font-bold text-black">{formatDate(selectedQuote.valid_until)}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="border border-[#E4E4E7] rounded-lg overflow-hidden">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-[#F4F4F5] text-[#71717A] text-[11px]">
-                  <tr>
-                    <th className="p-2.5">Item Description</th>
-                    <th className="p-2.5 text-right">Rate</th>
-                    <th className="p-2.5 text-center">Qty</th>
-                    <th className="p-2.5 text-right">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#E4E4E7]">
-                  {selectedQuote.items.map((item, idx) => (
-                    <tr key={idx}>
-                      <td className="p-2.5 font-medium text-black">
-                        {item.product_name}
-                        {item.sku && <div className="text-[10px] text-[#71717A] font-mono">{item.sku}</div>}
-                      </td>
-                      <td className="p-2.5 text-right font-mono">{formatCurrency(item.unit_price)}</td>
-                      <td className="p-2.5 text-center">{item.quantity}</td>
-                      <td className="p-2.5 text-right font-bold font-mono">
-                        {formatCurrency(item.total_price || item.unit_price * item.quantity)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <div className="w-60 space-y-1.5">
-                <div className="flex justify-between text-[#71717A]">
-                  <span>Subtotal:</span>
-                  <span className="font-mono">{formatCurrency(selectedQuote.subtotal)}</span>
-                </div>
-                {selectedQuote.discount_amount > 0 && (
-                  <div className="flex justify-between text-[#DC2626]">
-                    <span>Discount:</span>
-                    <span className="font-mono">- {formatCurrency(selectedQuote.discount_amount)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-sm font-bold text-black pt-1 border-t border-black">
-                  <span>Grand Total:</span>
-                  <span className="font-mono text-[#065F46]">
-                    {formatCurrency(selectedQuote.total_amount)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {selectedQuote.notes && (
-              <div className="p-2.5 bg-[#FAFAF8] rounded-md text-[11px] text-[#52525B]">
-                <strong>Terms:</strong> {selectedQuote.notes}
-              </div>
-            )}
-          </div>
-        )}
-      </Dialog>
-    </PageContainer>
+      </PageContainer>
   );
 };
 
