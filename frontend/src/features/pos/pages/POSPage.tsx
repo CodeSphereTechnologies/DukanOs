@@ -605,9 +605,10 @@ export const POSPage: React.FC = () => {
                     </span>
                   )}
                 </button>
-                <div className="mt-3 flex items-center justify-between gap-2 pt-2.5 border-t border-slate-100">
-                  <span className="text-xs font-bold text-slate-900">{formatCurrency(item.selling_price)}</span>
-                  {inCart ? (
+                <div className="mt-3 flex flex-col pt-2.5 border-t border-slate-100">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-slate-900">{formatCurrency(item.selling_price)}</span>
+                    {inCart ? (
                     <button
                       type="button"
                       onClick={() => addProductToCart(item)}
@@ -631,6 +632,10 @@ export const POSPage: React.FC = () => {
                       <Plus className="w-3 h-3" />
                       Add
                     </button>
+                  )}
+                  </div>
+                  {(item.purchase_cost ?? 0) > 0 && (
+                    <div className="text-[9px] text-slate-400 font-medium mt-1">Cost: {formatCurrency(item.purchase_cost!)}</div>
                   )}
                   {inCart && (
                     <button
@@ -731,8 +736,11 @@ export const POSPage: React.FC = () => {
 
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-slate-900 text-xs truncate leading-tight">{item.name}</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">
-                      {formatCurrency(item.price)} <span className="text-slate-400">x</span> {item.quantity}
+                    <div className="text-[11px] text-slate-500 mt-0.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5">
+                      <div>{formatCurrency(item.price)} <span className="text-slate-400">x</span> {item.quantity}</div>
+                      {(product?.purchase_cost ?? 0) > 0 && (
+                        <div className="text-[9px] text-slate-400 font-medium">Cost: {formatCurrency(product!.purchase_cost!)}</div>
+                      )}
                     </div>
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
                       <div className="inline-flex items-center bg-slate-50 border border-slate-200 rounded-lg overflow-hidden">
