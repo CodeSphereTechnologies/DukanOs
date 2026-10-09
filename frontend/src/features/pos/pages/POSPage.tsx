@@ -33,6 +33,8 @@ import type { InvoiceItem } from '../../../types/invoice.types';
 import { productService } from '../../../services/product.service';
 import { customerService } from '../../../services/customer.service';
 import { invoiceService } from '../../../services/invoice.service';
+import { printSalesDocument } from '../../../lib/printDocument';
+
 
 interface CartItem {
   id: number;
@@ -393,7 +395,31 @@ export const POSPage: React.FC = () => {
   };
 
   const handlePrint = () => {
-    window.print();
+    if (!isCompleted || !completedDoc) return;
+    
+    printSalesDocument({
+      title: completedDoc.type === 'invoice' ? 'INVOICE' : 'QUOTATION',
+      number: completedDoc.number,
+      customerName: checkoutCustomerName || 'Walk-in Customer',
+      customerPhone: checkoutCustomerPhone || undefined,
+      items: cart.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        unit_price: item.price,
+        discount_amount: item.discount > 0 ? item.discount : undefined,
+      })),
+      subtotal: subtotal,
+      discountAmount: totalItemDiscount + discountInput,
+      totalAmount: grandTotal,
+      paymentRows: [
+        { label: 'No of Items', value: cart.length.toString() },
+        { label: 'Total Qty', value: cart.reduce((acc, item) => acc + item.quantity, 0).toFixed(2) },
+        paymentMethod === 'ledger' 
+          ? { label: 'Added to Ledger', value: formatCurrency(grandTotal) }
+          : { label: 'Amount Paid', value: formatCurrency(amountPaid) }
+      ],
+      notes: orderDescription.trim() || undefined,
+    });
   };
 
 

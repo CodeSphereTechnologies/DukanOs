@@ -57,8 +57,8 @@ export const escapeHtml = (value: unknown): string =>
   String(value ?? '').replace(/[&<>"']/g, (char) => ESCAPES[char]);
 
 const DEFAULT_HEADER = {
-  name: 'DUKANOS',
-  lines: ['ELECTRICAL & APPLIANCE STORE', 'Main Bazar Road, City 46000', 'Tel: 0300-1234567'],
+  name: 'PUNJAB ELECTRIC STORE',
+  lines: ['HUSSAINI CHOWK BAHAWALPUR', 'Ch Tariq, Hamza Tariq 03084046062'],
 };
 
 const row = (label: string, value: string, bold = false) =>
@@ -125,7 +125,7 @@ export function buildSalesDocumentHtml(options: PrintSalesDocumentOptions): stri
     ? `${dash}<div class="bold">Note:</div><div class="note">${escapeHtml(trimmedNotes)}</div>`
     : '';
 
-  const logoSvg = `<svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#000" /></svg>`;
+  const logoSvg = `<svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><path d="M13 10L10 15h3l-1 4 4-6h-3l1-3z" fill="currentColor" /></svg>`;
 
   return `<!doctype html><html><head><title>${escapeHtml(number)}</title>
 <style>
@@ -163,11 +163,14 @@ export function buildSalesDocumentHtml(options: PrintSalesDocumentOptions): stri
   ${payment}
   ${notesBlock}
   <div class="dash"></div>
-  <div class="center bold" style="font-size:15px; margin-bottom: 4px;">THANK YOU FOR YOUR PURCHASE!</div>
-  <div class="center muted" style="font-size:12px">Goods once sold will not be taken back.</div>
+  <div class="dash"></div>
+  <div class="center bold" style="font-size:14px; margin-bottom: 4px;">Timings 9:30 AM To 8:00 PM</div>
+  <div class="center" style="font-size:13px; font-weight: 500; font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Urdu Typesetting', Tahoma, sans-serif; line-height: 1.8; margin-top: 8px;">
+    سامان واپسی یا تبدیلی کے لئے بل ساتھ لائیں ۔ چائنا مال اور ڈی سی آئٹم کی کوئی گارنٹی واپسی نا ہے موقع پر تسلی کر یں ۔ اپنی مرضی سے کٹوائی ہوئی تار، روف لائٹ کی واپسی نہیں ہے۔
+  </div>
   
   <div class="footer-branding">
-    Powered by DukanOS<br/>
+    Software Developed By DukanOS By ThinkCode<br/>
     +920370825484
   </div>
 </body></html>`;
@@ -220,7 +223,7 @@ export function buildLedgerReceiptHtml(options: PrintLedgerReceiptOptions): stri
 
   const dash = '<div class="dash"></div>';
 
-  const logoSvg = `<svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#000" /></svg>`;
+  const logoSvg = `<svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><path d="M13 10L10 15h3l-1 4 4-6h-3l1-3z" fill="currentColor" /></svg>`;
 
   return `<!doctype html><html><head><title>Receipt ${escapeHtml(receiptNumber)}</title>
 <style>
@@ -257,7 +260,7 @@ export function buildLedgerReceiptHtml(options: PrintLedgerReceiptOptions): stri
   <div class="center bold" style="font-size:15px">THANK YOU!</div>
   
   <div class="footer-branding">
-    Powered by DukanOS<br/>
+    Software Developed By DukanOS By ThinkCode<br/>
     +920370825484
   </div>
 </body></html>`;
