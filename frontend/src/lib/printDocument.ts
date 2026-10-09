@@ -107,7 +107,7 @@ export function buildSalesDocumentHtml(options: PrintSalesDocumentOptions): stri
     })
     .join('');
 
-  const dash = '<div class="dash">- - - - - - - - - - - - - - - -</div>';
+  const dash = '<div class="dash"></div>';
 
   const headerRows = [
     row('Date', date ? formatDate(date) : formatDate(new Date()), false),
@@ -125,22 +125,30 @@ export function buildSalesDocumentHtml(options: PrintSalesDocumentOptions): stri
     ? `${dash}<div class="bold">Note:</div><div class="note">${escapeHtml(trimmedNotes)}</div>`
     : '';
 
+  const logoSvg = `<svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#000" /></svg>`;
+
   return `<!doctype html><html><head><title>${escapeHtml(number)}</title>
 <style>
-  body { font-family: monospace; width: 320px; margin: 24px auto; color: #000; font-size: 12px; }
+  @page { margin: 0; }
+  @media print { html, body { height: auto; } body { width: 100%; margin: 0; padding: 10px; } }
+  body { font-family: system-ui, -apple-system, sans-serif; width: 80mm; margin: 0 auto; color: #000; font-size: 14px; font-weight: 600; line-height: 1.3; }
   .center { text-align: center; }
-  .dash { text-align: center; margin: 8px 0; letter-spacing: 2px; }
-  .row { display: flex; justify-content: space-between; gap: 8px; }
+  .dash { border-top: 2px dashed #000; margin: 12px 0; }
+  .row { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
   .row > span:first-child { flex: 0 0 auto; }
   .num { text-align: right; }
-  table { width: 100%; border-collapse: collapse; }
-  .muted { color: #666; font-size: 10px; }
-  .bold { font-weight: bold; }
-  .big { font-size: 13px; }
-  .note { white-space: pre-wrap; word-break: break-word; }
-  th { text-align: left; }
-  td { padding: 2px 0; vertical-align: top; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+  .muted { color: #000; font-size: 12px; font-weight: 500; }
+  .bold { font-weight: 800; font-size: 15px; }
+  .big { font-size: 18px; font-weight: 900; }
+  .note { white-space: pre-wrap; word-break: break-word; font-weight: 500; font-size: 13px; }
+  th { text-align: left; padding-bottom: 6px; border-bottom: 2px solid #000; font-weight: 800; font-size: 15px; }
+  td { padding: 6px 0; vertical-align: top; }
+  td.num { font-weight: 700; font-size: 14px; }
+  .logo { width: 48px; height: 48px; margin: 0 auto 10px auto; display: block; }
+  .footer-branding { text-align: center; margin-top: 24px; font-size: 12px; font-weight: 800; border-top: 2px solid #000; padding-top: 8px; padding-bottom: 20px;}
 </style></head><body>
+  ${logoSvg}
   <div class="center">${storeHeader}</div>
   ${dash}
   <div class="row"><span>${escapeHtml(title)}</span><span class="bold">#${escapeHtml(number)}</span></div>
@@ -151,11 +159,17 @@ export function buildSalesDocumentHtml(options: PrintSalesDocumentOptions): stri
   ${dash}
   ${row('Subtotal', formatCurrency(subtotal))}
   ${discountAmount > 0 ? row('Discount', `- ${formatCurrency(discountAmount)}`) : ''}
-  <div class="row bold" style="font-size:13px"><span>TOTAL</span><span class="num">${escapeHtml(formatCurrency(totalAmount))}</span></div>
+  <div class="row bold" style="font-size:18px; margin-top: 4px;"><span>TOTAL</span><span class="num">${escapeHtml(formatCurrency(totalAmount))}</span></div>
   ${payment}
   ${notesBlock}
-  <div class="dash">* * *</div>
-  <div class="center muted">THANK YOU FOR YOUR PURCHASE!<br/>Goods once sold will not be taken back.</div>
+  <div class="dash"></div>
+  <div class="center bold" style="font-size:15px; margin-bottom: 4px;">THANK YOU FOR YOUR PURCHASE!</div>
+  <div class="center muted" style="font-size:12px">Goods once sold will not be taken back.</div>
+  
+  <div class="footer-branding">
+    Powered by DukanOS<br/>
+    +920370825484
+  </div>
 </body></html>`;
 }
 
@@ -204,34 +218,48 @@ export function buildLedgerReceiptHtml(options: PrintLedgerReceiptOptions): stri
     )
     .join('');
 
-  const dash = '<div class="dash">- - - - - - - - - - - - - - - -</div>';
+  const dash = '<div class="dash"></div>';
+
+  const logoSvg = `<svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#000" /></svg>`;
 
   return `<!doctype html><html><head><title>Receipt ${escapeHtml(receiptNumber)}</title>
 <style>
-  body { font-family: monospace; width: 320px; margin: 24px auto; color: #000; font-size: 12px; }
+  @page { margin: 0; }
+  @media print { html, body { height: auto; } body { width: 100%; margin: 0; padding: 10px; } }
+  body { font-family: system-ui, -apple-system, sans-serif; width: 80mm; margin: 0 auto; color: #000; font-size: 14px; font-weight: 600; line-height: 1.3; }
   .center { text-align: center; }
-  .dash { text-align: center; margin: 8px 0; letter-spacing: 2px; }
-  .row { display: flex; justify-content: space-between; gap: 8px; }
-  .num { text-align: right; }
-  .bold { font-weight: bold; }
-  .note { white-space: pre-wrap; word-break: break-word; }
+  .dash { border-top: 2px dashed #000; margin: 12px 0; }
+  .row { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+  .row > span:first-child { flex: 0 0 auto; }
+  .num { text-align: right; font-weight: 700; }
+  .bold { font-weight: 800; font-size: 15px; }
+  .muted { color: #000; font-size: 12px; font-weight: 500; }
+  .note { white-space: pre-wrap; word-break: break-word; font-weight: 500; font-size: 13px; }
+  .logo { width: 48px; height: 48px; margin: 0 auto 10px auto; display: block; }
+  .footer-branding { text-align: center; margin-top: 24px; font-size: 12px; font-weight: 800; border-top: 2px solid #000; padding-top: 8px; padding-bottom: 20px;}
 </style></head><body>
+  ${logoSvg}
   <div class="center">${storeHeader}</div>
   ${dash}
-  <div class="center bold" style="font-size:14px">LEDGER VOUCHER</div>
+  <div class="center bold" style="font-size:18px">LEDGER VOUCHER</div>
   ${dash}
   ${row('Receipt No', receiptNumber)}
   ${row('Date', formatDate(date))}
   ${row('Customer', customerName)}
   ${dash}
   <div class="bold mb-2">Description:</div>
-  <div class="note" style="margin-bottom:8px">${escapeHtml(description)}</div>
+  <div class="note" style="margin-bottom:12px">${escapeHtml(description)}</div>
   ${row(type === 'subtract' ? 'Amount Received' : 'Amount Added', formatCurrency(amount), true)}
   ${dash}
   ${row('New Ledger Balance', formatCurrency(Math.abs(newBalance)), true)}
-  <div class="num" style="font-size:10px">${newBalance === 0 ? 'Settled' : newBalance > 0 ? 'Customer Owes Us' : 'We Owe Customer'}</div>
+  <div class="num" style="font-size:12px">${newBalance === 0 ? 'Settled' : newBalance > 0 ? 'Customer Owes Us' : 'We Owe Customer'}</div>
   ${dash}
-  <div class="center muted">THANK YOU!</div>
+  <div class="center bold" style="font-size:15px">THANK YOU!</div>
+  
+  <div class="footer-branding">
+    Powered by DukanOS<br/>
+    +920370825484
+  </div>
 </body></html>`;
 }
 
