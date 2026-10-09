@@ -42,9 +42,9 @@ export interface ExecutiveReportData {
 }
 
 const COMPANY = {
-  name: 'DUKANOS TRADING & CO.',
-  tagline: 'Wholesale Electrical & Hardware Suppliers',
-  address: 'Brandreth Road, Lahore · NTN # 4920194-8',
+  name: 'PUNJAB ELECTRIC STORE',
+  tagline: 'ELECTRICAL & APPLIANCE STORE',
+  address: 'HUSSAINI CHOWK BAHAWALPUR · Ch Tariq, Hamza Tariq 03084046062',
 };
 
 const money = (value: number) => escapeHtml(formatCurrency(value));
@@ -229,8 +229,10 @@ export function buildExecutiveReportThermalHtml(d: ExecutiveReportData): string 
 
   return `<!doctype html><html><head><meta charset="utf-8"/><title>${escapeHtml(d.reportNumber)}</title>
 <style>
+  @page { margin: 0; }
+  @media print { html, body { height: auto; } body { width: 100%; margin: 0; padding: 0 4mm; } }
   * { box-sizing: border-box; }
-  body { font-family: ui-monospace, 'Courier New', monospace; width: 72mm; margin: 6mm auto; color: #000; font-size: 10px; line-height: 1.45; }
+  body { font-family: system-ui, -apple-system, sans-serif; width: 72mm; margin: 0 auto; color: #000; font-size: 12px; line-height: 1.45; font-weight: 600; }
   .center { text-align: center; }
   .dash { text-align: center; margin: 6px 0; letter-spacing: 2px; }
   .row { display: flex; justify-content: space-between; gap: 6px; }

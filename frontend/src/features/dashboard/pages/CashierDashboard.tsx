@@ -194,7 +194,9 @@ export const CashierDashboard: React.FC = () => {
     if (!w) return;
     w.document.write(`<!doctype html><html><head><title>${title}</title>
 <style>
-  body { font-family: monospace; width: 320px; margin: 24px auto; color: #000; font-size: 12px; }
+  @page { margin: 0; }
+  @media print { html, body { height: auto; } body { width: 100%; margin: 0; padding: 0 4mm; } }
+  body { font-family: system-ui, -apple-system, sans-serif; width: 72mm; margin: 0 auto; color: #000; font-size: 13px; font-weight: 600; line-height: 1.45; }
   .center { text-align: center; }
   .dash { text-align: center; margin: 8px 0; letter-spacing: 2px; }
   .row { display: flex; justify-content: space-between; }
@@ -208,8 +210,8 @@ export const CashierDashboard: React.FC = () => {
 </style></head><body>
 <div class="center">
   <div class="bold big">PUNJAB ELECTRIC STORE</div>
-  <div>MAIN MARKET, HALL ROAD, LAHORE</div>
-  <div class="muted">NTN: 4120938-1 · Tel: +92 42 37210099</div>
+  <div>HUSSAINI CHOWK BAHAWALPUR</div>
+  <div class="muted">Ch Tariq, Hamza Tariq 03084046062</div>
 </div>
 <div class="dash">- - - - - - - - - - - - - - - -</div>
 ${inner}

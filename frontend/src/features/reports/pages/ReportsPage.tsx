@@ -843,9 +843,9 @@ export const ReportsPage: React.FC = () => {
           {/* Header */}
           <div className="flex justify-between items-start border-b border-[#E4E4E7] pb-4">
             <div>
-              <div className="font-extrabold text-xl text-[#18181B] font-display">DUKANOS TRADING & CO.</div>
+              <div className="font-extrabold text-xl text-[#18181B] font-display">PUNJAB ELECTRIC STORE</div>
               <div className="text-xs text-[#52525B]">Wholesale Electrical & Hardware Suppliers</div>
-              <div className="text-[11px] text-[#71717A]">Brandreth Road, Lahore &bull; NTN # 4920194-8</div>
+              <div className="text-[11px] text-[#71717A]">HUSSAINI CHOWK BAHAWALPUR &bull; Ch Tariq, Hamza Tariq 03084046062</div>
             </div>
             <div className="text-right">
               <Badge variant="mint">EXECUTIVE AUDIT REPORT</Badge>

@@ -629,9 +629,9 @@ export const PayrollPage: React.FC = () => {
             {/* Payslip Header */}
             <div className="flex justify-between items-start border-b border-[#E4E4E7] pb-3">
               <div>
-                <div className="font-bold text-base text-[#18181B] font-display">DUKANOS TRADING & CO.</div>
+                <div className="font-bold text-base text-[#18181B] font-display">PUNJAB ELECTRIC STORE</div>
                 <div className="text-[11px] text-[#71717A]">Monthly Staff Payroll Slip</div>
-                <div className="text-[10px] text-[#A1A1AA]">Brandreth Road, Lahore, Pakistan</div>
+                <div className="text-[10px] text-[#A1A1AA]">HUSSAINI CHOWK BAHAWALPUR</div>
               </div>
               <div className="text-right">
                 <Badge variant="mint">SALARY SLIP</Badge>
@@ -699,7 +699,7 @@ export const PayrollPage: React.FC = () => {
             <div className="text-center mb-1">
               <div className="text-lg font-bold tracking-[0.2em]">DUKANOS</div>
               <div className="text-[10px]">ELECTRICAL &amp; APPLIANCE STORE</div>
-              <div>Brandreth Road, Lahore, Pakistan</div>
+              <div>HUSSAINI CHOWK BAHAWALPUR</div>
               <div>Tel: 0300-1234567</div>
             </div>
 
