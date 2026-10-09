@@ -130,7 +130,7 @@ export function buildSalesDocumentHtml(options: PrintSalesDocumentOptions): stri
   return `<!doctype html><html><head><title>${escapeHtml(number)}</title>
 <style>
   @page { margin: 0; }
-  @media print { html, body { height: auto; } body { width: 100%; margin: 0; padding: 10px; } }
+  @media print { html, body { height: auto; } body { width: 100%; margin: 0; padding: 0 4mm; } }
   body { font-family: system-ui, -apple-system, sans-serif; width: 80mm; margin: 0 auto; color: #000; font-size: 14px; font-weight: 600; line-height: 1.3; }
   .center { text-align: center; }
   .dash { border-top: 2px dashed #000; margin: 12px 0; }
@@ -228,7 +228,7 @@ export function buildLedgerReceiptHtml(options: PrintLedgerReceiptOptions): stri
   return `<!doctype html><html><head><title>Receipt ${escapeHtml(receiptNumber)}</title>
 <style>
   @page { margin: 0; }
-  @media print { html, body { height: auto; } body { width: 100%; margin: 0; padding: 10px; } }
+  @media print { html, body { height: auto; } body { width: 100%; margin: 0; padding: 0 4mm; } }
   body { font-family: system-ui, -apple-system, sans-serif; width: 80mm; margin: 0 auto; color: #000; font-size: 14px; font-weight: 600; line-height: 1.3; }
   .center { text-align: center; }
   .dash { border-top: 2px dashed #000; margin: 12px 0; }
